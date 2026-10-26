@@ -20,7 +20,7 @@ export function Hero() {
       <div className="in">
         <div>
           <span className="eyebrow">{hero.eyebrow}</span>
-          <h1>{hero.title}</h1>
+          <h1>{withHighlight(hero.title, hero.titleHighlight)}</h1>
           <p className="lead">{hero.lead}</p>
           <div className="ctas">
             <a className="btn main" href="#signup">
@@ -39,6 +39,19 @@ export function Hero() {
         <PhoneMockup />
       </div>
     </section>
+  )
+}
+
+/** Shows `words` inside `text` in the brand's highlight colour. */
+function withHighlight(text: string, words: string) {
+  const at = words ? text.indexOf(words) : -1
+  if (at < 0) return text
+  return (
+    <>
+      {text.slice(0, at)}
+      <em>{words}</em>
+      {text.slice(at + words.length)}
+    </>
   )
 }
 

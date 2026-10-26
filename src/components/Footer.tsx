@@ -6,7 +6,7 @@ export function Footer() {
     <footer className="foot">
       <div className="in">
         <span>
-          © {new Date().getFullYear()} {site.name}
+          © {new Date().getFullYear()} {site.name} · {site.slogan}
         </span>
         <span>
           <Link to="/terms">Terms</Link>

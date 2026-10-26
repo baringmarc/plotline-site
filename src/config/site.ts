@@ -6,6 +6,8 @@ export const site = {
   /** Shown after the name in the logo, in the accent colour. Empty to hide. */
   nameSuffix: '',
   tagline: 'Online court booking for your venue',
+  /** The brand line from the style guide, shown in the footer. */
+  slogan: 'Plot your day. Fill your hours.',
   trialDays: 7,
   supportEmail: 'hello@example.com',
   messengerUrl: 'https://m.me/your-page',
@@ -23,6 +25,8 @@ export const navLinks = [
 export const hero = {
   eyebrow: 'For pickleball and court sports venues',
   title: 'Still taking bookings in your inbox?',
+  /** Words in the title shown in the highlight colour. Empty for none. */
+  titleHighlight: 'your inbox',
   lead:
     'Give your venue its own booking page. Players see what is open, book a slot and join open play in a minute, with no app and no account. You see every booking from your phone.',
   primaryCta: `Start your ${site.trialDays}-day free trial`,
