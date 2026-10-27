@@ -19,6 +19,8 @@ export const site = {
   facebookUrl: 'https://www.facebook.com/your-page',
   /** A live booking site visitors can try. */
   demoUrl: 'https://claudex-courts.plotline.fit',
+  /** A scheduling page (Google Calendar or Cal.com) shown after the contact form. Empty hides the link (SPEC §7). */
+  bookCallUrl: '',
 }
 
 const fee = peso(pricing.bookingFee)
@@ -345,6 +347,40 @@ export const atAGlance = {
 export const finalBand = {
   title: 'Ready to stop answering “available pa po?”',
   body: 'Free for your venue. Tell us about your courts and we’ll set you up.',
+}
+
+/** The owner contact form (court-booking-system docs/PLATFORM.md §4 `site-contact`). */
+export const contact = {
+  label: 'Contact',
+  title: 'Tell us about your courts',
+  lead: 'We get back to you to set up a call. There is no account to create and nothing to pay.',
+  fields: {
+    firstName: 'First name',
+    lastName: 'Last name',
+    email: 'Email',
+    phone: 'Mobile number',
+    phonePlaceholder: '0917 123 4567',
+    venueName: 'Venue name',
+    venueNamePlaceholder: 'e.g. Sample Pickle Park',
+    location: 'City or town',
+    locationPlaceholder: 'e.g. Pasig',
+    courts: 'Number of courts',
+    facebook: 'Facebook page',
+    facebookPlaceholder: 'facebook.com/yourvenue',
+    message: 'Anything we should know?',
+    messagePlaceholder: 'The best time to call, and whether you’d like an in-person or an online walkthrough',
+    optional: '(optional)',
+  },
+  consentBefore: 'You may contact me about Plotline. I’ve read the',
+  consentLink: 'privacy notice',
+  turnstileNeeded: 'Please complete the check above the button.',
+  turnstileFailed: 'The security check didn’t load. Reload the page, or message us instead.',
+  messageUs: 'Message us',
+  submit: 'Send',
+  sending: 'Sending...',
+  thanksTitle: 'Thanks, we’ll be in touch',
+  thanksBody: 'We got your message and will contact you soon to set up a call.',
+  bookCall: 'Or book a call now',
 }
 
 export const courtOptions = Array.from({ length: 12 }, (_, i) => i + 1)

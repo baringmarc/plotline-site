@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { validateReview, type ReviewPayload } from '../../../supabase/functions/_shared/validate.ts'
+import { validateReview, type ReviewPayload } from '../../lib/siteForms'
 import { useSendReview } from './hooks'
 
 type Fields = Omit<ReviewPayload, 'started'>

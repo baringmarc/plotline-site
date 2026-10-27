@@ -8,9 +8,9 @@ and tracks progress. [RESEARCH.md](RESEARCH.md) holds the technical findings beh
 > Update this section at the end of every session or task. Keep it short; it's the first thing the next session reads.
 
 - **Current milestone:** Milestone 1, Launch readiness (broken down 2026-10-27).
-- **Next task:** T1.7 Contact form, which waits for court-booking-system to deploy `site-contact` (Phase 5). T1.9 (real content and assets) doesn't depend on the platform and can go first.
-- **State:** T1.1–T1.6 done: the landing page is rebuilt in the SPEC §3.1 order, and every CTA goes to `#contact`. Only the old sign-up form (now at `#contact`) still has trial copy, until T1.7. The Demo band is gone, and one dark band colour is used in both themes.
-- **Blockers / notes:** The owner cards leave out staff accounts (admins are promoted by hand, no staff UI) and booking alerts (emails off in production); add them only once they ship. "Run your courts from your phone" assumes the admin pages work on a phone; check `/admin/courts/:id` (the rate grid) when real screenshots are taken. The player's side steps 3–5 are drawn placeholders (`PlayerScreens.tsx`). Replace them with real screenshots once court-booking-system M11 shows the ₱10 fee at checkout, from a booking made on staging or the local stack, not production. `claudex-courts.plotline.fit` doesn't resolve yet; the demo button keeps it (the user's call). Docker Desktop must be running for `npm run test:db`. Open items for launch are in README "Before launch".
+- **Next task:** T1.9 Real content and assets (with placeholders), then T1.10. T1.8 is held until court-booking-system's Phase 5 is live (the user's call, 2026-10-27).
+- **State:** T1.1–T1.7 done. The landing page is rebuilt in the SPEC §3.1 order with the contact form at `#contact`, which posts to `site-contact`; reviews post to `site-review`. Both functions aren't deployed yet, so sending shows an error until Phase 5. The old backend in `supabase/` is no longer called (T1.8 removes it).
+- **Blockers / notes:** The user's rule (2026-10-27): anything still to be decided or provided gets a placeholder now, and T1.11 collects the real values. Open from T1.7: `site.bookCallUrl` is empty (no book-a-call link), and production needs `VITE_TURNSTILE_SITE_KEY` (without it no widget shows and `site-contact` answers 403). PLATFORM.md §4 should list the 503 reply that the drafted `site-contact` sends when its Turnstile secret is unset (a court-booking-system change). The owner cards leave out staff accounts (admins are promoted by hand, no staff UI) and booking alerts (emails off in production); add them only once they ship. "Run your courts from your phone" assumes the admin pages work on a phone; check `/admin/courts/:id` (the rate grid) when real screenshots are taken. The player's side steps 3–5 are drawn placeholders (`PlayerScreens.tsx`). Replace them with real screenshots once court-booking-system M11 shows the ₱10 fee at checkout, from a booking made on staging or the local stack, not production. `claudex-courts.plotline.fit` doesn't resolve yet; the demo button keeps it (the user's call). Docker Desktop must be running for `npm run test:db`. Open items for launch are in README "Before launch".
 - **Platform (2026-10-27):** this repo becomes frontend only. The backend moves to `court-booking-system` (its `docs/PLATFORM.md`; drafts in this repo's `docs/drafts/phase5/` and court-booking-system's `docs/drafts/phase5-site-backend/`). Plan new milestones around the contact form, not the old sign-up and trial, and never add migrations or Edge Functions here.
 
 ## How tasks work
@@ -87,13 +87,14 @@ Design reference for T1.1–T1.6: [taradula.com/list-your-venue](https://taradul
   - Files: `src/config/site.ts`, `src/features/landing/sections.tsx`, `src/routes/LandingPage.tsx`, `src/components/Nav.tsx`, `README.md`
   - Acceptance: no trial or plan wording left anywhere on `/` except inside the old sign-up form (T1.7); exit-terms rows are left out until SPEC §7 settles them; nav links point at sections that exist.
 
-- [ ] **T1.7 Contact form** (waits for the platform's `site-contact`)
+- [x] **T1.7 Contact form** (built ahead of the platform's `site-contact`, the user's call)
+  - Notes: `features/contact` (`ContactForm.tsx` + test), `components/Turnstile.tsx` + test, `lib/turnstile.ts`, `lib/siteForms.ts` (byte-identical to court-booking-system's draft original), `lib/functions.test.ts` (each reply's own message). Reviews call `site-review`. The old `features/signup` is gone. A Turnstile load failure shows its own notice with a Messenger link. RESEARCH "Turnstile" is Decided. Reviewer: PASS.
   - Do: apply `docs/drafts/phase5/` (siteForms copy, `features/contact/api.ts`, reviews api, env example). Turn `SignupForm` into `ContactForm` at `#contact` with the PLATFORM.md fields, one consent checkbox, Turnstile and the honeypot. The message placeholder asks for the best time to call and an in-person or online walkthrough. Thank-you state with an optional "book a call" link from `site.ts`.
   - Depends: court-booking-system Phase 5 deployed to staging; T1.6
   - Files: `src/lib/siteForms.ts`, `src/features/contact/*`, `src/features/reviews/api.ts`, `src/config/site.ts`, `.env.example`
   - Acceptance: fields and replies (200/400/403/500) match PLATFORM.md §4, each with its own message; `siteForms.ts` is byte-identical to the platform's; tests cover validation, a successful send and each error reply.
 
-- [ ] **T1.8 Remove the old sign-up and backend**
+- [ ] **T1.8 Remove the old sign-up and backend** (held until court-booking-system's Phase 5 is live, the user's call 2026-10-27)
   - Do: delete `features/signup`, `/welcome`, `trialDays` and `courtOptions` if unused, `supabase/migrations`, `supabase/functions`, `supabase/tests`, the old `db:*`/`functions:serve` scripts and `docs/drafts/phase5/`. Add `db:types` from the shared project.
   - Depends: T1.7
   - Files: as listed, `package.json`, `README.md`, `CLAUDE.md`
@@ -110,3 +111,9 @@ Design reference for T1.1–T1.6: [taradula.com/list-your-venue](https://taradul
   - Depends: SPEC §7 exit terms settled
   - Files: `src/routes/SimplePages.tsx` (or one file per page), `src/config/site.ts`
   - Acceptance: terms match SAAS-PLAN §1 and the "At a glance" sheet; the contact form's consent links to `/privacy`.
+
+- [ ] **T1.11 Real values for every placeholder**
+  - Do: replace each placeholder from T1.7–T1.10 with the real value, once the user provides or decides it: support email, Messenger and Facebook links, `bookCallUrl`, real venues (with permission) and logos, real reviews, the share image, `VITE_TURNSTILE_SITE_KEY` for production, the booking fee if it changes, the Terms' exit terms and provider, and the Privacy notice's controller and contact. Each placeholder is marked `PLACEHOLDER` in `src/config/site.ts` or the page that holds it.
+  - Depends: T1.9, T1.10; the user's values
+  - Files: `src/config/site.ts`, `index.html`, `public/`, `src/routes/SimplePages.tsx` (or the legal pages), deploy env vars
+  - Acceptance: `grep -rn PLACEHOLDER src index.html` finds nothing; T1.9's and T1.10's acceptance hold with real values.

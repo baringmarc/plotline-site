@@ -81,15 +81,16 @@ Every async view handles loading, empty and error states. Mobile-first.
 
 ## 4. Flows
 
-### Owner sign-up
-1. The form posts to the `register` Edge Function, which validates (`_shared/validate.ts`) and drops bots.
-2. `auth.signUp` with the form fields as metadata; trigger copies them to `venue_signups` (`pending`).
-3. Email link returns to `/welcome`; confirming sets `status = 'trial'`, `trial_ends_at = confirmed + 7 days`.
+### Owner contact (T1.7)
+1. The form at `#contact` (`features/contact`) checks the fields with `src/lib/siteForms.ts`, an exact copy of the platform's rules. It needs the consent box (linked to `/privacy`) and, when a Turnstile site key is set, a passed check.
+2. It posts the PLATFORM.md §4 fields to the platform's `site-contact` function, with the honeypot, the time of first touch and the Turnstile token. The function stores a lead; no account is created.
+3. `200 { ok: true }` shows "Thanks, we'll be in touch", plus a "book a call" link when `site.bookCallUrl` is set. Any other reply shows the function's own message, and the Turnstile widget resets for a fresh token (each token works once).
+4. Site key: `VITE_TURNSTILE_SITE_KEY`. Without it, development uses Cloudflare's always-pass test key, and a production build shows no widget (the function then refuses the form).
 
-Statuses: `pending` → `trial` → `active` | `cancelled`.
+**Until court-booking-system deploys `site-contact` and `site-review` (Phase 5), both forms show an error:** the functions don't exist yet. The old local backend (`register`, `feedback`) stays until then (T1.8), but nothing calls it.
 
 ### Reviews
-The `feedback` Edge Function stores a review with `approved = false`. Only approved reviews are public.
+The review form posts to the platform's `site-review` function, which stores the review with `approved = false`. Only approved reviews are public (read from `reviews`).
 
 ## 5. Data model
 - `venue_signups`: one row per owner (limits are CHECK constraints; mirrored in `_shared/validate.ts`).
@@ -106,6 +107,7 @@ The `feedback` Edge Function stores a review with `approved = false`. Only appro
 | 2026-10-27 | The player walkthrough's last step is "their booking link", not "a reminder". Steps 1–2 use read-only screenshots of the live demo (`/book`, tomorrow, two hours picked); steps 3–5 are drawn until court-booking-system's M11 shows the fee at checkout. The demo button stays on `claudex-courts.plotline.fit` although its DNS isn't live yet (the user's call: the site isn't public before launch) | The product sends no reminders, and booking emails are off in production; a real booking for screenshots would send real data to production |
 | 2026-10-27 | The owner cards leave out staff accounts and booking alerts | Admins are promoted by hand in the database and there's no staff management; booking emails are off in production (court-booking-system SPEC §2, §8) |
 | 2026-10-27 | Final order as in §3.1; the old Demo band is dropped (the hero links to the demo). One dark band colour in both themes (`--band`, no terracotta override). The FAQ's staff answer says we set up the logins; it never promises staff management | §3.1 lists no demo band; one dark variant; admins are promoted by hand |
+| 2026-10-27 | T1.7 is built against the PLATFORM.md contract before the platform deploys it; T1.8 (removing the old backend) waits for Phase 5 (the user's call). Turnstile: explicit rendering, `theme: auto`, `size: flexible`, reset after every failed send; Cloudflare's test key only in development | The frontend is ready the moment Phase 5 ships; test keys' dummy tokens are refused by real secret keys (RESEARCH M1) |
 | 2026-10-27 | The contact form keeps the PLATFORM.md fields. "Best time to call" and "demo preference" go in the message placeholder for now | Extra fields are a contract change (PLATFORM.md §7); not worth it before launch |
 
 ## 7. Open questions

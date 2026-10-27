@@ -12,7 +12,7 @@ import {
   Venues,
 } from '../features/landing/sections'
 import { ReviewsSection } from '../features/reviews/ReviewsSection'
-import { SignupSection } from '../features/signup/SignupForm'
+import { ContactSection } from '../features/contact/ContactForm'
 
 /** The sections in the SPEC §3.1 order. Plain, tinted and dark backgrounds take turns. */
 export function LandingPage() {
@@ -29,7 +29,7 @@ export function LandingPage() {
       <Steps />
       <Faq />
       <AtAGlance />
-      <SignupSection />
+      <ContactSection />
       <FinalBand />
     </>
   )
