@@ -2,7 +2,7 @@ import { render, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { costs, peso, playerSide, pricing, site } from '../../config/site'
 import { workedExample } from './pricing'
-import { Costs, Hero, MoneyFlow, PlayerSide, ShortVersion } from './sections'
+import { Costs, Features, Hero, MoneyFlow, PlayerSide, ShortVersion } from './sections'
 
 /**
  * Every peso amount in the section's copy, e.g. ["₱0", "₱10"]. Decorative parts (the phone mockup's
@@ -89,12 +89,13 @@ describe('PlayerSide', () => {
 
 /** Features court-booking-system doesn't ship yet (SAAS-PLAN Phase 5 "Copy"; SPEC §3.1). */
 const UNSHIPPED =
-  /waitlist|skill level|reminder|logo|pay at the venue|pay when they arrive|walk-in|open play (sessions? )?(with )?slots|join open play|sign(s)? up for (open play|a session)/i
+  /staff accounts?|booking alerts?|waitlist|skill level|reminder|logo|pay at the venue|pay when they arrive|walk-in|open play (sessions? )?(with )?slots|join open play|sign(s)? up for (open play|a session)/i
 
 describe.each([
   ['Hero', Hero],
   ['ShortVersion', ShortVersion],
   ['PlayerSide', PlayerSide],
+  ['Features', Features],
   ['Costs', Costs],
   ['MoneyFlow', MoneyFlow],
 ])('%s', (_, Section) => {

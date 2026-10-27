@@ -172,19 +172,44 @@ export const openPlay = {
   points: ['On any courts', 'Your title and details', 'Up to 3 links', 'Never billed'],
 }
 
+/** The owner's side. Only features court-booking-system ships today (SPEC §3.1 "Feature claims"). */
 export const featuresHead = {
-  label: 'What you get',
-  title: 'Everything a court venue needs',
-  lead: 'Nothing you have to learn. Your staff can use it on day one.',
+  label: 'Your side',
+  title: 'Run your courts from your phone',
+  lead: 'Everything you need at the counter, on a phone or a laptop, with nothing new to learn.',
 }
 
 export const features = [
-  { icon: '📅', title: 'Live slot grid', body: 'Each court and each hour, open or taken, updated the moment someone books.' },
-  { icon: '📱', title: 'Built for phones', body: 'Your players book from Messenger links and your staff manage from the counter.' },
-  { icon: '💸', title: 'GCash and Maya', body: 'Take payment ahead, or let players pay when they arrive. Your choice per court.' },
-  { icon: '🏓', title: 'Open play sessions', body: 'Slots, waitlist and skill level for each session, filled by players themselves.' },
-  { icon: '🔔', title: 'Booking alerts', body: 'Get notified of each new booking, so nothing waits for a reply.' },
-  { icon: '🌐', title: 'Your own web address', body: 'A booking page with your name and logo that you can share anywhere.' },
+  {
+    icon: '📅',
+    title: 'Today’s courts at a glance',
+    body: 'Every court and hour for today, with who is playing and their booking reference.',
+  },
+  {
+    icon: '🧾',
+    title: 'Payment proofs in a tap',
+    body: 'See the proof, get a warning when the amount doesn’t match, then approve it or reject it with a reason so the player can send a new one.',
+  },
+  {
+    icon: '🌗',
+    title: 'Peak and off-peak rates',
+    body: 'Charge more on evenings and weekends and less when it’s quiet. Players see each price on the grid.',
+  },
+  {
+    icon: '🚧',
+    title: 'Hours and blackouts',
+    body: 'Set your opening hours and block off times for repairs or private events, so nobody books them.',
+  },
+  {
+    icon: '🔁',
+    title: 'Move a booking',
+    body: 'Rain, repairs or a request? Move a confirmed booking to another court or time for the same sport. The player sees the change and your reason.',
+  },
+  {
+    icon: '📈',
+    title: 'Earnings and occupancy',
+    body: 'Money collected by method, booked hours and how full each court is, for a day, week, month or your own range. Export it to CSV.',
+  },
 ]
 
 export const costs = {
