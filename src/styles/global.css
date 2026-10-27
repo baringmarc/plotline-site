@@ -398,10 +398,8 @@ section.dark .stat .big { color: var(--rose); }
 .step h3 { margin: 12px 0 4px; font-size: 20px; }
 .step p { margin: 0; color: var(--text-soft); }
 
-/* demo band: a dusty rose promo, the same in both themes */
-.demo { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; background: var(--rose); border-color: var(--rose); color: var(--brown); }
-.demo h3 { margin: 0 0 4px; font-size: 22px; }
-.demo p { margin: 0; color: var(--brown-soft); }
+/* a narrower column for a single card, like the fact sheet */
+.in.narrow { max-width: 760px; }
 
 /* forms */
 .signup { background: var(--bg-alt); }
@@ -458,8 +456,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--t
 
   .chips span { background: rgba(183, 196, 168, 0.18); border-color: rgba(183, 196, 168, 0.4); }
 
-  .band { background: var(--terracotta); }
-
   /* cycle the palette across repeated cards */
   .track > :nth-child(4n + 2) .badge { background: var(--sage); }
   .track > :nth-child(4n + 3) .badge { background: var(--sand); }
@@ -474,8 +470,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--t
   .grid3 > .feature:nth-child(4n + 4) .ico { background: rgba(122, 63, 44, 0.6); }
 
   .step .num { background: var(--sage); color: var(--brown); }
-  .grid3 > .step:nth-child(3n + 2) .num { background: var(--rose); }
-  .grid3 > .step:nth-child(3n + 3) .num { background: var(--sand); }
+  .flow > li:nth-child(4n + 2) .num { background: var(--rose); }
+  .flow > li:nth-child(4n + 3) .num { background: var(--sand); }
 
   .grid2 > .card { border-top: 3px solid var(--sage); }
   .grid2 > .card:nth-child(even) { border-top-color: var(--rose); }

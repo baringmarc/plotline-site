@@ -1,6 +1,6 @@
 import {
+  AtAGlance,
   Costs,
-  Demo,
   Faq,
   Features,
   FinalBand,
@@ -14,21 +14,22 @@ import {
 import { ReviewsSection } from '../features/reviews/ReviewsSection'
 import { SignupSection } from '../features/signup/SignupForm'
 
+/** The sections in the SPEC §3.1 order. Plain, tinted and dark backgrounds take turns. */
 export function LandingPage() {
   return (
     <>
       <Hero />
       <ShortVersion />
-      <Venues />
-      <ReviewsSection />
       <PlayerSide />
       <Features />
       <Costs />
       <MoneyFlow />
+      <Venues />
+      <ReviewsSection />
       <Steps />
-      <Demo />
-      <SignupSection />
       <Faq />
+      <AtAGlance />
+      <SignupSection />
       <FinalBand />
     </>
   )

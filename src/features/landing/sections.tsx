@@ -4,8 +4,12 @@ import { Reveal } from '../../components/Reveal'
 import { SectionHead } from '../../components/SectionHead'
 import { Slider } from '../../components/Slider'
 import {
+  atAGlance,
+  contactAnchor,
   costs,
+  faqHead,
   faqs,
+  finalBand,
   features,
   featuresHead,
   hero,
@@ -17,6 +21,7 @@ import {
   shortVersion,
   site,
   steps,
+  stepsHead,
   venues,
   type Venue,
 } from '../../config/site'
@@ -49,7 +54,7 @@ export function Hero() {
             ))}
           </div>
           <div className="ctas">
-            <a className="btn main" href="#signup">
+            <a className="btn main" href={contactAnchor}>
               {hero.primaryCta} →
             </a>
             <a className="btn ghost" href={site.demoUrl} target="_blank" rel="noreferrer">
@@ -157,7 +162,7 @@ export function Venues() {
 export function PlayerSide() {
   const total = playerSide.steps.length
   return (
-    <section className="white" id="players">
+    <section id="players">
       <div className="in">
         <SectionHead label={playerSide.label} title={playerSide.title} lead={playerSide.lead} />
         {/* one swipeable row on phones, five columns on wide screens */}
@@ -193,7 +198,7 @@ export function PlayerSide() {
 
 export function Features() {
   return (
-    <section id="features">
+    <section className="white" id="features">
       <div className="in">
         <SectionHead label={featuresHead.label} title={featuresHead.title} lead={featuresHead.lead} />
         <div className="grid3">
@@ -218,7 +223,7 @@ export function Costs() {
   const worked = workedExample(example.ratePerHour, example.hours, pricing.bookingFee)
   const rows = feeComparison(compare.courtPrices, pricing.bookingFee, compare.percent)
   return (
-    <section className="white" id="pricing">
+    <section id="pricing">
       <div className="in">
         <SectionHead label={costs.label} title={costs.title} lead={costs.lead} />
         <div className="stats center-stats">
@@ -279,7 +284,7 @@ export function Costs() {
           </Reveal>
         </div>
         <p className="center midcta">
-          <a className="btn main" href="#signup">
+          <a className="btn main" href={contactAnchor}>
             {costs.cta} →
           </a>
         </p>
@@ -322,37 +327,22 @@ export function MoneyFlow() {
 
 export function Steps() {
   return (
-    <section>
+    <section id="start">
       <div className="in">
-        <h2 className="title">Live in three steps</h2>
-        <p className="sub">Most venues take their first online booking the same week.</p>
-        <div className="grid3">
+        <SectionHead label={stepsHead.label} title={stepsHead.title} lead={stepsHead.lead} />
+        <ol className="flow">
           {steps.map((s, i) => (
-            <div key={s.title} className="card step">
-              <span className="num">{i + 1}</span>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-            </div>
+            <li key={s.title}>
+              <Reveal className="card step" delay={i * 80}>
+                <span className="num" aria-hidden="true">
+                  {i + 1}
+                </span>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+              </Reveal>
+            </li>
           ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-export function Demo() {
-  return (
-    <section id="demo" style={{ padding: '8px 0 20px' }}>
-      <div className="in">
-        <div className="card demo">
-          <div>
-            <h3>Try it as a player</h3>
-            <p>Open a sample venue and book a slot. Nothing is charged.</p>
-          </div>
-          <a className="btn dark" href={site.demoUrl} target="_blank" rel="noreferrer">
-            Open the demo →
-          </a>
-        </div>
+        </ol>
       </div>
     </section>
   )
@@ -360,12 +350,17 @@ export function Demo() {
 
 export function Faq() {
   return (
-    <section id="faq" style={{ paddingTop: 20 }}>
+    <section className="white" id="faq">
       <div className="in">
-        <h2 className="title">Questions</h2>
-        <p className="sub">
-          Something else? <a href={site.messengerUrl}>Message us</a>.
-        </p>
+        <SectionHead
+          label={faqHead.label}
+          title={faqHead.title}
+          lead={
+            <>
+              {faqHead.lead} <a href={site.messengerUrl}>{faqHead.leadLink}</a>.
+            </>
+          }
+        />
         <div className="faq">
           {faqs.map((f) => (
             <details key={f.q}>
@@ -379,14 +374,32 @@ export function Faq() {
   )
 }
 
+export function AtAGlance() {
+  return (
+    <section id="at-a-glance">
+      <div className="in narrow">
+        <SectionHead label={atAGlance.label} title={atAGlance.title} />
+        <dl className="facts">
+          {atAGlance.rows.map((r) => (
+            <div key={r.label}>
+              <dt>{r.label}</dt>
+              <dd>{r.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  )
+}
+
 export function FinalBand() {
   return (
     <section className="band">
       <div className="in">
         <img src="/logo.svg" alt="" width={56} height={56} />
-        <h2>Ready to stop answering “available pa po?”</h2>
-        <p>Start your free trial today. We help you set up.</p>
-        <a className="btn main" href="#signup">
+        <h2>{finalBand.title}</h2>
+        <p>{finalBand.body}</p>
+        <a className="btn main" href={contactAnchor}>
           {hero.primaryCta} →
         </a>
       </div>

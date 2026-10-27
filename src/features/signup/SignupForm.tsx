@@ -27,7 +27,7 @@ const EMPTY: Fields = {
 
 export function SignupSection() {
   return (
-    <section className="signup" id="signup">
+    <section className="signup" id="contact">
       <div className="in">
         <h2 className="title">Start your {site.trialDays}-day free trial</h2>
         <p className="sub">Tell us about your venue. We confirm your email, then set up your booking page.</p>

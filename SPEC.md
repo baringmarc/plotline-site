@@ -50,9 +50,9 @@ Every async view handles loading, empty and error states. Mobile-first.
 | 5 | What it costs | Stat tiles, a worked example (court price + ₱10 = what the player pays; the venue keeps the full court price) and a flat fee vs an illustrative percentage fee table at several booking sizes. Both are computed from the fee in config, never typed in |
 | 6 | Where the money goes | A 4-step flow: player books → pays the venue (its own GCash, Maya, bank or PayMongo) → the booking is confirmed → Plotline sends one monthly invoice for the fees. Then what's never billed |
 | 7 | Venues and reviews | As today (`Venues`, `ReviewsSection`) |
-| 8 | Getting started | 4 steps: you contact us → we set up your courts, hours and rates → you get your link and QR poster → we walk your staff through it |
+| 8 | Getting started | 4 steps: you contact us → we set up your courts, hours and rates → you get your booking link → we walk you and your team through it (no QR poster: it isn't a product feature) |
 | 9 | FAQ | Objection-led questions (see the rules below) |
-| 10 | At a glance | A label/value fact sheet: service, setup fee, monthly fee, booking fee, not billed, payments, billing, your data, provider |
+| 10 | At a glance | A label/value fact sheet: service, setup fee, monthly fee, booking fee, not billed, payments, billing, your data (CSV export). Exit terms and the provider are added once settled (§7) |
 | 11 | Contact | The contact form (`site-contact`); after sending, a thank-you state with an optional "book a call" link |
 | 12 | Final band | One line and the CTA |
 
@@ -105,10 +105,11 @@ The `feedback` Edge Function stores a review with `approved = false`. Only appro
 | 2026-10-27 | The landing page is rebuilt around the pricing model (§3.1), using taradula.com/list-your-venue as the design reference for structure only. It stays on `/`, with no separate owner page | The whole site is for venue owners. The reference sells a near-identical model well (price-led hero, short summary, worked example, money flow); our claims and brand stay our own |
 | 2026-10-27 | The player walkthrough's last step is "their booking link", not "a reminder". Steps 1–2 use read-only screenshots of the live demo (`/book`, tomorrow, two hours picked); steps 3–5 are drawn until court-booking-system's M11 shows the fee at checkout. The demo button stays on `claudex-courts.plotline.fit` although its DNS isn't live yet (the user's call: the site isn't public before launch) | The product sends no reminders, and booking emails are off in production; a real booking for screenshots would send real data to production |
 | 2026-10-27 | The owner cards leave out staff accounts and booking alerts | Admins are promoted by hand in the database and there's no staff management; booking emails are off in production (court-booking-system SPEC §2, §8) |
+| 2026-10-27 | Final order as in §3.1; the old Demo band is dropped (the hero links to the demo). One dark band colour in both themes (`--band`, no terracotta override). The FAQ's staff answer says we set up the logins; it never promises staff management | §3.1 lists no demo band; one dark variant; admins are promoted by hand |
 | 2026-10-27 | The contact form keeps the PLATFORM.md fields. "Best time to call" and "demo preference" go in the message placeholder for now | Extra fields are a contract change (PLATFORM.md §7); not worth it before launch |
 
 ## 7. Open questions
 - Turnstile CAPTCHA before launch: the token goes to the platform's `site-contact` function (its secret lives in court-booking-system), not to `auth.signUp`.
-- Exit terms and data for the "At a glance" sheet and the FAQ: notice period to leave, what happens to unpaid invoices, whether the venue can export its bookings. Not settled in SAAS-PLAN yet; leave those rows out until it is.
+- Exit terms for the "At a glance" sheet and the FAQ: notice period to leave, what happens to unpaid invoices, and whether a venue can still export its bookings after it leaves or while it's suspended (the CSV export from the admin pages already ships). Not settled in SAAS-PLAN yet; leave those rows out until it is.
 - A "book a call" link after the contact form (Google Calendar or Cal.com): which tool and whose calendar. Optional; the thank-you state works without it.
 - ~~Real SMTP provider for confirmation emails.~~ No longer needed here: the contact form creates no account, so the site sends no auth emails. Plotline's email sender is set up in court-booking-system (SAAS-PLAN Phase 0).

@@ -23,11 +23,21 @@ export const site = {
 
 const fee = peso(pricing.bookingFee)
 
+/** Section anchors in the top bar. Each must match a section id on the landing page. */
 export const navLinks = [
-  { href: '#features', label: 'Features' },
+  { href: '#players', label: 'For players' },
+  { href: '#features', label: 'Your side' },
   { href: '#pricing', label: 'Pricing' },
   { href: '#faq', label: 'FAQ' },
 ]
+
+/** The contact form's anchor, the target of every call to action. */
+export const contactAnchor = '#contact'
+
+export const nav = {
+  cta: 'Get started',
+  messenger: 'Message us',
+}
 
 export const hero = {
   eyebrow: 'For pickleball and court sports venues',
@@ -257,33 +267,84 @@ export const moneyFlow = {
   quiet: 'A quiet month costs you nothing.',
 }
 
+export const stepsHead = {
+  label: 'Getting started',
+  title: 'Live in four steps',
+  lead: 'Nothing to set up on your own. We get your venue online together with you.',
+}
+
 export const steps = [
-  { title: 'Sign up', body: 'Tell us about your venue. It takes two minutes.' },
-  { title: 'We set it up', body: 'We add your courts, hours and rates, and send you your link.' },
-  { title: 'Share your link', body: 'Post it on your page and in your group chats. Bookings start coming in.' },
+  { title: 'You contact us', body: 'Send the form below or message us, and we set up a call at a time that suits you.' },
+  { title: 'We set up your venue', body: 'We add your courts, opening hours, rates and payment details with you.' },
+  {
+    title: 'You get your link',
+    body: 'Your own booking page, ready to post on your Facebook page and in your group chats.',
+  },
+  { title: 'We walk you through it', body: 'A short walkthrough for you and your team, and we stay a message away after.' },
 ]
+
+export const faqHead = {
+  label: 'Questions',
+  title: 'What owners ask us',
+  /** Shown before the Messenger link. */
+  lead: 'Something else?',
+  leadLink: 'Message us',
+}
 
 export const faqs = [
   {
     q: 'Do my players need to download an app?',
-    a: 'No. Your booking page opens in any phone browser, including straight from Messenger.',
+    a: 'No. Your booking page opens in any phone browser, straight from a Messenger or Facebook link. Players can book as a guest or sign in.',
   },
   {
-    q: 'What happens after the free trial?',
-    a: `After ${site.trialDays} days you choose a plan. If you do not, your page simply stops taking new bookings. We never charge you without asking.`,
+    q: 'What if a player books and doesn’t pay?',
+    a: 'The slot is held for a set time while they pay. If no payment or proof arrives, it goes back on sale by itself. Nothing is billed for a booking that was never confirmed.',
   },
   {
-    q: 'Can I still take walk-ins?',
-    a: 'Yes. Add walk-ins from your phone so the slot grid stays right for everyone else.',
+    q: 'What if a player cancels?',
+    a: `They can cancel up to your cut-off time, and you settle any refund with them directly. Once a booking was confirmed, its ${fee} fee still counts. If you cancel a booking, the player gets the fee back and it isn’t billed to you.`,
   },
   {
-    q: 'How do players pay?',
-    a: 'You choose: pay ahead with GCash or Maya, or pay at the venue. You can mix both.',
+    q: 'What does PayMongo cost?',
+    a: 'PayMongo charges its own fee on online payments, on the whole amount the player pays. That fee is between you and PayMongo, in your own account. GCash, Maya and bank payments sent to you with a proof don’t go through PayMongo.',
   },
   {
     q: 'Can I change my rates and hours later?',
-    a: 'Any time, from your dashboard. Changes show on your booking page right away.',
+    a: 'Any time, from your admin pages. Your booking page shows the change right away.',
+  },
+  {
+    q: 'Does open play cost anything?',
+    a: 'No. Post a session with your details and links, and it shows on your grid so nobody books over it. Open play is never billed.',
+  },
+  {
+    q: 'Can my staff log in too?',
+    a: 'Yes. When we set up your venue, we also set up the logins you and your team need.',
+  },
+  {
+    q: 'How do I pay Plotline?',
+    a: 'Once a month we send one invoice for the booking fees your venue collected, with every booking listed. You pay it by GCash or bank transfer.',
   },
 ]
+
+/** The offer as a fact sheet. Exit terms and the provider are left out until they are settled (SPEC §7). */
+export const atAGlance = {
+  label: 'At a glance',
+  title: 'The whole offer, on one card',
+  rows: [
+    { label: 'Service', value: 'An online booking page for your courts, and admin pages to run them' },
+    { label: 'Setup fee', value: peso(0) },
+    { label: 'Monthly fee', value: peso(0) },
+    { label: 'Booking fee', value: `${fee} per confirmed online booking, paid by the player` },
+    { label: 'Not billed', value: pricing.notBilled.map((n, i) => (i ? n[0].toLowerCase() + n.slice(1) : n)).join(', ') },
+    { label: 'Payments', value: 'Players pay you directly: GCash, Maya, bank, or your own PayMongo account' },
+    { label: 'Billing', value: 'One invoice a month, with every booking listed' },
+    { label: 'Your data', value: 'Export your bookings and payments to CSV from your admin pages' },
+  ],
+}
+
+export const finalBand = {
+  title: 'Ready to stop answering “available pa po?”',
+  body: 'Free for your venue. Tell us about your courts and we’ll set you up.',
+}
 
 export const courtOptions = Array.from({ length: 12 }, (_, i) => i + 1)

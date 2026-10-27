@@ -48,7 +48,7 @@ export function WelcomePage() {
             It may have expired or already been used. Try signing up again, or email us at{' '}
             <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>.
           </p>
-          <a className="btn dark" href="/#signup">
+          <a className="btn dark" href="/#contact">
             Back to sign-up
           </a>
         </>
