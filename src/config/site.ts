@@ -6,6 +6,8 @@ import { peso, pricing } from './pricing'
 
 /** The pricing model lives in ./pricing; re-exported so components import copy from one place. */
 export { peso, pricing }
+/** The Terms and Privacy text live in ./legal (too long for this file). */
+export { legalDraftNotice, privacy, terms, type LegalPage } from './legal'
 
 export const site = {
   name: 'Plotline',

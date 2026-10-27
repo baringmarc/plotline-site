@@ -1,29 +1,39 @@
 import { Link } from 'react-router-dom'
-import { site } from '../config/site'
+import { legalDraftNotice, privacy, site, terms, type LegalPage } from '../config/site'
 
-// Placeholders. Have the real Terms and Privacy Policy written for your business before launch
-// (in the Philippines, the privacy notice should follow the Data Privacy Act of 2012).
-
-export function TermsPage() {
+/** A Terms or Privacy page: title, the draft notice while it applies, then its sections. */
+function Legal({ page }: { page: LegalPage }) {
   return (
-    <div className="page">
-      <h1>Terms of Service</h1>
-      <p className="hint">Placeholder. Replace with your own terms before launch.</p>
-      <p>These terms cover your use of {site.name} as a venue owner.</p>
-    </div>
+    <article className="page legal">
+      <h1>{page.title}</h1>
+      {legalDraftNotice && <p className="hint draft">{legalDraftNotice}</p>}
+      <p className="hint">Last updated {page.updated}</p>
+      <p>{page.intro}</p>
+      {page.sections.map((s) => (
+        <section key={s.title}>
+          <h2>{s.title}</h2>
+          {s.paragraphs?.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
+          {s.list && (
+            <ul>
+              {s.list.map((li) => (
+                <li key={li}>{li}</li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ))}
+    </article>
   )
 }
 
+export function TermsPage() {
+  return <Legal page={terms(site.supportEmail)} />
+}
+
 export function PrivacyPage() {
-  return (
-    <div className="page">
-      <h1>Privacy Policy</h1>
-      <p className="hint">Placeholder. Replace with your own privacy notice before launch.</p>
-      <p>
-        Questions about your data: <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>.
-      </p>
-    </div>
-  )
+  return <Legal page={privacy(site.supportEmail)} />
 }
 
 export function NotFoundPage() {

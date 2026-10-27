@@ -108,7 +108,7 @@ export function ReviewForm() {
       </div>
       <label className="check">
         <input type="checkbox" checked={f.consent} onChange={(e) => set('consent', e.target.checked)} />
-        <span>You may show my review and first name on this site.</span>
+        <span>You may show my review, with the name I give, on this site.</span>
       </label>
       {error && (
         <div className="err" role="alert">

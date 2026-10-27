@@ -451,6 +451,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--t
 /* simple pages (welcome, terms, privacy, 404) */
 .page { max-width: 720px; margin: 0 auto; padding: 56px 20px; }
 .page h1 { margin-top: 0; }
+/* Terms and Privacy: sections inside the article, not full-width bands */
+.legal section { padding: 0; }
+.legal h2 { font-size: 22px; margin: 32px 0 8px; }
+.legal ul { padding-left: 20px; }
+.legal li { margin: 6px 0; }
+.legal .draft { background: var(--panel); padding: 10px 14px; border-radius: 12px; }
 
 /* Dark theme: brown stays the page, and the rest of the palette carries the sections and accents. */
 @media (prefers-color-scheme: dark) {

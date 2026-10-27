@@ -31,7 +31,7 @@ reviews, and start a 7-day free trial.
 | --- | --- |
 | `/` | Landing page (sections listed in README) |
 | `/welcome` | Where the confirmation email lands |
-| `/terms`, `/privacy` | Legal pages (placeholders until launch) |
+| `/terms`, `/privacy` | Draft Terms for venues and Privacy notice (`src/config/legal.ts`): the offer as in SAAS-PLAN §1 and "At a glance", what the two forms collect and why, under the Data Privacy Act. Undecided parts are visible "[to be decided]" placeholders and the pages say they are drafts |
 
 Every async view handles loading, empty and error states. Mobile-first.
 
@@ -109,10 +109,12 @@ The review form posts to the platform's `site-review` function, which stores the
 | 2026-10-27 | Final order as in §3.1; the old Demo band is dropped (the hero links to the demo). One dark band colour in both themes (`--band`, no terracotta override). The FAQ's staff answer says we set up the logins; it never promises staff management | §3.1 lists no demo band; one dark variant; admins are promoted by hand |
 | 2026-10-27 | T1.7 is built against the PLATFORM.md contract before the platform deploys it; T1.8 (removing the old backend) waits for Phase 5 (the user's call). Turnstile: explicit rendering, `theme: auto`, `size: flexible`, reset after every failed send; Cloudflare's test key only in development | The frontend is ready the moment Phase 5 ships; test keys' dummy tokens are refused by real secret keys (RESEARCH M1) |
 | 2026-10-27 | Values still to be provided are PLACEHOLDERs in `site.ts` with safe defaults: the support email on our domain, an empty Messenger link ("Message us" falls back to email), an empty Facebook link (hidden), an empty book-a-call link (hidden). The sample venue list is replaced by the demo venue only. T1.11 sets the real values | The user's call; a made-up page handle could point at someone else's page, and invented venues would be a false claim |
+| 2026-10-27 | The Terms and Privacy notice are written now as drafts, with visible placeholders for what isn't decided, rather than waiting for the exit terms (T1.10's dependency) | The user's call: defaults now, real values in T1.11 |
 | 2026-10-27 | The contact form keeps the PLATFORM.md fields. "Best time to call" and "demo preference" go in the message placeholder for now | Extra fields are a contract change (PLATFORM.md §7); not worth it before launch |
 
 ## 7. Open questions
 - Turnstile CAPTCHA before launch: the token goes to the platform's `site-contact` function (its secret lives in court-booking-system), not to `auth.signUp`.
-- Exit terms for the "At a glance" sheet and the FAQ: notice period to leave, what happens to unpaid invoices, and whether a venue can still export its bookings after it leaves or while it's suspended (the CSV export from the admin pages already ships). Not settled in SAAS-PLAN yet; leave those rows out until it is.
+- Exit terms for the "At a glance" sheet and the FAQ: notice period to leave, what happens to unpaid invoices, and whether a venue can still export its bookings after it leaves or while it's suspended (the CSV export from the admin pages already ships). Not settled in SAAS-PLAN yet; leave those rows out until it is. The Terms show it as a "[to be decided]" placeholder.
+- For the Terms and Privacy notice (T1.10 placeholders, T1.11): the provider's registered name and address (also the personal information controller), the notice period before a fee change, how a suspension is lifted, how venues' PayMongo keys are stored and protected (SAAS-PLAN Phase 4), how long contact-form leads are kept, the email provider that sends us new leads, and a legal review of both pages.
 - A "book a call" link after the contact form (Google Calendar or Cal.com): which tool and whose calendar. Optional; the thank-you state works without it.
 - ~~Real SMTP provider for confirmation emails.~~ No longer needed here: the contact form creates no account, so the site sends no auth emails. Plotline's email sender is set up in court-booking-system (SAAS-PLAN Phase 0).
