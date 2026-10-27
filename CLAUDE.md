@@ -38,7 +38,7 @@ Until Phase 5 the old local backend scripts still exist (`db:start`, `functions:
 - If a change needs a new field, function or table, it's a contract change: follow court-booking-system's `docs/PLATFORM.md` §7 (the platform repo first, then here).
 
 ## Workflow
-- `/implement [T1.1 | milestone | request]` builds a task end to end (plan gate for DB/auth work, verify, `reviewer` agent).
+- `/implement [T1.1 | milestone | request]` builds a task end to end (plan gate for DB/auth work, verify, `reviewer` agent), then commits it (never pushes) once verify passes and the reviewer signs off.
 - A Stop hook (`.claude/hooks/verify-gate.mjs`) blocks finishing while `npm run verify` fails.
 - Update the TASKS.md Handoff section at the end of each task; update SPEC.md when behavior changes.
 - Never run two test runs at once: they share the local database.
