@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Landing and owner sign-up site for a court booking product. See [README.md](README.md).
+Landing and owner sign-up site for a court booking product. See [README.md](README.md). Behavior: [SPEC.md](SPEC.md); plan and handoff: [TASKS.md](TASKS.md); findings: [RESEARCH.md](RESEARCH.md).
 
 ## Stack
 - Vite 8, React 19, TypeScript 6 (strict), React Router 7, TanStack Query
@@ -28,3 +28,9 @@ Supabase CLI is a pinned dev dependency: use `npx supabase <cmd>`. Local ports a
   `features/<area>/hooks.ts`. No Supabase calls inline in JSX.
 - Only the publishable key goes in `VITE_*` vars. The service-role key is used only inside Edge Functions.
 - Mobile-first; every async view handles loading, empty and error states.
+
+## Workflow
+- `/implement [T1.1 | milestone | request]` builds a task end to end (plan gate for DB/auth work, verify, `reviewer` agent).
+- A Stop hook (`.claude/hooks/verify-gate.mjs`) blocks finishing while `npm run verify` fails.
+- Update the TASKS.md Handoff section at the end of each task; update SPEC.md when behavior changes.
+- Never run two test runs at once: they share the local database.
