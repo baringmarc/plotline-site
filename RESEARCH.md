@@ -23,6 +23,6 @@ Rules:
 
 ## Milestone 1: Launch readiness
 
-### Turnstile CAPTCHA with Supabase Auth
-- **Status:** Open
-- **Question:** How do we pass the Turnstile token through the `register` function to `auth.signUp`?
+### Turnstile CAPTCHA on the contact form
+- **Status:** Open (question changed on 2026-10-27)
+- **Question:** ~~How do we pass the Turnstile token through the `register` function to `auth.signUp`?~~ There's no sign-up anymore. The widget's token goes in the `turnstileToken` field to the platform's `site-contact` function, which verifies it with Cloudflare (court-booking-system `docs/PLATFORM.md` §4; drafted in its `docs/drafts/phase5-site-backend/`). What's left: the widget itself (script loading, size, light and dark, accessibility) and the site key in `VITE_TURNSTILE_SITE_KEY`.
