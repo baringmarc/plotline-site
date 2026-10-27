@@ -5,18 +5,22 @@ import { SectionHead } from '../../components/SectionHead'
 import { Slider } from '../../components/Slider'
 import {
   audiences,
+  costs,
   faqs,
   features,
   featuresHead,
   hero,
+  moneyFlow,
   openPlay,
-  plans,
+  peso,
+  pricing,
   shortVersion,
   site,
   steps,
   venues,
   type Venue,
 } from '../../config/site'
+import { feeComparison, workedExample } from './pricing'
 
 export function Hero() {
   return (
@@ -210,33 +214,108 @@ export function Features() {
   )
 }
 
-export function Pricing() {
+export function Costs() {
+  const { example, compare } = costs
+  const worked = workedExample(example.ratePerHour, example.hours, pricing.bookingFee)
+  const rows = feeComparison(compare.courtPrices, pricing.bookingFee, compare.percent)
   return (
     <section className="white" id="pricing">
       <div className="in">
-        <h2 className="title">Simple monthly pricing</h2>
-        <p className="sub">Every plan starts with a {site.trialDays}-day free trial.</p>
-        <div className="grid3">
-          {plans.map((p) => (
-            <div key={p.name} className={p.highlight ? 'card plan hl' : 'card plan'}>
-              {p.highlight && <span className="tag">Most popular</span>}
-              <h3>{p.name}</h3>
-              <div className="price">
-                {p.price} <small>{p.period}</small>
-              </div>
-              <p className="blurb">{p.blurb}</p>
-              <ul className="ticks">
-                {p.points.map((pt) => (
-                  <li key={pt}>{pt}</li>
-                ))}
-              </ul>
-              <a className={p.highlight ? 'btn main full' : 'btn dark full'} href="#signup">
-                Start free trial
-              </a>
+        <SectionHead label={costs.label} title={costs.title} lead={costs.lead} />
+        <div className="stats center-stats">
+          {costs.stats.map((s) => (
+            <div key={s.label} className="stat">
+              <span className="lbl">{s.label}</span>
+              <span className="big">{s.value}</span>
+              <small>{s.note}</small>
             </div>
           ))}
         </div>
-        <p className="note">Prices in PHP. Open play is an add-on you can turn on at sign-up.</p>
+        <div className="grid2">
+          <Reveal className="card">
+            <h3>{example.title}</h3>
+            <p className="hint">{example.caption(example.hours, peso(example.ratePerHour))}</p>
+            <dl className="facts sums">
+              <div>
+                <dt>{example.courtPrice}</dt>
+                <dd>{peso(worked.courtPrice)}</dd>
+              </div>
+              <div>
+                <dt>{example.fee}</dt>
+                <dd>+ {peso(worked.fee)}</dd>
+              </div>
+              <div className="total">
+                <dt>{example.playerPays}</dt>
+                <dd>{peso(worked.playerPays)}</dd>
+              </div>
+              <div className="total">
+                <dt>{example.venueKeeps}</dt>
+                <dd>{peso(worked.venueKeeps)}</dd>
+              </div>
+            </dl>
+          </Reveal>
+          <Reveal className="card" delay={80}>
+            <h3>{compare.title}</h3>
+            <div className="tablewrap">
+              <table className="ptable">
+                <thead>
+                  <tr>
+                    <th scope="col">{compare.columns.courtPrice}</th>
+                    <th scope="col">{compare.columns.flat}</th>
+                    <th scope="col">{compare.columns.percentage(compare.percent)}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.courtPrice}>
+                      <th scope="row">{peso(r.courtPrice)}</th>
+                      <td className="ours">{peso(r.flat)}</td>
+                      <td>{peso(r.percentage)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="hint">{compare.note(compare.percent)}</p>
+          </Reveal>
+        </div>
+        <p className="center midcta">
+          <a className="btn main" href="#signup">
+            {costs.cta} →
+          </a>
+        </p>
+      </div>
+    </section>
+  )
+}
+
+export function MoneyFlow() {
+  return (
+    <section className="dark" id="money">
+      <div className="in">
+        <SectionHead label={moneyFlow.label} title={moneyFlow.title} />
+        <ol className="flow">
+          {moneyFlow.steps.map((s, i) => (
+            <li key={s.title}>
+              <Reveal className="card step" delay={i * 80}>
+                <span className="num" aria-hidden="true">
+                  {i + 1}
+                </span>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+              </Reveal>
+            </li>
+          ))}
+        </ol>
+        <div className="card never">
+          <h3>{moneyFlow.neverBilled}</h3>
+          <ul className="ticks crosses">
+            {pricing.notBilled.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+          <p className="money">{moneyFlow.quiet}</p>
+        </div>
       </div>
     </section>
   )

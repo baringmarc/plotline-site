@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { courtOptions, openPlayAddon, site } from '../../config/site'
+import { courtOptions, site } from '../../config/site'
 import { validateSignup, type SignupPayload } from '../../../supabase/functions/_shared/validate.ts'
 import { useRegisterVenue } from './hooks'
 
@@ -16,6 +16,7 @@ const EMPTY: Fields = {
   courts: 2,
   facebook: '',
   message: '',
+  // Open play is free now (no add-on); the old local validator still expects the field until T1.8 removes it.
   openPlayAddon: false,
   password: '',
   password2: '',
@@ -77,7 +78,6 @@ export function SignupForm() {
   }
 
   const error = clientError ?? (register.error ? register.error.message : null)
-  const addonPrice = f.courts <= openPlayAddon.smallMaxCourts ? openPlayAddon.smallPrice : openPlayAddon.bigPrice
 
   return (
     <form className="card formcard stack" onSubmit={onSubmit} onFocus={markStarted} noValidate>
@@ -148,16 +148,6 @@ export function SignupForm() {
             onChange={(e) => set('facebook', e.target.value)}
           />
         </label>
-        <div className={f.openPlayAddon ? 'addon on wide' : 'addon wide'}>
-          <label className="check">
-            <input type="checkbox" checked={f.openPlayAddon} onChange={(e) => set('openPlayAddon', e.target.checked)} />
-            <span>
-              <b>Add open play</b> ({addonPrice}, free during the trial)
-              <br />
-              <small className="hint">Sessions with slots, a waitlist and skill levels.</small>
-            </span>
-          </label>
-        </div>
         <label className="f">
           Password
           <input

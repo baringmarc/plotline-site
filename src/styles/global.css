@@ -329,16 +329,32 @@ section.dark .stat .big { color: var(--rose); }
 .feature h3 { margin: 8px 0 6px; font-size: 20px; }
 .feature p { margin: 0; color: var(--text-soft); }
 
-/* pricing */
-.plan { display: flex; flex-direction: column; gap: 6px; position: relative; }
-.plan.hl { border: 2px solid var(--sage-dark); box-shadow: var(--shadow); }
-.plan .tag { position: absolute; top: -12px; right: 18px; background: var(--highlight); color: var(--on-highlight); font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 12px; }
-.plan h3 { margin: 0; font-size: 20px; }
-.plan .price { font-family: var(--serif); font-size: 36px; font-weight: 700; }
-.plan .price small { font-family: var(--sans); font-size: 15px; color: var(--text-soft); font-weight: 500; }
-.plan .blurb { color: var(--text-soft); margin: 0 0 8px; }
-.plan .ticks { flex: 1; margin-bottom: 14px; }
-.note { text-align: center; color: var(--text-soft); margin-top: 20px; font-size: 14px; }
+/* what it costs: the two numbers, a worked example and a flat vs percentage table */
+.center-stats { justify-content: center; text-align: center; margin: 0 0 32px; }
+.card > .hint { margin: -8px 0 14px; }
+.card > .hint:last-child { margin: 14px 0 0; }
+/* the worked example keeps label and amount on one line, even on phones */
+.facts.sums > div { grid-template-columns: 1fr auto; }
+.facts.sums dd { font-variant-numeric: tabular-nums; }
+.facts.sums .total { background: var(--ok-soft); }
+.facts.sums .total dt, .facts.sums .total dd { color: var(--text); font-weight: 700; }
+.tablewrap { overflow-x: auto; }
+.ptable { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ptable th, .ptable td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line); }
+.ptable th:first-child { text-align: left; padding-left: 0; }
+.ptable thead th { font-size: 13px; color: var(--text-soft); font-weight: 700; }
+.ptable tbody th { font-weight: 500; }
+.ptable td.ours { color: var(--ok); font-weight: 700; }
+.midcta { margin: 32px 0 0; }
+
+/* where the money goes: four numbered steps, then what's never billed */
+.flow { list-style: none; padding: 0; margin: 0 0 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.flow > li { display: flex; }
+.flow > li > .card { flex: 1; }
+@media (max-width: 960px) { .flow { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 620px) { .flow { grid-template-columns: 1fr; } }
+.never { max-width: 640px; margin: 0 auto; }
+.never .money { text-align: left; margin: 14px 0 0; font-size: 18px; }
 
 /* steps */
 .step .num { width: 36px; height: 36px; border-radius: 50%; background: var(--highlight); color: var(--on-highlight); font-family: var(--serif); font-weight: 700; display: grid; place-items: center; }
@@ -370,8 +386,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--t
 .radios label { display: flex; gap: 6px; align-items: center; font-weight: 700; }
 .radios input { width: auto; accent-color: var(--text); }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-.addon { border: 1.5px dashed var(--line); border-radius: 14px; padding: 14px; transition: border-color 0.15s, background 0.15s; }
-.addon.on { border-color: var(--sage-dark); background: var(--ok-soft); border-style: solid; }
 .err { background: var(--err-soft); color: var(--err); padding: 10px 14px; border-radius: 12px; font-weight: 700; font-size: 14px; }
 .okmsg { text-align: center; }
 .okmsg .tick { font-size: 44px; }

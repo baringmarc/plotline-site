@@ -8,8 +8,8 @@ and tracks progress. [RESEARCH.md](RESEARCH.md) holds the technical findings beh
 > Update this section at the end of every session or task. Keep it short; it's the first thing the next session reads.
 
 - **Current milestone:** Milestone 1, Launch readiness (broken down 2026-10-27).
-- **Next task:** T1.3 What it costs and where the money goes. T1.3–T1.6 need nothing from the platform; T1.7 waits for `site-contact`.
-- **State:** T1.1–T1.2 done: page patterns, `pricing` config, the new hero and the short version. The hero CTA still points at `#signup`; Pricing, FAQ, FinalBand, Nav and the sign-up form still carry trial and plan copy (T1.3, T1.6, T1.7). The dark section and fact sheet aren't used yet.
+- **Next task:** T1.4 The player's side. T1.4–T1.6 need nothing from the platform; T1.7 waits for `site-contact`.
+- **State:** T1.1–T1.3 done: page patterns, `pricing` config, hero, short version, what it costs, where the money goes. The hero and mid-page CTAs still point at `#signup`; FAQ, FinalBand, Nav and the sign-up form still carry trial copy (T1.6, T1.7). The fact sheet isn't used yet.
 - **Blockers / notes:** Docker Desktop must be running for `npm run test:db`. Open items for launch are in README "Before launch".
 - **Platform (2026-10-27):** this repo becomes frontend only. The backend moves to `court-booking-system` (its `docs/PLATFORM.md`; drafts in this repo's `docs/drafts/phase5/` and court-booking-system's `docs/drafts/phase5-site-backend/`). Plan new milestones around the contact form, not the old sign-up and trial, and never add migrations or Edge Functions here.
 
@@ -59,7 +59,8 @@ Design reference for T1.1–T1.6: [taradula.com/list-your-venue](https://taradul
   - Files: `src/config/site.ts`, `src/features/landing/sections.tsx`, `src/routes/LandingPage.tsx`, `src/styles/global.css`
   - Acceptance: no trial, sign-up or monthly-plan wording in the hero or the short version; changing `pricing.bookingFee` changes every amount shown in them; claims match the SPEC §3.1 pricing list; `site.demoUrl` is `https://claudex-courts.plotline.fit`.
 
-- [ ] **T1.3 What it costs and where the money goes**
+- [x] **T1.3 What it costs and where the money goes**
+  - Notes: maths in `src/features/landing/pricing.ts` (+ `pricing.test.ts`); `Costs` (keeps `id="pricing"`) and `MoneyFlow` in `sections.tsx`, tested in `sections.test.tsx` incl. a ₱15 fee swap. Step 2 names PayMongo (closes the T1.2 follow-up). The sign-up form still sends `openPlayAddon: false` for the old validator until T1.8. Reviewer: PASS.
   - Do: replace `Pricing` (and the `plans`/`openPlayAddon` config) with "What it costs" (stat tiles, worked example, flat vs illustrative percentage table) and add "Where the money goes" (4-step flow, never-billed list, monthly invoice). Compute the tables with a pure function from `pricing` and a list of example court prices in config. Mid-page CTA after it.
   - Depends: T1.2
   - Files: `src/config/site.ts`, `src/features/landing/pricing.ts` (+ `pricing.test.ts`), `src/features/landing/sections.tsx`, `src/styles/global.css`
@@ -78,7 +79,7 @@ Design reference for T1.1–T1.6: [taradula.com/list-your-venue](https://taradul
   - Acceptance: no walk-in feature; each card checked against court-booking-system's current features (list any doubtful ones in the Handoff).
 
 - [ ] **T1.6 Getting started, FAQ, at a glance, final band**
-  - Do: `Steps` becomes the 4 setup steps; rewrite the FAQ around objections (unpaid bookings, cancellations, PayMongo fees, no app for players, changing rates, open play, staff logins); add the "At a glance" fact sheet; update the final band and the nav CTA to `#contact`. Put the sections in the SPEC §3.1 order and update the README section table.
+  - Do: `Steps` becomes the 4 setup steps; rewrite the FAQ around objections (unpaid bookings, cancellations, PayMongo fees, no app for players, changing rates, open play, staff logins); add the "At a glance" fact sheet; move every CTA to `#contact` (nav, hero, the mid-page one in `Costs`, final band). Put the sections in the SPEC §3.1 order and update the README section table.
   - Depends: T1.2, T1.3
   - Files: `src/config/site.ts`, `src/features/landing/sections.tsx`, `src/routes/LandingPage.tsx`, `src/components/Nav.tsx`, `README.md`
   - Acceptance: no trial or plan wording left anywhere on `/` except inside the old sign-up form (T1.7); exit-terms rows are left out until SPEC §7 settles them; nav links point at sections that exist.

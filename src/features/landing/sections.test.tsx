@@ -1,7 +1,8 @@
 import { render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { peso, pricing, site } from '../../config/site'
-import { Hero, ShortVersion } from './sections'
+import { costs, peso, pricing, site } from '../../config/site'
+import { workedExample } from './pricing'
+import { Costs, Hero, MoneyFlow, ShortVersion } from './sections'
 
 /**
  * Every peso amount in the section's copy, e.g. ["₱0", "₱10"]. Decorative parts (the phone mockup's
@@ -30,6 +31,39 @@ describe.each([
   })
 })
 
+describe.each([
+  ['Costs', Costs],
+  ['MoneyFlow', MoneyFlow],
+])('%s', (_, Section) => {
+  it('never mentions a trial, a sign-up or a monthly plan', () => {
+    const { container } = render(<Section />)
+    expect(container.textContent).not.toMatch(/trial|sign[ -]?up|\/month|per month|plan\b/i)
+  })
+})
+
+describe('Costs', () => {
+  it('shows the worked example built from the fee', () => {
+    const { getByText } = render(<Costs />)
+    const worked = workedExample(costs.example.ratePerHour, costs.example.hours, pricing.bookingFee)
+    expect(getByText(peso(worked.playerPays))).toBeInTheDocument()
+    expect(getByText(`+ ${peso(pricing.bookingFee)}`)).toBeInTheDocument()
+  })
+
+  it('labels the percentage column as an illustration', () => {
+    const { getByRole, getByText } = render(<Costs />)
+    expect(getByRole('columnheader', { name: `A ${costs.compare.percent}% fee` })).toBeInTheDocument()
+    expect(getByText(/only illustrates a percentage fee/)).toBeInTheDocument()
+    expect(getByRole('table').querySelectorAll('tbody tr')).toHaveLength(costs.compare.courtPrices.length)
+  })
+})
+
+describe('MoneyFlow', () => {
+  it('lists everything that is never billed', () => {
+    const { getByText } = render(<MoneyFlow />)
+    for (const n of pricing.notBilled) expect(getByText(n)).toBeInTheDocument()
+  })
+})
+
 describe('a different booking fee', () => {
   afterEach(() => {
     vi.doUnmock('../../config/pricing')
@@ -53,6 +87,29 @@ describe('a different booking fee', () => {
     const found = amounts(container)
     expect(found).toContain('₱15')
     expect(found).not.toContain('₱10')
+  })
+
+  it('changes the fee in what it costs and where the money goes', async () => {
+    vi.resetModules()
+    vi.doMock('../../config/pricing', async (importOriginal) => {
+      const real = await importOriginal<typeof import('../../config/pricing')>()
+      const pricing = { ...real.pricing, bookingFee: 15 }
+      return { pricing, peso: (n: number) => `${pricing.currency}${n.toLocaleString('en-PH')}` }
+    })
+    const { Costs: SwappedCosts, MoneyFlow: SwappedFlow } = await import('./sections')
+    const { container, getByText, getAllByRole } = render(
+      <>
+        <SwappedCosts />
+        <SwappedFlow />
+      </>,
+    )
+    // 2 hours at ₱400: the player pays ₱815, the venue keeps ₱800
+    expect(getByText('+ ₱15')).toBeInTheDocument()
+    expect(getByText('₱815')).toBeInTheDocument()
+    const flat = getAllByRole('row').slice(1).map((r) => r.querySelector('td.ours')?.textContent)
+    expect(flat.every((v) => v === '₱15')).toBe(true)
+    expect(container.textContent).toMatch(/₱15 booking fee before they pay/)
+    expect(container.textContent).not.toMatch(/₱10(?!\d)/)
   })
 })
 

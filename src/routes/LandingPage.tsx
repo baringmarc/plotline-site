@@ -1,12 +1,13 @@
 import {
   Audiences,
+  Costs,
   Demo,
   Faq,
   Features,
   FinalBand,
   Hero,
+  MoneyFlow,
   OpenPlay,
-  Pricing,
   ShortVersion,
   Steps,
   Venues,
@@ -24,7 +25,8 @@ export function LandingPage() {
       <Audiences />
       <OpenPlay />
       <Features />
-      <Pricing />
+      <Costs />
+      <MoneyFlow />
       <Steps />
       <Demo />
       <SignupSection />

@@ -136,45 +136,49 @@ export const features = [
   { icon: '🌐', title: 'Your own web address', body: 'A booking page with your name and logo that you can share anywhere.' },
 ]
 
-export type Plan = {
-  name: string
-  price: string
-  period: string
-  blurb: string
-  points: string[]
-  highlight?: boolean
+export const costs = {
+  label: 'What it costs',
+  title: `${fee} per online booking. Nothing else.`,
+  lead: 'The player pays the booking fee on top of your court price, so your rate stays yours.',
+  stats: [
+    { label: 'Setup and monthly', value: peso(0), note: 'no subscription and no setup fee' },
+    { label: 'Per online booking', value: fee, note: 'paid by the player, whatever its length' },
+  ],
+  example: {
+    title: 'One booking, worked out',
+    ratePerHour: 400,
+    hours: 2,
+    caption: (hours: number, rate: string) => `${hours} hours at ${rate} an hour`,
+    courtPrice: 'Court price',
+    fee: 'Booking fee, paid by the player',
+    playerPays: 'The player pays you',
+    venueKeeps: 'You keep',
+  },
+  compare: {
+    title: 'A flat fee vs a percentage',
+    /** An illustrative percentage fee, not any company's price. */
+    percent: 5,
+    courtPrices: [300, 600, 1200, 2400],
+    columns: { courtPrice: 'Court price', flat: 'Plotline', percentage: (percent: number) => `A ${percent}% fee` },
+    note: (percent: number) => `The ${percent}% column only illustrates a percentage fee. It isn’t anyone’s actual price.`,
+  },
+  cta: 'Get your venue online',
 }
 
-export const plans: Plan[] = [
-  {
-    name: 'Starter',
-    price: '₱799',
-    period: '/month',
-    blurb: 'For venues with 1 to 2 courts.',
-    points: ['Booking page and slot grid', 'Unlimited bookings', 'Email alerts'],
-  },
-  {
-    name: 'Venue',
-    price: '₱1,499',
-    period: '/month',
-    blurb: 'For venues with 3 to 6 courts.',
-    points: ['Everything in Starter', 'Peak and off-peak rates', 'Staff accounts'],
-    highlight: true,
-  },
-  {
-    name: 'Club',
-    price: 'Let’s talk',
-    period: '',
-    blurb: 'For 7 courts or more, or several locations.',
-    points: ['Everything in Venue', 'Several locations', 'Priority support'],
-  },
-]
-
-/** The open play add-on is priced by venue size; the sign-up form shows the matching price. */
-export const openPlayAddon = {
-  smallMaxCourts: 2,
-  smallPrice: '₱299/month',
-  bigPrice: '₱499/month',
+export const moneyFlow = {
+  label: 'Where the money goes',
+  title: 'Players pay you. We send one invoice a month.',
+  steps: [
+    { title: 'The player books', body: `They see the court price and the ${fee} booking fee before they pay.` },
+    {
+      title: 'They pay you',
+      body: 'Straight into your own GCash, Maya or bank account, or through your own PayMongo account.',
+    },
+    { title: 'The booking is confirmed', body: 'When you approve their payment proof, or as soon as PayMongo confirms it.' },
+    { title: 'One invoice a month', body: 'Early each month we bill the fees from the month before, with every booking listed.' },
+  ],
+  neverBilled: 'Never billed',
+  quiet: 'A quiet month costs you nothing.',
 }
 
 export const steps = [
