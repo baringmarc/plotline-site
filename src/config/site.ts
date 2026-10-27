@@ -1,6 +1,11 @@
 // Everything a visitor reads on the landing page lives here: brand, links, copy, prices, FAQ.
 // Change the words here, not in the components. All of it is placeholder copy for now.
 
+import { peso, pricing } from './pricing'
+
+/** The pricing model lives in ./pricing; re-exported so components import copy from one place. */
+export { peso, pricing }
+
 export const site = {
   name: 'Plotline',
   /** Shown after the name in the logo, in the accent colour. Empty to hide. */
@@ -13,8 +18,10 @@ export const site = {
   messengerUrl: 'https://m.me/your-page',
   facebookUrl: 'https://www.facebook.com/your-page',
   /** A live booking site visitors can try. */
-  demoUrl: 'https://demo.example.com',
+  demoUrl: 'https://claudex-courts.plotline.fit',
 }
+
+const fee = peso(pricing.bookingFee)
 
 export const navLinks = [
   { href: '#features', label: 'Features' },
@@ -24,14 +31,52 @@ export const navLinks = [
 
 export const hero = {
   eyebrow: 'For pickleball and court sports venues',
-  title: 'Still taking bookings in your inbox?',
+  title: 'Online booking for your courts, free for your venue',
   /** Words in the title shown in the highlight colour. Empty for none. */
-  titleHighlight: 'your inbox',
+  titleHighlight: 'free for your venue',
   lead:
-    'Give your venue its own booking page. Players see what is open, book a slot and join open play in a minute, with no app and no account. You see every booking from your phone.',
-  primaryCta: `Start your ${site.trialDays}-day free trial`,
+    'Your venue gets its own booking page. Players see what is open, book a slot and pay you directly, with no app to install. You see every booking from your phone.',
+  promisesLabel: 'The deal',
+  promises: [
+    'Free for venues: no subscription and no setup fee',
+    'Players pay you directly, into your own GCash, Maya or bank',
+    `A ${fee} booking fee per online booking, paid by the player`,
+  ],
+  stats: [
+    { label: 'To start', value: peso(0), note: 'and nothing every month' },
+    { label: 'The only fee', value: fee, note: 'per online booking, paid by the player' },
+  ],
+  primaryCta: 'Get your venue online',
   secondaryCta: 'See a live demo',
-  points: ['No credit card to start', 'Set up in a day', 'Cancel any time'],
+}
+
+export const shortVersion = {
+  label: 'The short version',
+  title: 'What you get, and what it costs',
+  lead: `Plotline costs your venue nothing. Players pay a ${fee} booking fee when they book online, and that is all we earn.`,
+  get: {
+    title: 'What you get, free',
+    points: [
+      'Your own booking page with your name and logo',
+      'A live slot grid for every court',
+      'Every booking and payment proof on your phone',
+      'Peak and off-peak rates, set by you',
+      'Open play sessions with slots and a waitlist',
+      'We set up your courts, hours and rates with you',
+      'A walkthrough for you and your staff',
+    ],
+  },
+  cost: {
+    title: 'What it costs',
+    points: [
+      `${fee} per confirmed online booking, whatever its length or court`,
+      'Paid by the player and shown before they pay',
+      'You collect it with the court price',
+      'We bill the fees on one invoice a month',
+    ],
+    notCharged: ['No subscription', 'No setup fee', 'No monthly fee', `No fee on ${pricing.notBilled[0].toLowerCase()}`],
+  },
+  money: 'Players pay you, not us. Plotline never holds your money.',
 }
 
 export type Venue = { name: string; location: string; url?: string; logoUrl?: string }

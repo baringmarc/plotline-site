@@ -8,8 +8,8 @@ and tracks progress. [RESEARCH.md](RESEARCH.md) holds the technical findings beh
 > Update this section at the end of every session or task. Keep it short; it's the first thing the next session reads.
 
 - **Current milestone:** Milestone 1, Launch readiness (broken down 2026-10-27).
-- **Next task:** T1.2 Pricing config, hero and the short version. T1.2–T1.6 need nothing from the platform; T1.7 waits for `site-contact`.
-- **State:** T1.1 done: page patterns in place and used on Features. The dark section, stat tiles, ✕ lists and fact sheet are styled but not used yet (T1.2, T1.3, T1.6). The rest of the page still has the old trial and plan copy.
+- **Next task:** T1.3 What it costs and where the money goes. T1.3–T1.6 need nothing from the platform; T1.7 waits for `site-contact`.
+- **State:** T1.1–T1.2 done: page patterns, `pricing` config, the new hero and the short version. The hero CTA still points at `#signup`; Pricing, FAQ, FinalBand, Nav and the sign-up form still carry trial and plan copy (T1.3, T1.6, T1.7). The dark section and fact sheet aren't used yet.
 - **Blockers / notes:** Docker Desktop must be running for `npm run test:db`. Open items for launch are in README "Before launch".
 - **Platform (2026-10-27):** this repo becomes frontend only. The backend moves to `court-booking-system` (its `docs/PLATFORM.md`; drafts in this repo's `docs/drafts/phase5/` and court-booking-system's `docs/drafts/phase5-site-backend/`). Plan new milestones around the contact form, not the old sign-up and trial, and never add migrations or Edge Functions here.
 
@@ -51,7 +51,9 @@ Design reference for T1.1–T1.6: [taradula.com/list-your-venue](https://taradul
   - Files: `src/styles/global.css`, `src/components/SectionHead.tsx`, `src/components/Reveal.tsx` (or a hook), `src/features/landing/sections.tsx`
   - Acceptance: only existing colour tokens (no new hex values outside `:root`); correct in light and dark themes; no horizontal scroll at 360px; with `prefers-reduced-motion` or without JS every section is fully visible; Reveal has a test.
 
-- [ ] **T1.2 Pricing config, hero and the short version**
+- [x] **T1.2 Pricing config, hero and the short version**
+  - Notes: `pricing` and `peso()` live in `src/config/pricing.ts` (re-exported from `site.ts`) so a test can swap the fee. `sections.test.tsx` covers: amounts only from config, a ₱15 fee replaces every ₱10, no trial/sign-up/plan wording, the demo link. Checked at 360/1280px, light and dark. Reviewer: PASS.
+  - Follow-ups: in T1.3 "Where the money goes", name PayMongo next to GCash, Maya and bank (the hero promise leaves it out for brevity). In T1.6 confirm the QR poster is a real product feature before "Getting started" promises it (left out of "What you get" for that reason).
   - Do: add one `pricing` object to `site.ts` (booking fee, currency, what's not billed) that every pricing sentence and number reads from. Rewrite the hero (promises, ₱0/₱10 stat tiles, CTA, demo link) and add "The short version" (what you get free / what it costs + ✕ list + "we never hold your money").
   - Depends: T1.1
   - Files: `src/config/site.ts`, `src/features/landing/sections.tsx`, `src/routes/LandingPage.tsx`, `src/styles/global.css`

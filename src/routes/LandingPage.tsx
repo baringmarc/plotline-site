@@ -7,6 +7,7 @@ import {
   Hero,
   OpenPlay,
   Pricing,
+  ShortVersion,
   Steps,
   Venues,
 } from '../features/landing/sections'
@@ -17,6 +18,7 @@ export function LandingPage() {
   return (
     <>
       <Hero />
+      <ShortVersion />
       <Venues />
       <ReviewsSection />
       <Audiences />

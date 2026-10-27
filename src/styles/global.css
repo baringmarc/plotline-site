@@ -179,8 +179,16 @@ img { max-width: 100%; }
 .hero h1 em { font-style: normal; color: var(--highlight); }
 .hero .lead { font-size: 18px; color: var(--text-soft); max-width: 560px; margin: 0 0 26px; }
 .hero .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
-.hero .points { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; margin: 0; list-style: none; color: var(--text-soft); font-size: 14px; }
-.hero .points li::before { content: '✓ '; color: var(--highlight); font-weight: 700; }
+/* the deal: three promises in a soft panel, then the two numbers */
+.hero .promises {
+  max-width: 560px; margin: 0 0 24px; padding: 16px 20px 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.hero .promises .eyebrow { margin-bottom: 4px; }
+.hero .stats { margin-bottom: 28px; }
+
+/* the short version's closing line */
+.money { text-align: center; font-family: var(--serif); font-weight: 600; font-size: 20px; margin: 28px auto 0; max-width: 620px; }
 @media (max-width: 860px) {
   .hero { padding: 36px 0 48px; }
   .hero .in { grid-template-columns: 1fr; }
@@ -227,6 +235,8 @@ section.white .card { background: var(--bg); }
 }
 /* what we don't charge or don't do: the same list, crossed and quieter */
 .ticks.crosses li::before { content: '✕'; background: var(--panel); color: var(--text-soft); }
+.ticks + .ticks.crosses { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.card > h3:first-child { margin-top: 0; }
 
 /* section head (components/SectionHead.tsx): label, heading, accent bar, lead */
 .shead { text-align: center; margin-bottom: 36px; }
@@ -243,12 +253,13 @@ section.dark .eyebrow { color: var(--sage); }
 section.dark .shead .bar { background: var(--rose); }
 section.dark .card, section.dark .facts { color: var(--text); }
 
-/* stat tiles: a small label, one big number, an optional note */
-.stats { display: flex; flex-wrap: wrap; gap: 20px 40px; }
+/* stat tiles: a small label, one big number, an optional note (<small>) */
+/* two tiles still fit side by side on a 360px phone */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, max-content)); gap: 20px 40px; }
 .stat .lbl { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-soft); }
-.stat .big { display: block; font-family: var(--serif); font-weight: 700; font-size: clamp(36px, 6vw, 48px); line-height: 1.1; color: var(--highlight); }
-.stat .note { display: block; font-size: 14px; color: var(--text-soft); }
-section.dark .stat .lbl, section.dark .stat .note { color: var(--on-band-soft); }
+.stat .big { display: block; font-family: var(--serif); font-weight: 700; font-size: clamp(36px, 6vw, 48px); line-height: 1; margin: 4px 0; color: var(--highlight); }
+.stat small { display: block; font-size: 14px; color: var(--text-soft); }
+section.dark .stat .lbl, section.dark .stat small { color: var(--on-band-soft); }
 section.dark .stat .big { color: var(--rose); }
 
 /* fact sheet: label/value rows in one card (<dl class="facts"><div><dt/><dd/></div>…) */

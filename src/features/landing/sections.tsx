@@ -11,6 +11,7 @@ import {
   hero,
   openPlay,
   plans,
+  shortVersion,
   site,
   steps,
   venues,
@@ -25,6 +26,23 @@ export function Hero() {
           <span className="eyebrow">{hero.eyebrow}</span>
           <h1>{withHighlight(hero.title, hero.titleHighlight)}</h1>
           <p className="lead">{hero.lead}</p>
+          <div className="promises">
+            <span className="eyebrow">{hero.promisesLabel}</span>
+            <ul className="ticks">
+              {hero.promises.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="stats">
+            {hero.stats.map((s) => (
+              <div key={s.label} className="stat">
+                <span className="lbl">{s.label}</span>
+                <span className="big">{s.value}</span>
+                <small>{s.note}</small>
+              </div>
+            ))}
+          </div>
           <div className="ctas">
             <a className="btn main" href="#signup">
               {hero.primaryCta} →
@@ -33,13 +51,43 @@ export function Hero() {
               {hero.secondaryCta}
             </a>
           </div>
-          <ul className="points">
-            {hero.points.map((p) => (
-              <li key={p}>{p}</li>
-            ))}
-          </ul>
         </div>
         <PhoneMockup />
+      </div>
+    </section>
+  )
+}
+
+export function ShortVersion() {
+  const { get, cost } = shortVersion
+  return (
+    <section className="white" id="short-version">
+      <div className="in">
+        <SectionHead label={shortVersion.label} title={shortVersion.title} lead={shortVersion.lead} />
+        <div className="grid2">
+          <Reveal className="card">
+            <h3>{get.title}</h3>
+            <ul className="ticks">
+              {get.points.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </Reveal>
+          <Reveal className="card" delay={80}>
+            <h3>{cost.title}</h3>
+            <ul className="ticks">
+              {cost.points.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+            <ul className="ticks crosses">
+              {cost.notCharged.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+        <p className="money">{shortVersion.money}</p>
       </div>
     </section>
   )
