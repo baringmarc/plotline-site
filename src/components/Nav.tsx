@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { contactAnchor, nav, navLinks, site } from '../config/site'
+import { contactAnchor, messageLink, nav, navLinks, site } from '../config/site'
 
 /** Sticky top bar. On a phone the links fold into a menu button beside the contact button. */
 export function Nav() {
@@ -51,7 +51,12 @@ export function Nav() {
             {l.label}
           </a>
         ))}
-        <a href={site.messengerUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
+        {/* a new tab only for Messenger; the email fallback opens the mail app */}
+        <a
+          href={messageLink}
+          {...(site.messengerUrl ? { target: '_blank', rel: 'noreferrer' } : {})}
+          onClick={() => setOpen(false)}
+        >
           {nav.messenger}
         </a>
       </div>

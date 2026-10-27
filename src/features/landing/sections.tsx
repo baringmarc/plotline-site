@@ -13,6 +13,7 @@ import {
   features,
   featuresHead,
   hero,
+  messageLink,
   moneyFlow,
   openPlay,
   peso,
@@ -23,6 +24,7 @@ import {
   steps,
   stepsHead,
   venues,
+  venuesHead,
   type Venue,
 } from '../../config/site'
 import { PlayerScreen } from './PlayerScreens'
@@ -147,13 +149,21 @@ export function Venues() {
   return (
     <section id="venues">
       <div className="in">
-        <h2 className="title">Venues already booking online</h2>
-        <p className="sub">Tap one to see its booking page the way players see it.</p>
-        <Slider label="Venues" twoRows={venues.length >= 4}>
-          {venues.map((v) => (
-            <VenueCard key={v.name} venue={v} />
-          ))}
-        </Slider>
+        <SectionHead label={venuesHead.label} title={venuesHead.title} lead={venuesHead.lead} />
+        {/* a few venues sit in one centred row; a longer list becomes a swipeable slider */}
+        {venues.length > 3 ? (
+          <Slider label="Venues" twoRows={venues.length >= 4}>
+            {venues.map((v) => (
+              <VenueCard key={v.name} venue={v} />
+            ))}
+          </Slider>
+        ) : (
+          <div className="venuerow">
+            {venues.map((v) => (
+              <VenueCard key={v.name} venue={v} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
@@ -357,7 +367,7 @@ export function Faq() {
           title={faqHead.title}
           lead={
             <>
-              {faqHead.lead} <a href={site.messengerUrl}>{faqHead.leadLink}</a>.
+              {faqHead.lead} <a href={messageLink}>{faqHead.leadLink}</a>.
             </>
           }
         />

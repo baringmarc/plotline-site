@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { site } from '../config/site'
+import { messageLink, site } from '../config/site'
 import { supabase } from '../lib/supabase'
 
 type State = 'checking' | 'confirmed' | 'unconfirmed'
@@ -37,7 +37,7 @@ export function WelcomePage() {
             to set up your courts, hours and rates.
           </p>
           <p>
-            Want to speed it up? <a href={site.messengerUrl}>Message us</a> now.
+            Want to speed it up? <a href={messageLink}>Message us</a> now.
           </p>
         </>
       )}

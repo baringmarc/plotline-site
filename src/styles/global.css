@@ -302,6 +302,8 @@ section.dark .stat .big { color: var(--rose); }
   background: var(--rose); color: var(--brown); font-family: var(--serif); font-weight: 700; font-size: 16px;
 }
 .venue .badge img { width: 100%; height: 100%; object-fit: cover; }
+.venuerow { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+.venuerow > .venue { flex: 0 1 280px; }
 .venue b { display: block; line-height: 1.25; }
 .venue small { color: var(--text-soft); }
 

@@ -1,5 +1,6 @@
 // Everything a visitor reads on the landing page lives here: brand, links, copy, prices, FAQ.
-// Change the words here, not in the components. All of it is placeholder copy for now.
+// Change the words here, not in the components. Values still to be provided or decided are marked PLACEHOLDER;
+// T1.11 replaces them (`grep -rn PLACEHOLDER src index.html`).
 
 import { peso, pricing } from './pricing'
 
@@ -14,14 +15,20 @@ export const site = {
   /** The brand line from the style guide, shown in the footer. */
   slogan: 'Plot your day. Fill your hours.',
   trialDays: 7,
-  supportEmail: 'hello@example.com',
-  messengerUrl: 'https://m.me/your-page',
-  facebookUrl: 'https://www.facebook.com/your-page',
+  /** PLACEHOLDER: on our domain, but the mailbox isn't set up yet. */
+  supportEmail: 'hello@plotline.fit',
+  /** PLACEHOLDER: Plotline's Messenger link (m.me/…). Empty: "Message us" links fall back to email. */
+  messengerUrl: '',
+  /** PLACEHOLDER: Plotline's Facebook page. Empty: the footer hides the link. */
+  facebookUrl: '',
   /** A live booking site visitors can try. */
   demoUrl: 'https://claudex-courts.plotline.fit',
-  /** A scheduling page (Google Calendar or Cal.com) shown after the contact form. Empty hides the link (SPEC §7). */
+  /** PLACEHOLDER: a scheduling page (Google Calendar or Cal.com) shown after the contact form. Empty hides the link (SPEC §7). */
   bookCallUrl: '',
 }
+
+/** Where "Message us" goes: Messenger once it's set, email until then. */
+export const messageLink = site.messengerUrl || `mailto:${site.supportEmail}`
 
 const fee = peso(pricing.bookingFee)
 
@@ -93,17 +100,17 @@ export const shortVersion = {
 
 export type Venue = { name: string; location: string; url?: string; logoUrl?: string }
 
-/** Venues already using the platform. Replace with real ones (with their permission). */
-export const venues: Venue[] = [
-  { name: 'Sample Pickle Park', location: 'Quezon City' },
-  { name: 'Baseline Courts', location: 'Pasig' },
-  { name: 'Kitchen Line Club', location: 'Cebu City' },
-  { name: 'Rally Yard', location: 'Davao City' },
-  { name: 'Third Shot Hub', location: 'Lucena City' },
-  { name: 'Net Play Arena', location: 'Iloilo City' },
-  { name: 'Sunrise Dink Court', location: 'Batangas City' },
-  { name: 'Corner Court PH', location: 'Baguio' },
-]
+/**
+ * PLACEHOLDER: only the demo venue for now. Add real venues (with their permission) and switch `venuesHead`
+ * to the "already booking online" wording; never list a venue that doesn't use Plotline.
+ */
+export const venues: Venue[] = [{ name: 'Claudex Courts', location: 'Our demo venue', url: site.demoUrl }]
+
+export const venuesHead = {
+  label: 'Venues',
+  title: 'See a venue on Plotline',
+  lead: 'Claudex Courts is our demo venue. Open it to see a booking page the way players see it.',
+}
 
 export type ScreenImage = { src: string; width: number; height: number; alt: string }
 /** The drawn screens for steps the demo can't show without a real booking. */
@@ -288,7 +295,7 @@ export const steps = [
 export const faqHead = {
   label: 'Questions',
   title: 'What owners ask us',
-  /** Shown before the Messenger link. */
+  /** Shown before the "Message us" link. */
   lead: 'Something else?',
   leadLink: 'Message us',
 }
@@ -361,7 +368,7 @@ export const contact = {
     phone: 'Mobile number',
     phonePlaceholder: '0917 123 4567',
     venueName: 'Venue name',
-    venueNamePlaceholder: 'e.g. Sample Pickle Park',
+    venueNamePlaceholder: 'e.g. Claudex Courts',
     location: 'City or town',
     locationPlaceholder: 'e.g. Pasig',
     courts: 'Number of courts',

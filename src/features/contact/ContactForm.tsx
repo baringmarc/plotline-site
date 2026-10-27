@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { SectionHead } from '../../components/SectionHead'
 import { Turnstile } from '../../components/Turnstile'
-import { contact, site } from '../../config/site'
+import { contact, messageLink, site } from '../../config/site'
 import { MAX_COURTS, validateContact, type ContactPayload } from '../../lib/siteForms'
 import { turnstileSiteKey } from '../../lib/turnstile'
 import { useSendContact } from './hooks'
@@ -207,7 +207,7 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
       )}
       {checkFailed && (
         <p className="err" role="alert">
-          {contact.turnstileFailed} <a href={site.messengerUrl}>{contact.messageUs}</a>
+          {contact.turnstileFailed} <a href={messageLink}>{contact.messageUs}</a>
         </p>
       )}
 

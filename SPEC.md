@@ -49,7 +49,7 @@ Every async view handles loading, empty and error states. Mobile-first.
 | 4 | Your side | Six owner feature cards, all shipped: today's courts, payment proof review, peak and off-peak rates, hours and blackouts, moving a booking, earnings and occupancy with CSV |
 | 5 | What it costs | Stat tiles, a worked example (court price + ₱10 = what the player pays; the venue keeps the full court price) and a flat fee vs an illustrative percentage fee table at several booking sizes. Both are computed from the fee in config, never typed in |
 | 6 | Where the money goes | A 4-step flow: player books → pays the venue (its own GCash, Maya, bank or PayMongo) → the booking is confirmed → Plotline sends one monthly invoice for the fees. Then what's never billed |
-| 7 | Venues and reviews | As today (`Venues`, `ReviewsSection`) |
+| 7 | Venues and reviews | `Venues` lists only venues that use Plotline (for now the demo venue, Claudex Courts, as a centred card; a slider once there are more than 3), then `ReviewsSection` |
 | 8 | Getting started | 4 steps: you contact us → we set up your courts, hours and rates → you get your booking link → we walk you and your team through it (no QR poster: it isn't a product feature) |
 | 9 | FAQ | Objection-led questions (see the rules below) |
 | 10 | At a glance | A label/value fact sheet: service, setup fee, monthly fee, booking fee, not billed, payments, billing, your data (CSV export). Exit terms and the provider are added once settled (§7) |
@@ -108,6 +108,7 @@ The review form posts to the platform's `site-review` function, which stores the
 | 2026-10-27 | The owner cards leave out staff accounts and booking alerts | Admins are promoted by hand in the database and there's no staff management; booking emails are off in production (court-booking-system SPEC §2, §8) |
 | 2026-10-27 | Final order as in §3.1; the old Demo band is dropped (the hero links to the demo). One dark band colour in both themes (`--band`, no terracotta override). The FAQ's staff answer says we set up the logins; it never promises staff management | §3.1 lists no demo band; one dark variant; admins are promoted by hand |
 | 2026-10-27 | T1.7 is built against the PLATFORM.md contract before the platform deploys it; T1.8 (removing the old backend) waits for Phase 5 (the user's call). Turnstile: explicit rendering, `theme: auto`, `size: flexible`, reset after every failed send; Cloudflare's test key only in development | The frontend is ready the moment Phase 5 ships; test keys' dummy tokens are refused by real secret keys (RESEARCH M1) |
+| 2026-10-27 | Values still to be provided are PLACEHOLDERs in `site.ts` with safe defaults: the support email on our domain, an empty Messenger link ("Message us" falls back to email), an empty Facebook link (hidden), an empty book-a-call link (hidden). The sample venue list is replaced by the demo venue only. T1.11 sets the real values | The user's call; a made-up page handle could point at someone else's page, and invented venues would be a false claim |
 | 2026-10-27 | The contact form keeps the PLATFORM.md fields. "Best time to call" and "demo preference" go in the message placeholder for now | Extra fields are a contract change (PLATFORM.md §7); not worth it before launch |
 
 ## 7. Open questions
