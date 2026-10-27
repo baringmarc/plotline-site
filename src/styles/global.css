@@ -225,6 +225,46 @@ section.white .card { background: var(--bg); }
   content: '✓'; position: absolute; left: 0; top: 6px; width: 20px; height: 20px; border-radius: 50%;
   background: var(--ok-soft); color: var(--ok); font-weight: 700; font-size: 12px; display: grid; place-items: center;
 }
+/* what we don't charge or don't do: the same list, crossed and quieter */
+.ticks.crosses li::before { content: '✕'; background: var(--panel); color: var(--text-soft); }
+
+/* section head (components/SectionHead.tsx): label, heading, accent bar, lead */
+.shead { text-align: center; margin-bottom: 36px; }
+.shead .bar { display: block; width: 52px; height: 4px; border-radius: 4px; background: var(--highlight); margin: 14px auto 18px; }
+.shead .sub { margin-bottom: 0; }
+.shead.left { text-align: left; }
+.shead.left .title, .shead.left .sub { text-align: left; margin-left: 0; }
+.shead.left .bar { margin-left: 0; }
+
+/* Section variants: plain (default), tinted (.white) and dark. The dark band keeps light cards readable inside it. */
+section.dark { background: var(--band); color: var(--on-band); }
+section.dark .sub { color: var(--on-band-soft); }
+section.dark .eyebrow { color: var(--sage); }
+section.dark .shead .bar { background: var(--rose); }
+section.dark .card, section.dark .facts { color: var(--text); }
+
+/* stat tiles: a small label, one big number, an optional note */
+.stats { display: flex; flex-wrap: wrap; gap: 20px 40px; }
+.stat .lbl { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-soft); }
+.stat .big { display: block; font-family: var(--serif); font-weight: 700; font-size: clamp(36px, 6vw, 48px); line-height: 1.1; color: var(--highlight); }
+.stat .note { display: block; font-size: 14px; color: var(--text-soft); }
+section.dark .stat .lbl, section.dark .stat .note { color: var(--on-band-soft); }
+section.dark .stat .big { color: var(--rose); }
+
+/* fact sheet: label/value rows in one card (<dl class="facts"><div><dt/><dd/></div>…) */
+.facts { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.facts > div { display: grid; grid-template-columns: minmax(140px, 1fr) 2fr; gap: 4px 20px; padding: 14px 20px; border-top: 1px solid var(--line); }
+.facts > div:first-child { border-top: 0; }
+.facts dt { font-weight: 700; }
+.facts dd { margin: 0; color: var(--text-soft); }
+@media (max-width: 560px) { .facts > div { grid-template-columns: 1fr; } }
+
+/* fade in on scroll (components/Reveal.tsx): only hidden while JS is watching, never with motion turned off */
+.reveal { transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.reveal.wait { opacity: 0; transform: translateY(24px); }
+@media (prefers-reduced-motion: reduce), print {
+  .reveal, .reveal.wait { opacity: 1; transform: none; transition: none; }
+}
 
 /* slider: native horizontal scroll with snap; the arrows step about a screen at a time */
 .slider { position: relative; }

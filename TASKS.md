@@ -8,8 +8,8 @@ and tracks progress. [RESEARCH.md](RESEARCH.md) holds the technical findings beh
 > Update this section at the end of every session or task. Keep it short; it's the first thing the next session reads.
 
 - **Current milestone:** Milestone 1, Launch readiness (broken down 2026-10-27).
-- **Next task:** T1.1 Page patterns. T1.1–T1.6 need nothing from the platform; T1.7 waits for `site-contact`.
-- **State:** Landing page, owner sign-up, reviews, migration and pgTAP tests exist (see README).
+- **Next task:** T1.2 Pricing config, hero and the short version. T1.2–T1.6 need nothing from the platform; T1.7 waits for `site-contact`.
+- **State:** T1.1 done: page patterns in place and used on Features. The dark section, stat tiles, ✕ lists and fact sheet are styled but not used yet (T1.2, T1.3, T1.6). The rest of the page still has the old trial and plan copy.
 - **Blockers / notes:** Docker Desktop must be running for `npm run test:db`. Open items for launch are in README "Before launch".
 - **Platform (2026-10-27):** this repo becomes frontend only. The backend moves to `court-booking-system` (its `docs/PLATFORM.md`; drafts in this repo's `docs/drafts/phase5/` and court-booking-system's `docs/drafts/phase5-site-backend/`). Plan new milestones around the contact form, not the old sign-up and trial, and never add migrations or Edge Functions here.
 
@@ -43,7 +43,9 @@ One-liner: the landing page rebuilt around the pricing model (SPEC §3.1), real 
 
 Design reference for T1.1–T1.6: [taradula.com/list-your-venue](https://taradula.com/list-your-venue), for structure and page patterns only. Our model, words and brand (SPEC §3.1). T1.1–T1.6 need nothing from the platform; T1.7 and T1.8 wait for court-booking-system to deploy `site-contact` and `site-review`.
 
-- [ ] **T1.1 Page patterns**
+- [x] **T1.1 Page patterns**
+  - Notes: `SectionHead`, `Reveal` (+ `Reveal.test.tsx`), and in `global.css` `.shead`, `section.dark`, `.stats`/`.stat`, `.ticks.crosses`, `.facts`, `.reveal`. The tinted variant is the existing `section.white`. Proven on `Features`; checked in headless Chrome at 360/1280px, light and dark, reduced motion. Reviewer: PASS.
+  - Follow-ups: one dark band colour. In the dark theme `.band` switches to terracotta but `section.dark` stays on `--band`; settle it in T1.6 (FinalBand on `section.dark`, or match the override).
   - Do: the shared building blocks from SPEC §3.1 "Page patterns": a section head (label, `h2`, accent bar, lead), plain/tinted/dark section variants, ✓ and ✕ lists, stat tiles, a label/value fact sheet, and an optional fade-in on scroll. Use them in one existing section to prove them out.
   - Depends: none
   - Files: `src/styles/global.css`, `src/components/SectionHead.tsx`, `src/components/Reveal.tsx` (or a hook), `src/features/landing/sections.tsx`

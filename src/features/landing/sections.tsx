@@ -1,10 +1,13 @@
 // The static sections of the landing page, top to bottom. Their words come from config/site.ts.
 import { PhoneMockup } from '../../components/PhoneMockup'
+import { Reveal } from '../../components/Reveal'
+import { SectionHead } from '../../components/SectionHead'
 import { Slider } from '../../components/Slider'
 import {
   audiences,
   faqs,
   features,
+  featuresHead,
   hero,
   openPlay,
   plans,
@@ -141,17 +144,17 @@ export function Features() {
   return (
     <section id="features">
       <div className="in">
-        <h2 className="title">Everything a court venue needs</h2>
-        <p className="sub">Nothing you have to learn. Your staff can use it on day one.</p>
+        <SectionHead label={featuresHead.label} title={featuresHead.title} lead={featuresHead.lead} />
         <div className="grid3">
-          {features.map((f) => (
-            <div key={f.title} className="card feature">
+          {features.map((f, i) => (
+            // staggered by column, so each row of three fades in left to right
+            <Reveal key={f.title} className="card feature" delay={(i % 3) * 80}>
               <span className="ico" aria-hidden="true">
                 {f.icon}
               </span>
               <h3>{f.title}</h3>
               <p>{f.body}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>

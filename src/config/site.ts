@@ -76,6 +76,12 @@ export const openPlay = {
   points: ['Slots and waitlist', 'Skill levels', 'Pay ahead or at the venue', 'One link to share'],
 }
 
+export const featuresHead = {
+  label: 'What you get',
+  title: 'Everything a court venue needs',
+  lead: 'Nothing you have to learn. Your staff can use it on day one.',
+}
+
 export const features = [
   { icon: '📅', title: 'Live slot grid', body: 'Each court and each hour, open or taken, updated the moment someone books.' },
   { icon: '📱', title: 'Built for phones', body: 'Your players book from Messenger links and your staff manage from the counter.' },
