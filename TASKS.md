@@ -8,9 +8,9 @@ and tracks progress. [RESEARCH.md](RESEARCH.md) holds the technical findings beh
 > Update this section at the end of every session or task. Keep it short; it's the first thing the next session reads.
 
 - **Current milestone:** Milestone 1, Launch readiness (broken down 2026-10-27).
-- **Next task:** T1.4 The player's side. T1.4–T1.6 need nothing from the platform; T1.7 waits for `site-contact`.
-- **State:** T1.1–T1.3 done: page patterns, `pricing` config, hero, short version, what it costs, where the money goes. The hero and mid-page CTAs still point at `#signup`; FAQ, FinalBand, Nav and the sign-up form still carry trial copy (T1.6, T1.7). The fact sheet isn't used yet.
-- **Blockers / notes:** Docker Desktop must be running for `npm run test:db`. Open items for launch are in README "Before launch".
+- **Next task:** T1.5 Your side. T1.5–T1.6 need nothing from the platform; T1.7 waits for `site-contact`.
+- **State:** T1.1–T1.4 done: page patterns, `pricing` config, hero, short version, the player's side, what it costs, where the money goes. The hero and mid-page CTAs still point at `#signup`; FAQ, FinalBand, Nav and the sign-up form still carry trial copy (T1.6, T1.7). The fact sheet isn't used yet.
+- **Blockers / notes:** The player's side steps 3–5 are drawn placeholders (`PlayerScreens.tsx`). Replace them with real screenshots once court-booking-system M11 shows the ₱10 fee at checkout, from a booking made on staging or the local stack, not production. `claudex-courts.plotline.fit` doesn't resolve yet; the demo button keeps it (the user's call). Docker Desktop must be running for `npm run test:db`. Open items for launch are in README "Before launch".
 - **Platform (2026-10-27):** this repo becomes frontend only. The backend moves to `court-booking-system` (its `docs/PLATFORM.md`; drafts in this repo's `docs/drafts/phase5/` and court-booking-system's `docs/drafts/phase5-site-backend/`). Plan new milestones around the contact form, not the old sign-up and trial, and never add migrations or Edge Functions here.
 
 ## How tasks work
@@ -66,7 +66,8 @@ Design reference for T1.1–T1.6: [taradula.com/list-your-venue](https://taradul
   - Files: `src/config/site.ts`, `src/features/landing/pricing.ts` (+ `pricing.test.ts`), `src/features/landing/sections.tsx`, `src/styles/global.css`
   - Acceptance: `plans` and `openPlayAddon` are gone (the sign-up form's add-on box goes with them); the percentage column is labelled as an illustration, not a competitor's price; the tables are readable at 360px (stacked or scrolling inside their card, not the page); tests cover the example and table maths.
 
-- [ ] **T1.4 The player's side**
+- [x] **T1.4 The player's side**
+  - Notes: `PlayerSide` (+ `PlayerScreens.tsx`, `public/screens/step-1-find.webp`, `step-2-pick.webp`, read-only from the live demo) replaces `Audiences` and the `OpenPlay` band. The last step is "their booking link" (the product has no reminders; SPEC §6). Also fixed two unshipped claims from T1.2 (venue logo, open play waitlist) and added SPEC §3.1 "Feature claims" with a test over the landing sections. Reviewer: PASS.
   - Do: a 5-step walkthrough with captioned screenshots taken from the live demo (find a slot → pick → pay the venue → confirmation → reminder). Open play as one step or a callout. Replaces `Audiences` and the `OpenPlay` band.
   - Depends: T1.1
   - Files: `public/screens/*.webp`, `src/config/site.ts`, `src/features/landing/sections.tsx`, `src/styles/global.css`
@@ -76,7 +77,7 @@ Design reference for T1.1–T1.6: [taradula.com/list-your-venue](https://taradul
   - Do: rewrite `Features` as owner feature cards (slot grid, bookings on your phone, proof approval, peak and off-peak rates, blackouts, staff accounts, earnings). Only features the product has, or will have at launch.
   - Depends: T1.1
   - Files: `src/config/site.ts`, `src/features/landing/sections.tsx`
-  - Acceptance: no walk-in feature; each card checked against court-booking-system's current features (list any doubtful ones in the Handoff).
+  - Acceptance: no walk-in feature; each card checked against court-booking-system's current features (list any doubtful ones in the Handoff); no SPEC §3.1 unshipped feature (drop "pay when they arrive", the open play waitlist and skill levels, "name and logo"; check "Booking alerts", since booking emails are off in production); `Features` added to the unshipped-feature check in `sections.test.tsx` (T1.6 adds `Steps`, `Faq` and `FinalBand`).
 
 - [ ] **T1.6 Getting started, FAQ, at a glance, final band**
   - Do: `Steps` becomes the 4 setup steps; rewrite the FAQ around objections (unpaid bookings, cancellations, PayMongo fees, no app for players, changing rates, open play, staff logins); add the "At a glance" fact sheet; move every CTA to `#contact` (nav, hero, the mid-page one in `Costs`, final band). Put the sections in the SPEC §3.1 order and update the README section table.

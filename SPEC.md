@@ -45,7 +45,7 @@ Every async view handles loading, empty and error states. Mobile-first.
 | --- | --- | --- |
 | 1 | Hero | One outcome headline, a ✓ list of three promises (free for venues, players pay you directly, ₱10 per online booking paid by the player), two stat tiles (₱0 to start, ₱10 the only fee), the CTA to the contact form, a secondary link to the live demo, the phone mockup |
 | 2 | The short version | Two cards: "What you get, free" (✓ list) and "What it costs" (the fee rules, then a ✕ list: no subscription, no setup fee, no monthly fee). Ends with the line that Plotline never holds the venue's money |
-| 3 | The player's side | A 5-step walkthrough with captioned screenshots from the live demo (find a slot → pick → pay the venue → confirmation → reminder). Open play sits here as one step or a callout |
+| 3 | The player's side | A 5-step walkthrough with captioned phone screens (find a slot → pick a time → pay the venue → you confirm it → their booking link). Steps 1–2 are read-only screenshots of the live demo; 3–5 are drawn screens until real ones exist (they need a real booking). Open play is a callout under the steps |
 | 4 | Your side | Owner feature cards (slot grid, bookings on your phone, proof approval, peak and off-peak rates, blackouts, staff accounts, earnings) |
 | 5 | What it costs | Stat tiles, a worked example (court price + ₱10 = what the player pays; the venue keeps the full court price) and a flat fee vs an illustrative percentage fee table at several booking sizes. Both are computed from the fee in config, never typed in |
 | 6 | Where the money goes | A 4-step flow: player books → pays the venue (its own GCash, Maya, bank or PayMongo) → the booking is confirmed → Plotline sends one monthly invoice for the fees. Then what's never billed |
@@ -71,6 +71,14 @@ Every async view handles loading, empty and error states. Mobile-first.
 - PayMongo's own fees are between the venue and PayMongo (say so in the FAQ, don't hide it).
 - Never claim: a free trial, self-serve sign-up, weekly billing, an owner-pays-the-fee switch, or walk-ins as a feature (they're being hidden).
 
+**Feature claims:** only what court-booking-system ships. Its SAAS-PLAN Phase 5 "Copy" lists the gaps, and none of them may be claimed until they ship:
+- open play sign-ups, slots, a waitlist or skill levels (open play is a marked session on the grid, with details and up to 3 links such as an RSVP form or Reclub);
+- reminders;
+- paying at the venue;
+- a venue logo on the booking page.
+
+`sections.test.tsx` checks the landing sections for these words.
+
 ## 4. Flows
 
 ### Owner sign-up
@@ -95,6 +103,7 @@ The `feedback` Edge Function stores a review with `approved = false`. Only appro
 | 2026-10-27 | This repo is the marketing **frontend only**. `court-booking-system` is the platform repo: it owns the Supabase schema, migrations and Edge Functions for every shared project; the contract between the two is its `docs/PLATFORM.md` | Two repos pushing migrations to one database break each other's migration history; one owner keeps the contract clear |
 | 2026-10-27 | No self-serve sign-up and no free trial. Owners send a contact form (`site-contact`, stored as a lead); reviews go to `site-review`. Domain `plotline.fit`; the live demo is `https://claudex-courts.plotline.fit` | The SaaS plan (court-booking-system `docs/SAAS-PLAN.md` §1, Phase 5): we set each venue up together with the owner |
 | 2026-10-27 | The landing page is rebuilt around the pricing model (§3.1), using taradula.com/list-your-venue as the design reference for structure only. It stays on `/`, with no separate owner page | The whole site is for venue owners. The reference sells a near-identical model well (price-led hero, short summary, worked example, money flow); our claims and brand stay our own |
+| 2026-10-27 | The player walkthrough's last step is "their booking link", not "a reminder". Steps 1–2 use read-only screenshots of the live demo (`/book`, tomorrow, two hours picked); steps 3–5 are drawn until court-booking-system's M11 shows the fee at checkout. The demo button stays on `claudex-courts.plotline.fit` although its DNS isn't live yet (the user's call: the site isn't public before launch) | The product sends no reminders, and booking emails are off in production; a real booking for screenshots would send real data to production |
 | 2026-10-27 | The contact form keeps the PLATFORM.md fields. "Best time to call" and "demo preference" go in the message placeholder for now | Extra fields are a contract change (PLATFORM.md §7); not worth it before launch |
 
 ## 7. Open questions

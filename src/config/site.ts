@@ -57,11 +57,11 @@ export const shortVersion = {
   get: {
     title: 'What you get, free',
     points: [
-      'Your own booking page with your name and logo',
+      'Your own booking page with your venue’s name',
       'A live slot grid for every court',
       'Every booking and payment proof on your phone',
       'Peak and off-peak rates, set by you',
-      'Open play sessions with slots and a waitlist',
+      'Open play sessions shown on your grid',
       'We set up your courts, hours and rates with you',
       'A walkthrough for you and your staff',
     ],
@@ -93,32 +93,83 @@ export const venues: Venue[] = [
   { name: 'Corner Court PH', location: 'Baguio' },
 ]
 
-export const audiences = [
-  {
-    title: 'For players',
-    points: [
-      'See open slots for every court, live',
-      'Book and pay in a minute, no app to install',
-      'Join open play and see who else is coming',
-      'Get a reminder before the game',
-    ],
-  },
-  {
-    title: 'For venue owners',
-    points: [
-      'Every booking in one list, on your phone',
-      'No more double bookings or lost messages',
-      'Set your own rates for peak and off-peak hours',
-      'Know how full your courts are each week',
-    ],
-  },
-]
+export type ScreenImage = { src: string; width: number; height: number; alt: string }
+/** The drawn screens for steps the demo can't show without a real booking. */
+export type ScreenMock = 'pay' | 'confirmed' | 'link'
 
+/** The player's booking flow, step by step. Steps 1–2 are screenshots of the live demo; 3–5 are drawn for now. */
+export const playerSide = {
+  label: 'The player’s side',
+  title: 'Booked in a minute, with no app to install',
+  lead: 'This is what your players see, from your link to their booking.',
+  stepLabel: (n: number, total: number) => `Step ${n} of ${total}`,
+  steps: [
+    {
+      title: 'Find a free slot',
+      body: 'They open your link and see every court and hour, open or booked, with your peak and off-peak prices.',
+      image: {
+        src: '/screens/step-1-find.webp',
+        width: 390,
+        height: 844,
+        alt: 'The booking grid on a phone: three pickleball courts from 1 PM to midnight, cheaper in the afternoon and dearer in the evening.',
+      },
+    },
+    {
+      title: 'Pick a time',
+      body: 'A tap picks an hour and more taps make it longer. The total shows as they go.',
+      image: {
+        src: '/screens/step-2-pick.webp',
+        width: 390,
+        height: 844,
+        alt: 'Two hours picked on Pickleball 2, 5 PM to 7 PM, with the total and a Continue button.',
+      },
+    },
+    {
+      title: 'Pay you directly',
+      body: `The court price plus the ${fee} booking fee, into your GCash, Maya or bank with a proof, or through your PayMongo.`,
+      mock: 'pay',
+    },
+    {
+      title: 'You confirm it',
+      body: 'A payment proof waits for your OK. PayMongo payments confirm on their own.',
+      mock: 'confirmed',
+    },
+    {
+      title: 'Their booking, one link',
+      body: 'They get a private link to their booking. If they sign in, it’s in My bookings too.',
+      mock: 'link',
+    },
+  ] as { title: string; body: string; image?: ScreenImage; mock?: ScreenMock }[],
+  /** The sample booking the drawn screens show; it continues the one picked in step 2. */
+  sample: {
+    court: 'Pickleball 2',
+    when: 'Wed, Oct 28 · 5 PM–7 PM',
+    hours: 2,
+    courtPrice: 1000,
+    reference: 'CB-7K2QDM',
+    link: 'claudex-courts.plotline.fit/booking/…',
+  },
+  mocks: {
+    payTitle: 'Pay the venue',
+    court: (hours: number) => `Court, ${hours} hours`,
+    fee: 'Booking fee',
+    total: 'Total',
+    methods: ['GCash', 'Maya', 'Bank', 'PayMongo'],
+    payButton: 'Upload payment proof',
+    confirmed: 'Confirmed',
+    reference: 'Reference',
+    linkTitle: 'Save this link',
+    linkBody: 'It opens this booking without an account.',
+    copy: 'Copy link',
+  },
+}
+
+/** A callout under the player's steps. Open play is a marked session on the grid; players don't sign up in the app. */
 export const openPlay = {
-  title: 'Open play, without the group chat',
+  title: 'Open play, on the same grid',
   lead:
-    'Post a session, set the skill level and the number of slots, and share one link. Players sign up themselves, and you see the list fill before anyone arrives.',
-  points: ['Slots and waitlist', 'Skill levels', 'Pay ahead or at the venue', 'One link to share'],
+    'Post a session on any courts and hours. Players see it on your booking page with your details and your RSVP or Reclub link, and nobody can book over it.',
+  points: ['On any courts', 'Your title and details', 'Up to 3 links', 'Never billed'],
 }
 
 export const featuresHead = {

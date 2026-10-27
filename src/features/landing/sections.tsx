@@ -4,7 +4,6 @@ import { Reveal } from '../../components/Reveal'
 import { SectionHead } from '../../components/SectionHead'
 import { Slider } from '../../components/Slider'
 import {
-  audiences,
   costs,
   faqs,
   features,
@@ -13,6 +12,7 @@ import {
   moneyFlow,
   openPlay,
   peso,
+  playerSide,
   pricing,
   shortVersion,
   site,
@@ -20,6 +20,7 @@ import {
   venues,
   type Venue,
 } from '../../config/site'
+import { PlayerScreen } from './PlayerScreens'
 import { feeComparison, workedExample } from './pricing'
 
 export function Hero() {
@@ -153,40 +154,38 @@ export function Venues() {
   )
 }
 
-export function Audiences() {
+export function PlayerSide() {
+  const total = playerSide.steps.length
   return (
-    <section className="white">
+    <section className="white" id="players">
       <div className="in">
-        <h2 className="title">Easier for your players and for you</h2>
-        <p className="sub">One booking page, two kinds of people who are glad it exists.</p>
-        <div className="grid2">
-          {audiences.map((a) => (
-            <div key={a.title} className="card">
-              <h3>{a.title}</h3>
-              <ul className="ticks">
-                {a.points.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-            </div>
+        <SectionHead label={playerSide.label} title={playerSide.title} lead={playerSide.lead} />
+        {/* one swipeable row on phones, five columns on wide screens */}
+        <ol className="walk" aria-label={playerSide.label}>
+          {playerSide.steps.map((s, i) => (
+            <li key={s.title}>
+              <div className="frame">
+                {s.image ? (
+                  <img src={s.image.src} width={s.image.width} height={s.image.height} alt={s.image.alt} loading="lazy" />
+                ) : (
+                  s.mock && <PlayerScreen mock={s.mock} />
+                )}
+              </div>
+              <span className="eyebrow">{playerSide.stepLabel(i + 1, total)}</span>
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
+            </li>
           ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-export function OpenPlay() {
-  return (
-    <section className="op" id="openplay">
-      <div className="in">
-        <h2 className="title">{openPlay.title}</h2>
-        <p className="sub">{openPlay.lead}</p>
-        <div className="chips">
-          {openPlay.points.map((p) => (
-            <span key={p}>{p}</span>
-          ))}
-        </div>
+        </ol>
+        <Reveal className="card openplay">
+          <h3>{openPlay.title}</h3>
+          <p>{openPlay.lead}</p>
+          <div className="chips">
+            {openPlay.points.map((p) => (
+              <span key={p}>{p}</span>
+            ))}
+          </div>
+        </Reveal>
       </div>
     </section>
   )

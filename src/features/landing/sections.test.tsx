@@ -1,8 +1,8 @@
-import { render } from '@testing-library/react'
+import { render, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { costs, peso, pricing, site } from '../../config/site'
+import { costs, peso, playerSide, pricing, site } from '../../config/site'
 import { workedExample } from './pricing'
-import { Costs, Hero, MoneyFlow, ShortVersion } from './sections'
+import { Costs, Hero, MoneyFlow, PlayerSide, ShortVersion } from './sections'
 
 /**
  * Every peso amount in the section's copy, e.g. ["₱0", "₱10"]. Decorative parts (the phone mockup's
@@ -61,6 +61,46 @@ describe('MoneyFlow', () => {
   it('lists everything that is never billed', () => {
     const { getByText } = render(<MoneyFlow />)
     for (const n of pricing.notBilled) expect(getByText(n)).toBeInTheDocument()
+  })
+})
+
+describe('PlayerSide', () => {
+  it('shows five numbered steps, screenshots with size and alt text, drawn screens for the rest', () => {
+    const { getAllByRole, getByRole, getByText } = render(<PlayerSide />)
+    const steps = within(getByRole('list', { name: playerSide.label })).getAllByRole('listitem')
+    expect(steps).toHaveLength(5)
+    expect(getByText('Step 5 of 5')).toBeInTheDocument()
+    const imgs = getAllByRole('img')
+    expect(imgs).toHaveLength(playerSide.steps.filter((s) => s.image).length)
+    for (const img of imgs) {
+      expect(img).toHaveAttribute('width')
+      expect(img).toHaveAttribute('height')
+      expect(img).toHaveAttribute('loading', 'lazy')
+      expect(img.getAttribute('alt')).not.toBe('')
+    }
+  })
+
+  it('draws the payment with the court price plus the fee', () => {
+    const { container } = render(<PlayerSide />)
+    const total = peso(playerSide.sample.courtPrice + pricing.bookingFee)
+    expect(container.querySelector('.mock')?.textContent).toContain(total)
+  })
+})
+
+/** Features court-booking-system doesn't ship yet (SAAS-PLAN Phase 5 "Copy"; SPEC §3.1). */
+const UNSHIPPED =
+  /waitlist|skill level|reminder|logo|pay at the venue|pay when they arrive|walk-in|open play (sessions? )?(with )?slots|join open play|sign(s)? up for (open play|a session)/i
+
+describe.each([
+  ['Hero', Hero],
+  ['ShortVersion', ShortVersion],
+  ['PlayerSide', PlayerSide],
+  ['Costs', Costs],
+  ['MoneyFlow', MoneyFlow],
+])('%s', (_, Section) => {
+  it('claims no feature that has not shipped', () => {
+    const { container } = render(<Section />)
+    expect(container.textContent).not.toMatch(UNSHIPPED)
   })
 })
 

@@ -1,5 +1,4 @@
 import {
-  Audiences,
   Costs,
   Demo,
   Faq,
@@ -7,7 +6,7 @@ import {
   FinalBand,
   Hero,
   MoneyFlow,
-  OpenPlay,
+  PlayerSide,
   ShortVersion,
   Steps,
   Venues,
@@ -22,8 +21,7 @@ export function LandingPage() {
       <ShortVersion />
       <Venues />
       <ReviewsSection />
-      <Audiences />
-      <OpenPlay />
+      <PlayerSide />
       <Features />
       <Costs />
       <MoneyFlow />
