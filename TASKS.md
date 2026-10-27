@@ -11,6 +11,7 @@ and tracks progress. [RESEARCH.md](RESEARCH.md) holds the technical findings beh
 - **Next task:** none.
 - **State:** Landing page, owner sign-up, reviews, migration and pgTAP tests exist (see README).
 - **Blockers / notes:** Docker Desktop must be running for `npm run test:db`. Open items for launch are in README "Before launch".
+- **Platform (2026-10-27):** this repo becomes frontend only. The backend moves to `court-booking-system` (its `docs/PLATFORM.md`; drafts in this repo's `docs/drafts/phase5/` and court-booking-system's `docs/drafts/phase5-site-backend/`). Plan new milestones around the contact form, not the old sign-up and trial, and never add migrations or Edge Functions here.
 
 ## How tasks work
 
@@ -38,4 +39,4 @@ and tracks progress. [RESEARCH.md](RESEARCH.md) holds the technical findings beh
 
 ## Milestone 1: Launch readiness
 
-One-liner: real copy and assets, Turnstile CAPTCHA, real Terms and Privacy, SMTP. Break down when approved.
+One-liner: real copy and assets, the contact form on the platform's `site-contact` (with Turnstile), real Terms and Privacy. Follows court-booking-system's SAAS-PLAN Phase 5 and `docs/PLATFORM.md` (updated 2026-10-27: no sign-up, no trial, no SMTP here). Break down when approved.
