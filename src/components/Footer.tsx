@@ -11,9 +11,11 @@ export function Footer() {
         <span>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>
-          <a href={site.facebookUrl} target="_blank" rel="noreferrer">
-            Facebook
-          </a>
+          {site.facebookUrl && (
+            <a href={site.facebookUrl} target="_blank" rel="noreferrer">
+              Facebook
+            </a>
+          )}
           <a href={`mailto:${site.supportEmail}`}>Email us</a>
         </span>
       </div>

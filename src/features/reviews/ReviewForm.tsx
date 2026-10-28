@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { validateReview, type ReviewPayload } from '../../../supabase/functions/_shared/validate.ts'
+import { validateReview, type ReviewPayload } from '../../lib/siteForms'
 import { useSendReview } from './hooks'
 
 type Fields = Omit<ReviewPayload, 'started'>
@@ -108,7 +108,7 @@ export function ReviewForm() {
       </div>
       <label className="check">
         <input type="checkbox" checked={f.consent} onChange={(e) => set('consent', e.target.checked)} />
-        <span>You may show my review and first name on this site.</span>
+        <span>You may show my review, with the name I give, on this site.</span>
       </label>
       {error && (
         <div className="err" role="alert">

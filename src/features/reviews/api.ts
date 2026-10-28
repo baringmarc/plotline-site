@@ -1,7 +1,7 @@
 import { callFunction } from '../../lib/functions'
 import { unwrap } from '../../lib/queryClient'
 import { supabase } from '../../lib/supabase'
-import type { ReviewPayload } from '../../../supabase/functions/_shared/validate.ts'
+import type { ReviewPayload } from '../../lib/siteForms'
 
 export type PublicReview = {
   id: string
@@ -27,5 +27,5 @@ export async function fetchApprovedReviews(): Promise<PublicReview[]> {
 export type FeedbackReply = { ok: true; message: string }
 
 export function sendReview(payload: ReviewPayload): Promise<FeedbackReply> {
-  return callFunction<FeedbackReply>('feedback', payload)
+  return callFunction<FeedbackReply>('site-review', payload)
 }

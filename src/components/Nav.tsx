@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { navLinks, site } from '../config/site'
+import { contactAnchor, messageLink, nav, navLinks, site } from '../config/site'
 
-/** Sticky top bar. On a phone the links fold into a menu button beside the trial button. */
+/** Sticky top bar. On a phone the links fold into a menu button beside the contact button. */
 export function Nav() {
   const [open, setOpen] = useState(false)
 
@@ -30,8 +30,8 @@ export function Nav() {
               {l.label}
             </a>
           ))}
-          <a className="btn main navcta" href="/#signup">
-            Free trial
+          <a className="btn main navcta" href={`/${contactAnchor}`}>
+            {nav.cta}
           </a>
           <button
             type="button"
@@ -51,8 +51,13 @@ export function Nav() {
             {l.label}
           </a>
         ))}
-        <a href={site.messengerUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
-          Message us
+        {/* a new tab only for Messenger; the email fallback opens the mail app */}
+        <a
+          href={messageLink}
+          {...(site.messengerUrl ? { target: '_blank', rel: 'noreferrer' } : {})}
+          onClick={() => setOpen(false)}
+        >
+          {nav.messenger}
         </a>
       </div>
     </header>

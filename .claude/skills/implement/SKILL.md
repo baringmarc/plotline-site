@@ -74,11 +74,16 @@ For anything else, state your plan in two or three lines and continue.
 - Tick the task `[x]` with a short `Notes:` line (test files, follow-ups).
 - Update the Handoff section: **Next task**, **State** (one line), **Blockers / notes**.
 - If this was the last task of the milestone, say so. Breaking down the next milestone needs approval.
-- Don't commit or push unless the user asks.
+- **Commit, never push** (authorized by the user on 2026-10-27). Once `npm run verify` passes and the reviewer has signed off:
+  - Check `git status` and stage only the files this run created or changed, including its TASKS/SPEC/RESEARCH updates. Leave unrelated dirty files out.
+  - Never stage `.env`, `supabase/functions/.env` or other secrets.
+  - Commit on the current branch (never `master`) with a message like `feat(landing): T1.2 pricing config and hero` plus the attribution line.
+  - Don't push, amend or rewrite history.
+  - If verify fails or the reviewer still says BLOCK, don't commit; report instead.
 
 ## 8. Report
 
-A short message: task ID and title with the result, files changed by area, how it was proven (tests, `npm run verify`), the reviewer verdict and follow-ups, and what's next.
+A short message: task ID and title with the result, files changed by area, how it was proven (tests, `npm run verify`), the reviewer verdict and follow-ups, the commit hash and message (or why nothing was committed), and what's next.
 
 ## Milestone mode
 

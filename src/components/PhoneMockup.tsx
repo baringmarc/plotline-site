@@ -17,7 +17,7 @@ export function PhoneMockup() {
     <div className="phone" aria-hidden="true">
       <div className="screen">
         <div className="bar">
-          Sample Pickle Park
+          Claudex Courts
           <small>Booking by {site.name}</small>
         </div>
         <div className="days">
