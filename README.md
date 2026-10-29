@@ -74,6 +74,6 @@ npm run verify    # typecheck + lint + unit tests + build
 
 ## Before launch
 
-- Replace the placeholders in `src/config/site.ts` (support email, Messenger, Facebook, demo URL `https://claudex-courts.plotline.fit`), `public/logo.svg`, and add `public/og.jpg` (1200×630).
+- Replace the remaining placeholders (TASKS T1.11b): `bookCallUrl` and real venues in `src/config/site.ts`, and make sure the demo URL `https://claudex-courts.plotline.fit` resolves.
 - Remove the free-trial and sign-up wording; match features and pricing to what ships.
-- Write real Terms and Privacy pages (`src/routes/SimplePages.tsx`), covering the Data Privacy Act.
+- Name the email service in the Privacy notice, and have the draft Terms and Privacy (`src/config/legal.ts`) legally reviewed before the draft notice comes off.

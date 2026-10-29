@@ -1,13 +1,14 @@
 // Everything a visitor reads on the landing page lives here: brand, links, copy, prices, FAQ.
 // Change the words here, not in the components. Values still to be provided or decided are marked PLACEHOLDER;
-// T1.11 replaces them (`grep -rn PLACEHOLDER src index.html`).
+// T1.11b replaces them (`grep -rn PLACEHOLDER src index.html`).
 
+import { provider } from './legal'
 import { peso, pricing } from './pricing'
 
 /** The pricing model lives in ./pricing; re-exported so components import copy from one place. */
 export { peso, pricing }
 /** The Terms and Privacy text live in ./legal (too long for this file). */
-export { legalDraftNotice, privacy, terms, type LegalPage } from './legal'
+export { legalDraftNotice, privacy, provider, terms, type LegalPage } from './legal'
 
 export const site = {
   name: 'Plotline',
@@ -17,12 +18,11 @@ export const site = {
   /** The brand line from the style guide, shown in the footer. */
   slogan: 'Plot your day. Fill your hours.',
   trialDays: 7,
-  /** PLACEHOLDER: on our domain, but the mailbox isn't set up yet. */
-  supportEmail: 'hello@plotline.fit',
-  /** PLACEHOLDER: Plotline's Messenger link (m.me/…). Empty: "Message us" links fall back to email. */
-  messengerUrl: '',
-  /** PLACEHOLDER: Plotline's Facebook page. Empty: the footer hides the link. */
-  facebookUrl: '',
+  supportEmail: 'plotline.admin1@gmail.com',
+  /** Plotline's Messenger link. Empty: "Message us" links fall back to email. */
+  messengerUrl: 'https://m.me/61595759948011',
+  /** Plotline's Facebook page. Empty: the footer hides the link. */
+  facebookUrl: 'https://www.facebook.com/profile.php?id=61595759948011',
   /** A live booking site visitors can try. */
   demoUrl: 'https://claudex-courts.plotline.fit',
   /** PLACEHOLDER: a scheduling page (Google Calendar or Cal.com) shown after the contact form. Empty hides the link (SPEC §7). */
@@ -337,7 +337,7 @@ export const faqs = [
   },
 ]
 
-/** The offer as a fact sheet. Exit terms and the provider are left out until they are settled (SPEC §7). */
+/** The offer as a fact sheet. It must agree with the Terms (./legal). */
 export const atAGlance = {
   label: 'At a glance',
   title: 'The whole offer, on one card',
@@ -350,6 +350,8 @@ export const atAGlance = {
     { label: 'Payments', value: 'Players pay you directly: GCash, Maya, bank, or your own PayMongo account' },
     { label: 'Billing', value: 'One invoice a month, with every booking listed' },
     { label: 'Your data', value: 'Export your bookings and payments to CSV from your admin pages' },
+    { label: 'Provider', value: provider },
+    { label: 'Leaving', value: 'Leave any time, with no notice period; your admin pages and CSV export stay open for 30 days' },
   ],
 }
 
