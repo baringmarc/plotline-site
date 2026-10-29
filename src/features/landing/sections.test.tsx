@@ -148,11 +148,28 @@ describe('calls to action', () => {
 })
 
 describe('AtAGlance', () => {
-  it('lists every row, with the fee from config and no exit terms yet', () => {
+  it('lists every row, with the fee from config', () => {
     const { getAllByRole, getByText } = render(<AtAGlance />)
     expect(getAllByRole('term')).toHaveLength(atAGlance.rows.length)
     expect(getByText(new RegExp(`^${peso(pricing.bookingFee)} per confirmed online booking`))).toBeInTheDocument()
     expect(atAGlance.rows.map((r) => r.label)).not.toContain('Term')
+  })
+
+  it('ends with the "Provider" and "Leaving" rows (SPEC §3.1 row 10, T1.11a)', () => {
+    const { getAllByRole } = render(<AtAGlance />)
+    const terms = getAllByRole('term').map((t) => t.textContent)
+    expect(terms.slice(-2)).toEqual(['Provider', 'Leaving'])
+    const value = (label: string) => getAllByRole('term').find((t) => t.textContent === label)?.nextElementSibling?.textContent
+    expect(value('Provider')).toMatch(/^Plotline\b/)
+    expect(value('Leaving')).toMatch(/any time/i)
+    expect(value('Leaving')).toMatch(/30 days/)
+  })
+})
+
+describe('Faq', () => {
+  it('"Message us" opens Messenger (T1.11a)', () => {
+    const { getByRole } = render(<Faq />)
+    expect(getByRole('link', { name: 'Message us' })).toHaveAttribute('href', 'https://m.me/61595759948011')
   })
 })
 

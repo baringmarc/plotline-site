@@ -1,5 +1,5 @@
 // The Terms and the Privacy notice. They follow court-booking-system's SAAS-PLAN §1 and §5 and the "At a glance"
-// sheet; what isn't decided yet is marked PLACEHOLDER (SPEC §7, TASKS T1.11). Have both checked before launch.
+// sheet; what isn't decided yet is marked PLACEHOLDER (SPEC §7, TASKS T1.11b). Have both checked before launch.
 import { peso, pricing } from './pricing'
 
 export type LegalSection = { title: string; paragraphs?: string[]; list?: string[] }
@@ -8,8 +8,8 @@ export type LegalPage = { title: string; updated: string; intro: string; section
 /** PLACEHOLDER: shown on both pages until the final text is approved. */
 export const legalDraftNotice = 'Draft. This page is not final yet and will be reviewed before Plotline launches.'
 
-/** PLACEHOLDER: the registered business that runs Plotline (a DTI-registered sole proprietor is planned). */
-const provider = '[Provider name and address, to be added once the business is registered]'
+/** Who runs Plotline: the other party to the Terms and the personal information controller. */
+export const provider = 'Plotline'
 
 const fee = peso(pricing.bookingFee)
 const notBilled = pricing.notBilled.map((n, i) => (i ? n[0].toLowerCase() + n.slice(1) : n)).join(', ')
@@ -17,7 +17,7 @@ const notBilled = pricing.notBilled.map((n, i) => (i ? n[0].toLowerCase() + n.sl
 export const terms = (supportEmail: string): LegalPage => ({
   title: 'Terms for venues',
   updated: 'October 2026',
-  intro: `These terms cover a venue's use of Plotline: an online booking page for your courts and the admin pages to run them. Plotline is run by ${provider}. Questions: ${supportEmail}.`,
+  intro: `These terms cover a venue's use of Plotline: an online booking page for your courts and the admin pages to run them. These terms are between your venue and ${provider}. Questions: ${supportEmail}.`,
   sections: [
     {
       title: 'The service',
@@ -46,8 +46,8 @@ export const terms = (supportEmail: string): LegalPage => ({
     {
       title: 'Your PayMongo account',
       paragraphs: [
-        // PLACEHOLDER: how venues' PayMongo keys are stored and used (court-booking-system SAAS-PLAN Phase 4, §4 question 6).
-        'If you connect your own PayMongo account, we use its key only to create checkouts for your bookings, to set up PayMongo’s payment notices to us, and to refund late payments as above. [How the key is stored and protected, and what we do if it leaks: to be decided.]',
+        'If you connect your own PayMongo account, we use its key only to create checkouts for your bookings, to set up PayMongo’s payment notices to us, and to refund late payments as above.',
+        'We store the key encrypted, and it is read only by our server. It is never shown again, not even to you: your admin pages show its last 4 characters. If we think the key may have leaked, we disconnect it, tell you right away, and help you replace it with a new key from your PayMongo dashboard.',
       ],
     },
     {
@@ -61,15 +61,13 @@ export const terms = (supportEmail: string): LegalPage => ({
       title: 'Late payment',
       paragraphs: [
         'If an invoice is still unpaid after the 7 days, we may suspend your booking page. While it is suspended, it takes no new bookings; bookings already made are still honored, and your admin pages keep working.',
-        // PLACEHOLDER: how a suspension ends.
-        '[How a suspension is lifted: to be decided.]',
+        'Once the overdue invoice is paid, we lift the suspension, usually within one business day.',
       ],
     },
     {
       title: 'Changes to the fee',
       paragraphs: [
-        // PLACEHOLDER: the notice period before a fee change.
-        'We tell you before the booking fee changes, at least [notice period, to be decided] ahead. A change applies only to bookings made after it takes effect.',
+        'We tell you before the booking fee changes, at least 1 week ahead. A change applies only to bookings made after it takes effect.',
       ],
     },
     {
@@ -81,14 +79,14 @@ export const terms = (supportEmail: string): LegalPage => ({
     {
       title: 'Leaving Plotline',
       paragraphs: [
-        // PLACEHOLDER: exit terms (SPEC §7).
-        '[To be decided: the notice to leave, what happens to unpaid invoices, and whether you can still export your data after you leave.]',
+        'You can leave any time: tell us by email. There is no notice period. We close your booking page, and bookings already made are yours to honor or cancel with your players.',
+        'Booking fees for bookings confirmed before you leave go on a final invoice, which you pay within 7 days.',
+        'Your admin pages, and the CSV export of your bookings and payments, stay open for 30 days after you leave. Then your venue’s data is deleted, except what the law requires us to keep, such as invoices.',
       ],
     },
     {
       title: 'Law',
       paragraphs: [
-        // PLACEHOLDER: confirm with the legal review.
         'These terms follow the laws of the Philippines.',
       ],
     },
@@ -119,8 +117,9 @@ export const privacy = (supportEmail: string): LegalPage => ({
     {
       title: 'Who sees it',
       paragraphs: [
-        // PLACEHOLDER: name the email provider once it's chosen (court-booking-system SAAS-PLAN Phase 0).
-        'Contact form: only the Plotline team. A new contact form reaches us by email through our email provider [to be named].',
+        'Contact form: only the Plotline team.',
+        // PLACEHOLDER: name the service that emails us new leads once it's chosen (court-booking-system SAAS-PLAN Phase 0).
+        'A new contact form reaches us by email, sent through our email service [service to be named]. Emails you send us are kept in our Gmail inbox (Google).',
         'Reviews: once we approve a review, it is public. Anyone visiting this site can see the name you gave, whether you are a player or an owner, your venue if you added it, your rating and your review. Reviews we haven’t approved are seen only by the Plotline team.',
         'Both are stored with Supabase, on servers in Singapore. We never sell your information or share it for marketing.',
       ],
@@ -128,8 +127,7 @@ export const privacy = (supportEmail: string): LegalPage => ({
     {
       title: 'How long we keep it',
       list: [
-        // PLACEHOLDER: retention periods.
-        'Contact form: while we talk with you, and for [period, to be decided] after our last contact if your venue doesn’t join. If it joins, we keep what we need to run your account.',
+        'Contact form: while we talk with you, and for 1 year after our last contact if your venue doesn’t join. If it joins, we keep what we need to run your account.',
         'Reviews: for as long as we show them, or until you ask us to remove yours.',
       ],
     },

@@ -31,7 +31,7 @@ reviews, and start a 7-day free trial.
 | --- | --- |
 | `/` | Landing page (sections listed in README) |
 | `/welcome` | Where the confirmation email lands |
-| `/terms`, `/privacy` | Draft Terms for venues and Privacy notice (`src/config/legal.ts`): the offer as in SAAS-PLAN §1 and "At a glance", what the two forms collect and why, under the Data Privacy Act. Undecided parts are visible "[to be decided]" placeholders and the pages say they are drafts |
+| `/terms`, `/privacy` | Draft Terms for venues and Privacy notice (`src/config/legal.ts`): the offer as in SAAS-PLAN §1 and "At a glance", what the two forms collect and why, under the Data Privacy Act. The only undecided part left is the name of the email service that sends us new leads (a visible "[service to be named]"), and both pages say they are drafts until a legal review |
 
 Every async view handles loading, empty and error states. Mobile-first.
 
@@ -52,7 +52,7 @@ Every async view handles loading, empty and error states. Mobile-first.
 | 7 | Venues and reviews | `Venues` lists only venues that use Plotline (for now the demo venue, Claudex Courts, as a centred card; a slider once there are more than 3), then `ReviewsSection` |
 | 8 | Getting started | 4 steps: you contact us → we set up your courts, hours and rates → you get your booking link → we walk you and your team through it (no QR poster: it isn't a product feature) |
 | 9 | FAQ | Objection-led questions (see the rules below) |
-| 10 | At a glance | A label/value fact sheet: service, setup fee, monthly fee, booking fee, not billed, payments, billing, your data (CSV export). Exit terms and the provider are added once settled (§7) |
+| 10 | At a glance | A label/value fact sheet: service, setup fee, monthly fee, booking fee, not billed, payments, billing, your data (CSV export), provider, leaving (§6, 2026-10-29) |
 | 11 | Contact | The contact form (`site-contact`); after sending, a thank-you state with an optional "book a call" link |
 | 12 | Final band | One line and the CTA |
 
@@ -111,10 +111,10 @@ The review form posts to the platform's `site-review` function, which stores the
 | 2026-10-27 | Values still to be provided are PLACEHOLDERs in `site.ts` with safe defaults: the support email on our domain, an empty Messenger link ("Message us" falls back to email), an empty Facebook link (hidden), an empty book-a-call link (hidden). The sample venue list is replaced by the demo venue only. T1.11 sets the real values | The user's call; a made-up page handle could point at someone else's page, and invented venues would be a false claim |
 | 2026-10-27 | The Terms and Privacy notice are written now as drafts, with visible placeholders for what isn't decided, rather than waiting for the exit terms (T1.10's dependency) | The user's call: defaults now, real values in T1.11 |
 | 2026-10-27 | The contact form keeps the PLATFORM.md fields. "Best time to call" and "demo preference" go in the message placeholder for now | Extra fields are a contract change (PLATFORM.md §7); not worth it before launch |
+| 2026-10-29 | T1.11a values (the user's): support email `plotline.admin1@gmail.com`; Messenger `https://m.me/61595759948011`; Facebook `https://www.facebook.com/profile.php?id=61595759948011`; `bookCallUrl` stays empty; venues stay the demo only. Terms and Privacy: the provider and controller is "Plotline"; 1 week's notice before a fee change; contact-form leads are kept 1 year after our last contact; the Terms follow Philippine law. Set by us at the user's request: a suspension is lifted once the overdue invoice is paid, usually within one business day; a venue's PayMongo key is stored encrypted, read only by our server, never shown again (the admin pages show its last 4 characters), and if it may have leaked we disconnect it, tell the venue and help it replace the key; exit terms: leave any time by email with no notice period, fees for bookings confirmed before then go on a final invoice due within 7 days, the admin pages and CSV export stay open for 30 days after leaving, then the venue's data is deleted except what the law requires us to keep (such as invoices). The "At a glance" sheet gains "Provider" and "Leaving" rows. The Privacy notice says emails to us are kept in our Gmail inbox (Google); the service that sends us new-lead alerts is still to be named | The user's values and calls; the rest follow court-booking-system SAAS-PLAN §5 (manual suspension) and Phase 4 (encrypted keys, last 4 shown) |
 
 ## 7. Open questions
 - Turnstile CAPTCHA before launch: the token goes to the platform's `site-contact` function (its secret lives in court-booking-system), not to `auth.signUp`.
-- Exit terms for the "At a glance" sheet and the FAQ: notice period to leave, what happens to unpaid invoices, and whether a venue can still export its bookings after it leaves or while it's suspended (the CSV export from the admin pages already ships). Not settled in SAAS-PLAN yet; leave those rows out until it is. The Terms show it as a "[to be decided]" placeholder.
-- For the Terms and Privacy notice (T1.10 placeholders, T1.11): the provider's registered name and address (also the personal information controller), the notice period before a fee change, how a suspension is lifted, how venues' PayMongo keys are stored and protected (SAAS-PLAN Phase 4), how long contact-form leads are kept, the email provider that sends us new leads, and a legal review of both pages.
+- Still open for the Terms and Privacy notice (T1.11b): the name of the email service that sends us new-lead alerts (court-booking-system SAAS-PLAN Phase 0), and a legal review of both pages before the draft notice comes off.
 - A "book a call" link after the contact form (Google Calendar or Cal.com): which tool and whose calendar. Optional; the thank-you state works without it.
 - ~~Real SMTP provider for confirmation emails.~~ No longer needed here: the contact form creates no account, so the site sends no auth emails. Plotline's email sender is set up in court-booking-system (SAAS-PLAN Phase 0).

@@ -1,0 +1,3 @@
+{"ts":"2026-10-29T14:00:46.152Z","task":"T1.11a","source":"guard","category":"reviewer-readonly","agent":"reviewer","command":"cat src/config/legal.ts; sed -n 1,40p src/config/site.ts; grep -rn \"PLACEHOLDER\\|to be decided\\|to be named\" src index.html"}
+{"ts":"2026-10-29T14:01:03.696Z","task":"T1.11a","source":"guard","category":"reviewer-readonly","agent":"reviewer","command":"grep -rn \"hello@plotline\\|messengerUrl\\|facebookUrl\\|Exit terms\\|provider\" README.md index.html src --include=* | grep -v test"}
+{"ts":"2026-10-29T14:02:08.850Z","task":"T1.11a","source":"reviewer","severity":"major","category":"docs-drift","file":"TASKS.md:12","summary":"Handoff State still described the old placeholder values","round":1}
