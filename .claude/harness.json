@@ -1,0 +1,48 @@
+{
+  "_comment": "Settings for .claude/hooks (guard.mjs, verify-gate.mjs). Paths are repo-relative regexes. Claude can't edit this file; the guard protects it. plotline-site has no e2e suite yet; set \"e2e\" (see court-booking-system) when it gets one. test:db stays out of fullChecks while the local-only backend is transitional, matching npm run verify.",
+  "fastChecks": [
+    "typecheck",
+    "lint",
+    "test"
+  ],
+  "fullChecks": [
+    "typecheck",
+    "lint",
+    "test",
+    "build",
+    "check:drift"
+  ],
+  "e2e": null,
+  "migrations": "^supabase/migrations/.+\\.sql$",
+  "tests": [
+    "\\.test\\.tsx?$",
+    "^supabase/tests/.+\\.sql$",
+    "^supabase/functions/.+\\.test\\.ts$"
+  ],
+  "secretScan": {
+    "paths": [
+      "^src/"
+    ],
+    "except": [
+      "^src/lib/database\\.types\\.ts$"
+    ],
+    "patterns": [
+      "service_role",
+      "SERVICE_ROLE",
+      "sb_secret_[A-Za-z0-9]",
+      "TURNSTILE_SECRET",
+      "RESEND_API_KEY"
+    ]
+  },
+  "protected": [
+    "^\\.claude/hooks/",
+    "^\\.claude/settings\\.json$",
+    "^\\.claude/harness\\.json$",
+    "^\\.claude/state/",
+    "^\\.claude/retro/failures\\.jsonl$",
+    "^\\.claude/\\.verify-state\\.json$",
+    "^eslint\\.config\\.[cm]?js$",
+    "^scripts/with-lock\\.mjs$",
+    "^scripts/check-drift\\.mjs$"
+  ]
+}
