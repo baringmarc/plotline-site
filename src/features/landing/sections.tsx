@@ -13,6 +13,8 @@ import {
   features,
   featuresHead,
   hero,
+  highlights,
+  highlightsHead,
   messageLink,
   moneyFlow,
   openPlay,
@@ -214,6 +216,27 @@ export function Features() {
         <div className="grid3">
           {features.map((f, i) => (
             // staggered by column, so each row of three fades in left to right
+            <Reveal key={f.title} className="card feature" delay={(i % 3) * 80}>
+              <span className="ico" aria-hidden="true">
+                {f.icon}
+              </span>
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export function Highlights() {
+  return (
+    <section id="venue">
+      <div className="in">
+        <SectionHead label={highlightsHead.label} title={highlightsHead.title} lead={highlightsHead.lead} />
+        <div className="grid3">
+          {highlights.map((f, i) => (
             <Reveal key={f.title} className="card feature" delay={(i % 3) * 80}>
               <span className="ico" aria-hidden="true">
                 {f.icon}

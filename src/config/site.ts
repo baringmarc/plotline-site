@@ -79,6 +79,7 @@ export const shortVersion = {
     title: 'What you get, free',
     points: [
       'Your own booking page with your venue’s name',
+      'As many courts as you have, with no limit',
       'A live slot grid for every court',
       'Every booking and payment proof on your phone',
       'Peak and off-peak rates, set by you',
@@ -233,6 +234,46 @@ export const features = [
   },
 ]
 
+/** Platform features that make a venue's page its own. No colour presets yet: they are being redone (SPEC §3.1). */
+export const highlightsHead = {
+  label: 'Your venue, your way',
+  title: 'A booking page that looks like yours',
+  lead: 'Your name, your photos and your payment details, on a page your players can open without installing an app or creating an account.',
+}
+
+export const highlights = [
+  {
+    icon: '🎨',
+    title: 'Your venue, your page',
+    body: 'Add a banner, photos of each court, amenities, your Facebook and other social links, a Google Maps pin and your own house rules and policies.',
+  },
+  {
+    icon: '🏸',
+    title: 'Every sport in one venue',
+    body: 'Badminton, pickleball, basketball and tennis on one page. Courts are grouped by sport, in the order you choose.',
+  },
+  {
+    icon: '✉️',
+    title: 'Players get emails',
+    body: 'A booking email with their reference, then another when it is confirmed, cancelled or moved, or when a payment proof needs sending again. They come from your venue’s name.',
+  },
+  {
+    icon: '🙋',
+    title: 'Guests can book without an account',
+    body: 'A name and an email is all it takes. Players who do sign in, with Google or email, get their earlier bookings added to My bookings.',
+  },
+  {
+    icon: '🌐',
+    title: 'Your own web address',
+    body: 'Your venue gets its own address, like yourvenue.plotline.fit. Post it on your Facebook page and in your group chats.',
+  },
+  {
+    icon: '📲',
+    title: 'Several payment accounts, with QR codes',
+    body: 'List up to 10 GCash, Maya or bank accounts, each with its own QR code, so players can scan and pay.',
+  },
+]
+
 export const costs = {
   label: 'What it costs',
   title: `${fee} per online booking. Nothing else.`,
@@ -320,6 +361,10 @@ export const faqs = [
     a: 'PayMongo charges its own fee on online payments, on the whole amount the player pays. That fee is between you and PayMongo, in your own account. GCash, Maya and bank payments sent to you with a proof don’t go through PayMongo.',
   },
   {
+    q: 'Is there a limit to how many courts I can add?',
+    a: 'No. Add every court you have, for any mix of badminton, pickleball, basketball and tennis. The price stays the same: nothing per court, and the same booking fee per online booking.',
+  },
+  {
     q: 'Can I change my rates and hours later?',
     a: 'Any time, from your admin pages. Your booking page shows the change right away.',
   },
@@ -343,6 +388,7 @@ export const atAGlance = {
   title: 'The whole offer, on one card',
   rows: [
     { label: 'Service', value: 'An online booking page for your courts, and admin pages to run them' },
+    { label: 'Courts', value: 'No limit on how many you add, and nothing extra per court' },
     { label: 'Setup fee', value: peso(0) },
     { label: 'Monthly fee', value: peso(0) },
     { label: 'Booking fee', value: `${fee} per confirmed online booking, paid by the player` },
