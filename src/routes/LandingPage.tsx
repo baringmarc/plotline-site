@@ -3,6 +3,7 @@ import {
   Costs,
   Faq,
   Features,
+  Highlights,
   FinalBand,
   Hero,
   MoneyFlow,
@@ -22,6 +23,7 @@ export function LandingPage() {
       <ShortVersion />
       <PlayerSide />
       <Features />
+      <Highlights />
       <Costs />
       <MoneyFlow />
       <Venues />

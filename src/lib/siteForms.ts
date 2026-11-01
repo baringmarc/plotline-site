@@ -3,7 +3,8 @@
 // form feedback (docs/PLATFORM.md §4). Change it here first, then copy it over unchanged.
 //
 // Pure TypeScript with no Deno or browser imports, so Vitest can test it. The CHECK constraints in the
-// site_leads_and_reviews migration are the last line; keep these limits in step with them.
+// `leads` migration (20261031190437) are the last line; keep these limits in step with them. The review
+// validator stays so this file remains identical to plotline-site's copy; `site-review` is the function that uses it.
 
 export const MIN_FILL_MS = 3_000
 export const MAX_COURTS = 50
