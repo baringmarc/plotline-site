@@ -1,4 +1,5 @@
 // The static sections of the landing page, top to bottom. Their words come from config/site.ts.
+import { useRef, useState, type KeyboardEvent } from 'react'
 import { PhoneMockup } from '../../components/PhoneMockup'
 import { Reveal } from '../../components/Reveal'
 import { SectionHead } from '../../components/SectionHead'
@@ -388,6 +389,26 @@ export function Steps() {
 }
 
 export function Faq() {
+  const [active, setActive] = useState(0)
+  const tabs = useRef<(HTMLButtonElement | null)[]>([])
+
+  const select = (i: number) => {
+    setActive(i)
+    tabs.current[i]?.focus()
+  }
+  const onKeyDown = (e: KeyboardEvent, i: number) => {
+    const last = faqGroups.length - 1
+    const next =
+      e.key === 'ArrowRight' ? (i === last ? 0 : i + 1)
+      : e.key === 'ArrowLeft' ? (i === 0 ? last : i - 1)
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? last
+      : null
+    if (next === null) return
+    e.preventDefault()
+    select(next)
+  }
+
   return (
     <section className="white" id="faq">
       <div className="in">
@@ -400,11 +421,37 @@ export function Faq() {
             </>
           }
         />
-        {faqGroups.map((g) => (
-          <div key={g.id} className="faq" role="group" aria-labelledby={`faq-${g.id}`}>
-            <h3 id={`faq-${g.id}`}>{g.label}</h3>
-            {g.items.map((f, i) => (
-              <details key={f.q} open={i === 0}>
+        <div className="faq-tabs" role="tablist" aria-label={faqHead.title}>
+          {faqGroups.map((g, i) => (
+            <button
+              key={g.id}
+              ref={(el) => {
+                tabs.current[i] = el
+              }}
+              type="button"
+              role="tab"
+              id={`faq-tab-${g.id}`}
+              aria-selected={i === active}
+              aria-controls={`faq-panel-${g.id}`}
+              tabIndex={i === active ? 0 : -1}
+              onClick={() => setActive(i)}
+              onKeyDown={(e) => onKeyDown(e, i)}
+            >
+              {g.label}
+            </button>
+          ))}
+        </div>
+        {faqGroups.map((g, i) => (
+          <div
+            key={g.id}
+            className="faq"
+            role="tabpanel"
+            id={`faq-panel-${g.id}`}
+            aria-labelledby={`faq-tab-${g.id}`}
+            hidden={i !== active}
+          >
+            {g.items.map((f, j) => (
+              <details key={f.q} open={j === 0}>
                 <summary>{f.q}</summary>
                 <p>{f.a}</p>
               </details>

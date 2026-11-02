@@ -1,4 +1,5 @@
 import { render, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   atAGlance,
@@ -759,5 +760,161 @@ describe('drawings in Your side and Your venue (T2.3)', () => {
     const { container } = render(<Section />)
     for (const svg of container.querySelectorAll('svg')) expect(hiddenOrLabelled(svg)).toBe(true)
     expect(container.querySelector('img')).toBeNull()
+  })
+})
+
+// ---- T2.5 FAQ in tabs ---------------------------------------------------------------------------
+
+/** True if no ancestor (or the element itself) carries the `hidden` attribute. */
+function shown(el: Element): boolean {
+  return el.closest('[hidden]') === null
+}
+
+/** The tabpanel a tab controls, found through its aria-controls id. */
+function panelOf(container: HTMLElement, tab: HTMLElement): HTMLElement {
+  const id = tab.getAttribute('aria-controls')
+  expect(id, 'tab has aria-controls').toBeTruthy()
+  const panel = container.querySelector<HTMLElement>(`[id="${id}"]`)
+  expect(panel, `panel #${id}`).not.toBeNull()
+  return panel!
+}
+
+/** Asserts that exactly the tab at `index` is selected, focusable and showing its panel. */
+function expectSelected(container: HTMLElement, tabs: HTMLElement[], index: number) {
+  tabs.forEach((tab, i) => {
+    const panel = panelOf(container, tab)
+    if (i === index) {
+      expect(tab, faqGroups[i].label).toHaveAttribute('aria-selected', 'true')
+      expect(tab, faqGroups[i].label).toHaveAttribute('tabindex', '0')
+      expect(panel.hasAttribute('hidden'), `${faqGroups[i].label} panel hidden`).toBe(false)
+    } else {
+      expect(tab, faqGroups[i].label).toHaveAttribute('aria-selected', 'false')
+      expect(tab, faqGroups[i].label).toHaveAttribute('tabindex', '-1')
+      expect(panel.hasAttribute('hidden'), `${faqGroups[i].label} panel hidden`).toBe(true)
+    }
+  })
+}
+
+describe('Faq tabs (T2.5)', () => {
+  it('renders a tablist with one tab per FAQ group, named by the group label, in config order', () => {
+    const { getByRole } = render(<Faq />)
+    const tablist = getByRole('tablist')
+    const tabs = within(tablist).getAllByRole('tab')
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(faqGroups.map((g) => g.label))
+    for (const g of faqGroups) expect(within(tablist).getByRole('tab', { name: g.label })).toBeInTheDocument()
+  })
+
+  it('selects the first tab (Players) initially, with a roving tabindex and only its panel shown', () => {
+    const { container, getAllByRole } = render(<Faq />)
+    const tabs = getAllByRole('tab')
+    expect(tabs).toHaveLength(3)
+    expectSelected(container, tabs, 0)
+  })
+
+  it('links each tab to a tabpanel labelled by that tab, holding that group’s questions and answers', () => {
+    const { container, getAllByRole } = render(<Faq />)
+    const tabs = getAllByRole('tab')
+    const ids = new Set<string>()
+    tabs.forEach((tab, i) => {
+      const panel = panelOf(container, tab)
+      expect(panel).toHaveAttribute('role', 'tabpanel')
+      expect(tab.id).toBeTruthy()
+      expect(panel).toHaveAttribute('aria-labelledby', tab.id)
+      ids.add(panel.id)
+      for (const item of faqGroups[i].items) {
+        expect(within(panel).getByText(item.q)).toBeInTheDocument()
+        expect([...panel.querySelectorAll('p')].some((p) => p.textContent === item.a), item.q).toBe(true)
+      }
+    })
+    expect(ids.size).toBe(3)
+    expect(getAllByRole('tabpanel', { hidden: true })).toHaveLength(3)
+  })
+
+  it('keeps all three panels in the DOM, the inactive ones with the hidden attribute', () => {
+    const { getAllByRole } = render(<Faq />)
+    const panels = getAllByRole('tabpanel', { hidden: true })
+    expect(panels).toHaveLength(3)
+    expect(panels.filter((p) => p.hasAttribute('hidden'))).toHaveLength(2)
+    expect(getAllByRole('tabpanel')).toHaveLength(1)
+  })
+
+  it('opens the first answer of each group and leaves the others closed', () => {
+    const { container, getAllByRole } = render(<Faq />)
+    for (const tab of getAllByRole('tab')) {
+      const details = [...panelOf(container, tab).querySelectorAll('details')]
+      expect(details).toHaveLength(3)
+      expect(details.map((d) => d.open)).toEqual([true, false, false])
+    }
+  })
+
+  it('switches tabs on click: Money then Your setup then Players', async () => {
+    const user = userEvent.setup()
+    const { container, getAllByRole, getByRole } = render(<Faq />)
+    const tabs = getAllByRole('tab')
+    await user.click(getByRole('tab', { name: 'Money' }))
+    expectSelected(container, tabs, 1)
+    await user.click(getByRole('tab', { name: 'Your setup' }))
+    expectSelected(container, tabs, 2)
+    await user.click(getByRole('tab', { name: 'Players' }))
+    expectSelected(container, tabs, 0)
+  })
+
+  it('ArrowRight moves to the next tab and focuses it, wrapping from the last to the first', async () => {
+    const user = userEvent.setup()
+    const { container, getAllByRole } = render(<Faq />)
+    const tabs = getAllByRole('tab')
+    tabs[0].focus()
+    await user.keyboard('{ArrowRight}')
+    expectSelected(container, tabs, 1)
+    expect(tabs[1]).toHaveFocus()
+    await user.keyboard('{ArrowRight}')
+    expectSelected(container, tabs, 2)
+    expect(tabs[2]).toHaveFocus()
+    await user.keyboard('{ArrowRight}')
+    expectSelected(container, tabs, 0)
+    expect(tabs[0]).toHaveFocus()
+  })
+
+  it('ArrowLeft moves to the previous tab and focuses it, wrapping from the first to the last', async () => {
+    const user = userEvent.setup()
+    const { container, getAllByRole } = render(<Faq />)
+    const tabs = getAllByRole('tab')
+    tabs[0].focus()
+    await user.keyboard('{ArrowLeft}')
+    expectSelected(container, tabs, 2)
+    expect(tabs[2]).toHaveFocus()
+    await user.keyboard('{ArrowLeft}')
+    expectSelected(container, tabs, 1)
+    expect(tabs[1]).toHaveFocus()
+  })
+
+  it('Home and End jump to the first and last tab and focus them', async () => {
+    const user = userEvent.setup()
+    const { container, getAllByRole } = render(<Faq />)
+    const tabs = getAllByRole('tab')
+    tabs[0].focus()
+    await user.keyboard('{End}')
+    expectSelected(container, tabs, 2)
+    expect(tabs[2]).toHaveFocus()
+    await user.keyboard('{Home}')
+    expectSelected(container, tabs, 0)
+    expect(tabs[0]).toHaveFocus()
+  })
+
+  it('makes all nine questions reachable: each one is shown once its group’s tab is selected', async () => {
+    const user = userEvent.setup()
+    const { getByRole, getByText } = render(<Faq />)
+    const seen = new Set<string>()
+    for (const g of faqGroups) {
+      await user.click(getByRole('tab', { name: g.label }))
+      for (const item of g.items) {
+        expect(shown(getByText(item.q)), item.q).toBe(true)
+        seen.add(item.q)
+      }
+      for (const other of faqGroups.filter((o) => o.id !== g.id)) {
+        for (const item of other.items) expect(shown(getByText(item.q)), item.q).toBe(false)
+      }
+    }
+    expect(seen.size).toBe(9)
   })
 })

@@ -33,7 +33,7 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 | Venues | `Venues` | Swipeable slider (`components/Slider.tsx`), two rows when 4+ venues. Later reads `public_venues`. |
 | Reviews | `features/reviews` | Approved reviews from Supabase + a review form |
 | Getting started | `Steps` | 4 setup steps |
-| FAQ | `Faq` | `<details>` accordion in three groups (Players, Money, Your setup), objection-led |
+| FAQ | `Faq` | three tabs (Players, Money, Your setup) of `<details>` answers, objection-led |
 | Contact | `features/contact` | Owner contact form at `#contact` → `site-contact`, with Turnstile (`components/Turnstile.tsx`) |
 | Final band + footer | `FinalBand`, `components/Footer.tsx` | |
 

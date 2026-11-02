@@ -50,7 +50,7 @@ Every async view handles loading, empty and error states. Mobile-first.
 | 6 | Where the money goes | Inside Pricing as a timeline: a 4-step flow: player books → pays the venue (its own GCash, Maya, bank or PayMongo) → the booking is confirmed → Plotline sends one monthly invoice for the fees. Then what's never billed |
 | 7 | Venues and reviews | `Venues` lists only venues that use Plotline (for now the demo venue, Claudex Courts, as a centred card; a slider once there are more than 3), then `ReviewsSection` |
 | 8 | Getting started | 4 steps: you contact us → we set up your courts, hours and rates → you get your booking link → we walk you and your team through it (no QR poster: it isn't a product feature) |
-| 9 | FAQ | Objection-led questions in three groups of three: Players, Money, Your setup (see the rules below) |
+| 9 | FAQ | Objection-led questions in three tabs of three: Players, Money, Your setup (see the rules below) |
 | 10 | At a glance | A label/value fact sheet in three groups: the service (service, courts, provider), the money (booking fee, not billed, payments, billing), your data and leaving (CSV export, leaving; §6, 2026-10-29). Four key figures sit above the groups: ₱0 setup, ₱0 monthly, the fee per online booking, 30 days to export after leaving (T2.2). The section follows Pricing |
 | 11 | Contact | The contact form (`site-contact`); after sending, a thank-you state with an optional "book a call" link |
 | 12 | Final band | One line and the CTA |
@@ -59,7 +59,7 @@ Every async view handles loading, empty and error states. Mobile-first.
 - Each section opens with a small uppercase label, an `h2` and a short accent bar.
 - Plain, tinted and dark sections take turns. Cards, ✓/✕ lists and stat tiles use the existing colour tokens and work in both themes.
 - The CTA to the contact form (`#contact`) appears in the nav, the hero, after "What it costs" and in the final band.
-- Sections may fade in on scroll. That is off under `prefers-reduced-motion`, and all content is visible without JavaScript.
+- Sections may fade in on scroll. That is off under `prefers-reduced-motion`, and the fade-in never hides content (the page itself needs JavaScript, §6 2026-11-02).
 - No live counters (venues, players, bookings) until they read real numbers; never show a zero.
 
 **Pricing claims** (must match SAAS-PLAN §1; the amount isn't final, so it is one value in config):
@@ -113,6 +113,7 @@ This repo has no database. The tables (`leads`, `reviews`) and their RLS live in
 | 2026-11-02 | The user's answers for launch: no book-a-call link (`bookCallUrl` stays empty); the venue list is the demo venue only; the booking fee is ₱10 and is set to 10 on production; the contact form keeps its 50-court limit (the page says "no limit on courts" for the product, the form is not a cap). Deploy: Cloudflare Workers static assets (`wrangler.jsonc`, `src/worker.ts` redirects www to the apex; `.env.production` holds the public production values incl. Turnstile site key `0x4AAAAAAFvBvpFgKwOYraXL`); `public/robots.txt` allows all so Facebook's scraper isn't refused | Production CORS for both origins checked 2026-11-02; PLATFORM.md §2 says www redirects to the apex |
 | 2026-11-02 | T2.1 copy pass: hero stat tiles removed; the short version is one slim card linking to Pricing; Your side and Your venue cut to headline items plus chips; the FAQ regrouped into Players, Money and Your setup (3 each); "At a glance" in three groups. Highlights has four headline items, not three, to match the design's four numbered callouts. Tests cap each section's `<p>` text at 90 words (FAQ per group) and allow "paid by the player" in two sections. The fee amount still appears in the hero, short version, Pricing, the player's pay step and "At a glance", as the agreed design shows it | Design review 2026-11-02 (Milestone 2). The TASKS wording "no pricing amount in more than two sections" can't hold with that design; the user chose the phrase-only reading when asked on 2026-11-02 |
 | 2026-11-02 | T2.4: the player walkthrough is four steps (find and pick merged, the user's call), all drawn in the app's dark theme (the two real light screenshots are removed); open play is a one-line strip; Getting started uses the shared timeline | Real dark screenshots of the booking grid need clicks through the demo, which headless Chrome can't script; the design wants dark screens on the light page; the user accepted drawn screens 2026-11-02 |
+| 2026-11-02 | T2.5: the FAQ is three tabs (Players, Money, Your setup). "Answers readable with JS off" is reworded to "all nine Q&As are in the DOM up front; inactive panels use `hidden`" (the user's call). The site is a client-rendered SPA, so the whole page is blank without JavaScript; a prerender would be a separate task. §3.1's fade-in line was reworded to match | A literal JS-off FAQ can't hold without prerendering |
 
 ## 7. Open questions
 - Turnstile CAPTCHA before launch: the token goes to the platform's `site-contact` function (its secret lives in court-booking-system), not to `auth.signUp`.
