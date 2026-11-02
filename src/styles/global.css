@@ -32,6 +32,9 @@
   --shape-ring: var(--sand);
   --shape-dot: rgba(232, 196, 184, 0.7);
   --phone-frame: var(--brown);
+  --app-dark-bg: #2a211d;
+  --app-dark-panel: #45372f;
+  --app-dark-line: #5a4a40;
   --ok: #4c6b3c;
   --ok-soft: var(--sage-soft);
   --err: #a3361f;
@@ -53,7 +56,7 @@
     color-scheme: dark;
     --bg: var(--brown);
     --bg-alt: #342924;
-    --surface: #45372f;
+    --surface: var(--app-dark-panel);
     --field: #2f2521;
     --text: var(--cream);
     --text-soft: var(--sand);
@@ -70,7 +73,7 @@
     --ok-soft: rgba(183, 196, 168, 0.18);
     --err: #f2b4a3;
     --err-soft: #4d3029;
-    --skeleton: #45372f;
+    --skeleton: var(--app-dark-panel);
     --skeleton-hi: #514139;
     --shadow: 0 12px 34px rgba(0, 0, 0, 0.3);
     --shadow-soft: rgba(0, 0, 0, 0.3);
@@ -320,11 +323,11 @@ section.dark .stat .big { color: var(--rose); }
 .starpick button { background: none; border: 0; font-size: 30px; cursor: pointer; color: var(--line); padding: 0 2px; }
 .starpick button.on { color: var(--highlight); }
 
-/* chips: short labels in a row (the open play callout) */
+/* chips: short labels in a row (the short version's "what you get") */
 .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .chips span { background: var(--surface); border: 1px solid var(--line); padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 14px; }
 
-/* the player's side: five phone screens with captions. A swipeable row on phones, five columns on wide screens. */
+/* the player's side: four phone screens with captions. A swipeable row on phones, four columns on wide screens. */
 .walk {
   list-style: none; margin: 0 0 28px; padding: 4px 4px 14px;
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 70%); gap: 18px;
@@ -333,16 +336,14 @@ section.dark .stat .big { color: var(--rose); }
 /* min-width: 0 stops the drawn link's one-line URL from widening its column */
 .walk > li { scroll-snap-align: start; min-width: 0; }
 @media (min-width: 620px) { .walk { grid-auto-columns: minmax(220px, 38%); } }
-@media (min-width: 1000px) { .walk { grid-auto-flow: row; grid-template-columns: repeat(5, 1fr); overflow: visible; } }
+@media (min-width: 1000px) { .walk { grid-auto-flow: row; grid-template-columns: repeat(4, 1fr); overflow: visible; } }
 .walk h3 { margin: 4px 0 4px; font-size: 18px; }
 .walk p { margin: 0; color: var(--text-soft); font-size: 15px; }
 .walk .eyebrow { margin: 14px 0 0; }
 .frame { background: var(--phone-frame); border-radius: 26px; padding: 7px; box-shadow: var(--shadow); }
-.frame img { display: block; width: 100%; height: auto; border-radius: 20px; }
-.openplay { max-width: 760px; margin: 0 auto; text-align: center; }
-.openplay p { color: var(--text-soft); margin: 0 0 16px; }
+.openplay-strip { max-width: 760px; margin: 0 auto; text-align: center; color: var(--text-soft); padding: 12px 18px; border: 1px dashed var(--line); border-radius: 20px; }
 
-/* drawn screens (PlayerScreens.tsx): the light app, in both themes, the same shape as the screenshots */
+/* drawn screens (PlayerScreens.tsx): the app's dark theme, in both page themes, phone-shaped */
 .mock {
   aspect-ratio: 390 / 844; border-radius: 20px; padding: 22px 14px; overflow: hidden;
   background: var(--cream); color: var(--brown); font-size: 12px; line-height: 1.4;
@@ -360,6 +361,20 @@ section.dark .stat .big { color: var(--rose); }
 .mock .mbtn { margin-top: auto; background: var(--sage); text-align: center; font-weight: 700; padding: 10px; border-radius: 14px; }
 .mock .mbadge { align-self: flex-start; background: var(--sage-soft); color: var(--brown); border: 1px solid var(--sage); border-radius: 12px; padding: 3px 10px; font-weight: 700; }
 .mock .murl { background: var(--warm-white); border: 1px solid var(--sand); border-radius: 10px; padding: 8px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mock.dark {
+  background: var(--app-dark-bg); color: var(--cream);
+}
+.mock.dark .msum, .mock.dark .murl, .mock.dark .mcard { background: var(--app-dark-panel); border-color: var(--app-dark-line); }
+.mock.dark .msum > div { border-color: var(--app-dark-line); }
+.mock.dark .mtotal { background: rgba(183, 196, 168, 0.22); }
+.mock.dark .mchips span { background: var(--app-dark-panel); border-color: var(--app-dark-line); }
+.mock.dark .mchips span.on, .mock.dark .mbtn { background: var(--sage); color: var(--brown); }
+.mock.dark .mbadge { background: rgba(183, 196, 168, 0.22); color: var(--cream); }
+.mock .mgrid { display: grid; grid-template-columns: 34px repeat(3, 1fr); gap: 5px; align-items: center; text-align: center; }
+.mock .mgrid i { font-style: normal; opacity: 0.7; }
+.mock .slot { height: 30px; border-radius: 7px; border: 1px solid var(--sage); }
+.mock .slot.on { background: var(--terracotta); border-color: var(--terracotta); }
+.mock .slot.taken { background: var(--app-dark-panel); border-color: var(--app-dark-panel); }
 .mock .mcard { margin-top: auto; background: var(--warm-white); border: 1px solid var(--sand); border-radius: 12px; padding: 10px; }
 
 /* features */
@@ -434,12 +449,6 @@ section.dark .stat .big { color: var(--rose); }
 .ptable td.ours { color: var(--ok); font-weight: 700; }
 .midcta { margin: 32px 0 0; }
 
-/* getting started: four numbered steps (T2.4 moves them onto .timeline) */
-.flow { list-style: none; padding: 0; margin: 0 0 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.flow > li { display: flex; }
-.flow > li > .card { flex: 1; }
-@media (max-width: 960px) { .flow { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 620px) { .flow { grid-template-columns: 1fr; } }
 
 /* never billed: a row of crossed-out items under the two stat tiles */
 .nots { margin: -12px 0 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; }
@@ -487,10 +496,6 @@ section.dark .stat .big { color: var(--rose); }
 .keys span { font-size: 13px; color: var(--text-soft); }
 .keys > .hot span { color: var(--brown-soft); }
 
-/* steps */
-.step .num { width: 36px; height: 36px; border-radius: 50%; background: var(--highlight); color: var(--on-highlight); font-family: var(--serif); font-weight: 700; display: grid; place-items: center; }
-.step h3 { margin: 12px 0 4px; font-size: 20px; }
-.step p { margin: 0; color: var(--text-soft); }
 
 /* a narrower column for a single card, like the fact sheet */
 .in.narrow { max-width: 760px; }
@@ -581,9 +586,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--t
   .side-item:nth-child(2) .ico { background: rgba(232, 196, 184, 0.22); }
   .side-item:nth-child(3) .ico { background: rgba(230, 217, 198, 0.18); }
 
-  .step .num { background: var(--sage); color: var(--brown); }
-  .flow > li:nth-child(4n + 2) .num { background: var(--rose); }
-  .flow > li:nth-child(4n + 3) .num { background: var(--sand); }
 
   .grid2 > .card { border-top: 3px solid var(--sage); }
   .grid2 > .card:nth-child(even) { border-top-color: var(--rose); }

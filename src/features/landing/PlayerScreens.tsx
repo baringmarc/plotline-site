@@ -1,8 +1,49 @@
-// Drawn phone screens for the walkthrough steps the live demo can't show without a real booking.
-// Decorative: the step's caption says what happens, so screen readers skip these.
+// Drawn phone screens for the player's walkthrough, in the app's dark theme.
+// Decorative: each step has a screen-reader-only description (`alt` in site.ts) beside its drawing.
 import { peso, playerSide, pricing, type ScreenMock } from '../../config/site'
 
 const { sample, mocks } = playerSide
+
+function Row({ hour, row }: { hour: string; row: number }) {
+  return (
+    <>
+      <i>{hour}</i>
+      {mocks.findCourts.map((c, i) => (
+        <span key={c} className={row === 2 && i === 1 ? 'slot on' : row === 1 && i === 2 ? 'slot taken' : 'slot'} />
+      ))}
+    </>
+  )
+}
+
+function Pick() {
+  return (
+    <>
+      <b className="mtitle">{mocks.findTitle}</b>
+      <span>{mocks.day}</span>
+      <div className="mgrid">
+        <i />
+        {mocks.findCourtsShort.map((c) => (
+          <b key={c}>{c}</b>
+        ))}
+        {mocks.findHours.map((h, r) => (
+          <Row key={h} hour={h} row={r} />
+        ))}
+      </div>
+      <span className="mcard">
+        <b>{sample.court}</b>
+        <br />
+        {sample.when}
+      </span>
+      <dl className="msum">
+        <div className="mtotal">
+          <dt>{mocks.pickTotal}</dt>
+          <dd>{peso(sample.courtPrice)}</dd>
+        </div>
+      </dl>
+      <span className="mbtn">{mocks.continue}</span>
+    </>
+  )
+}
 
 function Pay() {
   return (
@@ -70,12 +111,12 @@ function Link() {
   )
 }
 
-const SCREENS: Record<ScreenMock, () => React.JSX.Element> = { pay: Pay, confirmed: Confirmed, link: Link }
+const SCREENS: Record<ScreenMock, () => React.JSX.Element> = { pick: Pick, pay: Pay, confirmed: Confirmed, link: Link }
 
 export function PlayerScreen({ mock }: { mock: ScreenMock }) {
   const Screen = SCREENS[mock]
   return (
-    <div className="mock" aria-hidden="true">
+    <div className="mock dark" aria-hidden="true">
       <Screen />
     </div>
   )

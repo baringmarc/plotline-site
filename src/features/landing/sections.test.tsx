@@ -11,12 +11,15 @@ import {
   highlightsAlso,
   moneyFlow,
   navLinks,
+  openPlay,
   peso,
   playerSide,
   pricing,
   provider,
   shortVersion,
   site,
+  steps,
+  stepsHead,
 } from '../../config/site'
 import { feeComparison, workedExample } from './pricing'
 import * as sectionsModule from './sections'
@@ -201,26 +204,117 @@ describe('Pricing section (T2.2)', () => {
   })
 })
 
-describe('PlayerSide', () => {
-  it('shows five numbered steps, screenshots with size and alt text, drawn screens for the rest', () => {
-    const { getAllByRole, getByRole, getByText } = render(<PlayerSide />)
+describe('PlayerSide (T2.4)', () => {
+  it('shows four numbered steps with their captions (find and pick merged, 2026-11-02)', () => {
+    const { getByRole, getByText, queryByText } = render(<PlayerSide />)
     const steps = within(getByRole('list', { name: playerSide.label })).getAllByRole('listitem')
-    expect(steps).toHaveLength(5)
-    expect(getByText('Step 5 of 5')).toBeInTheDocument()
-    const imgs = getAllByRole('img')
-    expect(imgs).toHaveLength(playerSide.steps.filter((s) => s.image).length)
-    for (const img of imgs) {
-      expect(img).toHaveAttribute('width')
-      expect(img).toHaveAttribute('height')
-      expect(img).toHaveAttribute('loading', 'lazy')
-      expect(img.getAttribute('alt')).not.toBe('')
+    expect(playerSide.steps).toHaveLength(4)
+    expect(steps).toHaveLength(4)
+    expect(playerSide.steps[0].title).toBe('Pick a free slot')
+    playerSide.steps.forEach((s, i) => {
+      expect(within(steps[i]).getByText(playerSide.stepLabel(i + 1, 4))).toBeInTheDocument()
+      expect(within(steps[i]).getByRole('heading', { name: s.title })).toBeInTheDocument()
+      expect(within(steps[i]).getByText(s.body)).toBeInTheDocument()
+    })
+    expect(getByText('Step 4 of 4')).toBeInTheDocument()
+    expect(queryByText(/Step \d of 5/)).toBeNull()
+  })
+
+  it('draws all four screens (pick, pay, confirmed, link) and uses no screenshots', () => {
+    expect(playerSide.steps.map((s) => s.mock)).toEqual(['pick', 'pay', 'confirmed', 'link'])
+    for (const s of playerSide.steps) expect(s).not.toHaveProperty('image')
+    const { container } = render(<PlayerSide />)
+    expect(container.querySelector('img')).toBeNull()
+    expect(container.innerHTML).not.toMatch(/\/screens\//)
+  })
+
+  it('shows each drawn screen in the app’s dark theme, hidden from screen readers, one per step', () => {
+    const { getByRole } = render(<PlayerSide />)
+    const steps = within(getByRole('list', { name: playerSide.label })).getAllByRole('listitem')
+    for (const step of steps) {
+      const screens = step.querySelectorAll('.mock.dark')
+      expect(screens).toHaveLength(1)
+      expect(screens[0].closest('[aria-hidden="true"]')).not.toBeNull()
+      expect(screens[0].textContent?.trim()).not.toBe('')
     }
+  })
+
+  it('keeps a text alternative for each of the four drawn screens, in its step', () => {
+    const { getByRole } = render(<PlayerSide />)
+    const steps = within(getByRole('list', { name: playerSide.label })).getAllByRole('listitem')
+    playerSide.steps.forEach((s, i) => {
+      expect(s.alt.trim()).not.toBe('')
+      expect(within(steps[i]).getByText(s.alt)).toBeInTheDocument()
+    })
+  })
+
+  it('sits on the normal page background, not a dark or tinted band', () => {
+    const { container } = render(<PlayerSide />)
+    const section = container.querySelector('section#players') as HTMLElement
+    expect(section).not.toBeNull()
+    expect(section.classList.contains('dark')).toBe(false)
+    expect(section.classList.contains('white')).toBe(false)
   })
 
   it('draws the payment with the court price plus the fee', () => {
     const { container } = render(<PlayerSide />)
     const total = peso(playerSide.sample.courtPrice + pricing.bookingFee)
-    expect(container.querySelector('.mock')?.textContent).toContain(total)
+    const pay = [...container.querySelectorAll('.mock')].find((m) => m.textContent?.includes(playerSide.mocks.payTitle))
+    expect(pay?.textContent).toContain(total)
+  })
+
+  it('turns open play into a one-line strip: one short text, no card, no chips', () => {
+    // cast so this compiles before and after openPlay changes shape
+    const { text } = openPlay as unknown as { text: string }
+    expect(typeof text).toBe('string')
+    expect(openPlay).not.toHaveProperty('points')
+    expect(words(text)).toBeLessThanOrEqual(18)
+    expect(text).toMatch(/open play/i)
+    const { container } = render(<PlayerSide />)
+    const strips = container.querySelectorAll('.openplay-strip')
+    expect(strips).toHaveLength(1)
+    expect(strips[0].textContent).toContain(text)
+    expect(container.querySelector('.card.openplay, .openplay.card')).toBeNull()
+    expect(strips[0].closest('.card')).toBeNull()
+    expect(container.querySelector('.chips')).toBeNull()
+  })
+})
+
+describe('ShortVersion, the slim card (T2.4)', () => {
+  it('is one slim card whose only link goes to #pricing', () => {
+    const { container, getAllByRole } = render(<ShortVersion />)
+    expect(container.querySelectorAll('.card')).toHaveLength(1)
+    const links = getAllByRole('link')
+    expect(links).toHaveLength(1)
+    expect(links[0]).toHaveAttribute('href', '#pricing')
+  })
+})
+
+describe('Steps, "Getting started" (T2.4)', () => {
+  it('renders the four steps on the shared timeline (ol.timeline), in order', () => {
+    const { container } = render(<Steps />)
+    const timeline = container.querySelector('ol.timeline') as HTMLElement
+    expect(timeline).not.toBeNull()
+    const items = within(timeline).getAllByRole('listitem')
+    expect(items).toHaveLength(steps.length)
+    expect(steps).toHaveLength(4)
+    steps.forEach((s, i) => {
+      expect(items[i].textContent).toContain(s.title)
+      expect(items[i].textContent).toContain(s.body)
+      expect(items[i].querySelector('.num')?.textContent?.trim()).toBe(String(i + 1))
+    })
+  })
+
+  it('no longer uses the old .flow grid or step cards', () => {
+    const { container } = render(<Steps />)
+    expect(container.querySelector('.flow')).toBeNull()
+    expect(container.querySelector('.card.step')).toBeNull()
+    expect(container.querySelector('.step')).toBeNull()
+  })
+
+  it('keeps the "Getting started" head', () => {
+    const { getByRole } = render(<Steps />)
+    expect(getByRole('heading', { name: stepsHead.title })).toBeInTheDocument()
   })
 })
 

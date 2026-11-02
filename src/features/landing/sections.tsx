@@ -160,16 +160,13 @@ export function PlayerSide() {
     <section id="players">
       <div className="in">
         <SectionHead label={playerSide.label} title={playerSide.title} lead={playerSide.lead} />
-        {/* one swipeable row on phones, five columns on wide screens */}
+        {/* one swipeable row on phones, four columns on wide screens */}
         <ol className="walk" aria-label={playerSide.label}>
           {playerSide.steps.map((s, i) => (
             <li key={s.title}>
               <div className="frame">
-                {s.image ? (
-                  <img src={s.image.src} width={s.image.width} height={s.image.height} alt={s.image.alt} loading="lazy" />
-                ) : (
-                  s.mock && <PlayerScreen mock={s.mock} />
-                )}
+                <PlayerScreen mock={s.mock} />
+                <span className="sr-only">{s.alt}</span>
               </div>
               <span className="eyebrow">{playerSide.stepLabel(i + 1, total)}</span>
               <h3>{s.title}</h3>
@@ -177,15 +174,7 @@ export function PlayerSide() {
             </li>
           ))}
         </ol>
-        <Reveal className="card openplay">
-          <h3>{openPlay.title}</h3>
-          <p>{openPlay.lead}</p>
-          <div className="chips">
-            {openPlay.points.map((p) => (
-              <span key={p}>{p}</span>
-            ))}
-          </div>
-        </Reveal>
+        <p className="openplay-strip">{openPlay.text}</p>
       </div>
     </section>
   )
@@ -392,19 +381,7 @@ export function Steps() {
     <section id="start">
       <div className="in">
         <SectionHead label={stepsHead.label} title={stepsHead.title} lead={stepsHead.lead} />
-        <ol className="flow">
-          {steps.map((s, i) => (
-            <li key={s.title}>
-              <Reveal className="card step" delay={i * 80}>
-                <span className="num" aria-hidden="true">
-                  {i + 1}
-                </span>
-                <h3>{s.title}</h3>
-                <p>{s.body}</p>
-              </Reveal>
-            </li>
-          ))}
-        </ol>
+        <Timeline steps={steps} />
       </div>
     </section>
   )

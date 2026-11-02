@@ -101,11 +101,10 @@ export const venuesHead = {
   lead: 'Claudex Courts is our demo venue. Open it to see a booking page the way players see it.',
 }
 
-export type ScreenImage = { src: string; width: number; height: number; alt: string }
-/** The drawn screens for steps the demo can't show without a real booking. */
-export type ScreenMock = 'pay' | 'confirmed' | 'link'
+/** The drawn phone screens, in the app's dark theme. */
+export type ScreenMock = 'pick' | 'pay' | 'confirmed' | 'link'
 
-/** The player's booking flow, step by step. Steps 1–2 are screenshots of the live demo; 3–5 are drawn for now. */
+/** The player's booking flow, step by step. All four screens are drawn. */
 export const playerSide = {
   label: 'The player’s side',
   title: 'Booked in a minute, with no app to install',
@@ -113,42 +112,31 @@ export const playerSide = {
   stepLabel: (n: number, total: number) => `Step ${n} of ${total}`,
   steps: [
     {
-      title: 'Find a free slot',
-      body: 'Every court and hour, open or booked, with your peak and off-peak prices.',
-      image: {
-        src: '/screens/step-1-find.webp',
-        width: 390,
-        height: 844,
-        alt: 'The booking grid on a phone: three pickleball courts from 1 PM to midnight, cheaper in the afternoon and dearer in the evening.',
-      },
-    },
-    {
-      title: 'Pick a time',
-      body: 'Tap an hour, tap more to make it longer. The total shows as they go.',
-      image: {
-        src: '/screens/step-2-pick.webp',
-        width: 390,
-        height: 844,
-        alt: 'Two hours picked on Pickleball 2, 5 PM to 7 PM, with the total and a Continue button.',
-      },
+      title: 'Pick a free slot',
+      body: 'Every court and hour, with your peak and off-peak prices. Tap an hour, tap more to make it longer.',
+      mock: 'pick',
+      alt: 'The booking grid on a phone: three pickleball courts by the hour, with a slot picked on Pickleball 2 for 5 PM to 7 PM, the total and a Continue button.',
     },
     {
       title: 'Pay you directly',
       body: `Court price plus the ${fee} fee, into your GCash, Maya or bank, or through PayMongo.`,
       mock: 'pay',
+      alt: 'The payment screen: court price plus the booking fee, a choice of GCash, Maya, bank or PayMongo, and an upload button.',
     },
     {
       title: 'You confirm it',
       body: 'A payment proof waits for your OK. PayMongo payments confirm on their own.',
       mock: 'confirmed',
+      alt: 'The confirmed booking with its reference and total.',
     },
     {
       title: 'Their booking, one link',
       body: 'A private link to their booking. If they sign in, it’s in My bookings too.',
       mock: 'link',
+      alt: 'A private link to the booking, with a Copy link button.',
     },
-  ] as { title: string; body: string; image?: ScreenImage; mock?: ScreenMock }[],
-  /** The sample booking the drawn screens show; it continues the one picked in step 2. */
+  ] as { title: string; body: string; mock: ScreenMock; alt: string }[],
+  /** The sample booking the drawn screens show; it continues the one picked in step 1. */
   sample: {
     court: 'Pickleball 2',
     when: 'Wed, Oct 28 · 5 PM–7 PM',
@@ -158,6 +146,13 @@ export const playerSide = {
     link: 'claudex-courts.plotline.fit/booking/…',
   },
   mocks: {
+    findTitle: 'Book a court',
+    day: 'Wed, Oct 28',
+    findCourts: ['Pickleball 1', 'Pickleball 2', 'Pickleball 3'],
+    findCourtsShort: ['P1', 'P2', 'P3'],
+    findHours: ['1 PM', '3 PM', '5 PM', '7 PM'],
+    pickTotal: 'Total so far',
+    continue: 'Continue',
     payTitle: 'Pay the venue',
     court: (hours: number) => `Court, ${hours} hours`,
     fee: 'Booking fee',
@@ -172,11 +167,9 @@ export const playerSide = {
   },
 }
 
-/** A callout under the player's steps. Open play is a marked session on the grid; players don't sign up in the app. */
+/** A one-line strip under the player's steps. Open play is a marked session on the grid; players don't sign up in the app. */
 export const openPlay = {
-  title: 'Open play, on the same grid',
-  lead: 'Post a session on any courts. Nobody can book over it.',
-  points: ['Your title and details', 'Up to 3 links', 'Never billed'],
+  text: 'Open play sits on the same grid, and nobody can book over it.',
 }
 
 /** The owner's side. Only features court-booking-system ships today (SPEC §3.1 "Feature claims"). */
