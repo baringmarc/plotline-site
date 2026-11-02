@@ -64,13 +64,20 @@ npm run dev             # http://localhost:5173
 npm run verify    # typecheck + lint + unit tests + build
 ```
 
-## Deploying (target)
+## Deploying
 
-- Cloudflare Workers (static assets) on `plotline.fit` and `www.plotline.fit`, with single-page-app fallback replacing `vercel.json`.
-- Env: the production project's URL and publishable key, and the Turnstile site key.
-- court-booking-system's `SITE_ORIGINS` secret must list `https://plotline.fit` and `https://www.plotline.fit`, or the functions refuse the site's calls (CORS).
+Cloudflare Workers with static assets, on `plotline.fit` and `www.plotline.fit` (`wrangler.jsonc`). `src/worker.ts` sends `www` to the apex; everything else is `dist/` with single-page-app fallback, so `/terms` and `/privacy` deep links work.
+
+1. Once: `npx wrangler login`. In the Cloudflare dashboard, make sure the DNS records for `plotline.fit` and `www` exist and are **proxied** (a proxied `AAAA` record to `100::` works for both), and that the `*` wildcard record stays pointed at court-booking-system.
+2. `npm run build` reads `.env.production` (committed: the production Supabase URL, the publishable key and the Turnstile site key are public values). Never put a secret in it.
+3. `npm run cf:deploy` (it builds first). `npm run cf:dev` serves the build locally first.
+4. Check `https://plotline.fit/`, `https://plotline.fit/terms`, that `https://www.plotline.fit/terms` redirects to the apex, and send the contact form once (Turnstile, the lead in the console, the alert email).
+5. Delete `vercel.json` once nothing deploys there.
+- court-booking-system's `SITE_ORIGINS` already lists `https://plotline.fit` and `https://www.plotline.fit` on production (checked 2026-11-02).
+- Facebook's link scraper needs a 200 from the page (`public/robots.txt` allows it). If the Sharing Debugger still shows 403 after deploy, check Cloudflare Security → WAF and Bot settings for a rule blocking `facebookexternalhit`.
 
 ## Before launch
 
-- Replace the remaining placeholders (TASKS T1.11b): `bookCallUrl` and real venues in `src/config/site.ts`, and make sure the demo URL `https://claudex-courts.plotline.fit` resolves.
+- Deploy (above), then check the Messenger preview of `og.jpg`, send a test review and approve it in the console, and take the player-side screenshots once staging shows the ₱10 fee.
+- `bookCallUrl` stays empty and the venue list shows only the demo venue until there are real ones (`src/config/site.ts`).
 - Match features and pricing to what ships.

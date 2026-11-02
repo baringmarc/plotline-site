@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run check:drift",
     "preview": "vite preview",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "npm run build && wrangler deploy",
     "db:types": "supabase gen types typescript --project-id ${SUPABASE_PROJECT_REF:?set SUPABASE_PROJECT_REF} > src/lib/database.types.ts",
     "check:drift": "node scripts/check-drift.mjs"
   },
@@ -40,6 +42,7 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.69.0",
     "vite": "^8.3.0",
-    "vitest": "^4.1.12"
+    "vitest": "^4.1.12",
+    "wrangler": "^4.156.1"
   }
 }
