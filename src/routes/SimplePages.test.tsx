@@ -21,13 +21,13 @@ describe('TermsPage', () => {
     expect(t).not.toMatch(/trial|walk-in|subscription plan|\/month/i)
   })
 
-  it('says it is a draft, and leaves no "[to be decided]" text (T1.11a)', () => {
+  it('shows no draft notice and leaves no "[to be decided]" text (T1.11b)', () => {
     render(
       <MemoryRouter>
         <TermsPage />
       </MemoryRouter>,
     )
-    expect(screen.getByText(/^Draft\./)).toBeInTheDocument()
+    expect(screen.queryByText(/^Draft\./)).not.toBeInTheDocument()
     const t = document.body.textContent ?? ''
     expect(t).not.toMatch(/to be decided|to be added|to be named/i)
     expect(t).not.toMatch(/\[[^\]]*\]/)
@@ -162,8 +162,8 @@ describe('PrivacyPage', () => {
     expect(screen.getByRole('heading', { name: 'How long we keep it' })).toBeInTheDocument()
     expect(t).toMatch(/1 year after our last contact/)
     expect(t).not.toMatch(/to be decided|to be added/i)
-    // the only bracketed text left is the email service still to be named (T1.11b)
-    for (const b of t.match(/\[[^\]]*\]/g) ?? []) expect(b).toMatch(/to be named/)
+    expect(t).toMatch(/email service, Resend/)
+    expect(t).not.toMatch(/\[[^\]]*\]/)
   })
 
   it('names Plotline as the controller, and says emails to us are kept in our Gmail inbox (Google)', () => {

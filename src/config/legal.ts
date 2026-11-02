@@ -1,12 +1,12 @@
 // The Terms and the Privacy notice. They follow court-booking-system's SAAS-PLAN §1 and §5 and the "At a glance"
-// sheet; what isn't decided yet is marked PLACEHOLDER (SPEC §7, TASKS T1.11b). Have both checked before launch.
+// sheet; anything still to be decided is marked PLACEHOLDER (SPEC §7).
 import { peso, pricing } from './pricing'
 
 export type LegalSection = { title: string; paragraphs?: string[]; list?: string[] }
 export type LegalPage = { title: string; updated: string; intro: string; sections: LegalSection[] }
 
-/** PLACEHOLDER: shown on both pages until the final text is approved. */
-export const legalDraftNotice = 'Draft. This page is not final yet and will be reviewed before Plotline launches.'
+/** Shown on both pages while the text is a draft. Empty: no notice (the user took it off without a separate legal review, SAAS-PLAN 2026-11-01). */
+export const legalDraftNotice = ''
 
 /** Who runs Plotline: the other party to the Terms and the personal information controller. */
 export const provider = 'Plotline'
@@ -95,7 +95,7 @@ export const terms = (supportEmail: string): LegalPage => ({
 
 export const privacy = (supportEmail: string): LegalPage => ({
   title: 'Privacy notice',
-  updated: 'October 2026',
+  updated: 'November 2026',
   intro: `This notice covers this website (plotline.fit) and its two forms: the contact form and the review form. It follows the Philippine Data Privacy Act of 2012. The personal information controller is ${provider}. Questions or requests: ${supportEmail}.`,
   sections: [
     {
@@ -118,8 +118,7 @@ export const privacy = (supportEmail: string): LegalPage => ({
       title: 'Who sees it',
       paragraphs: [
         'Contact form: only the Plotline team.',
-        // PLACEHOLDER: name the service that emails us new leads once it's chosen (court-booking-system SAAS-PLAN Phase 0).
-        'A new contact form reaches us by email, sent through our email service [service to be named]. Emails you send us are kept in our Gmail inbox (Google).',
+        'A new contact form reaches us by email, sent through our email service, Resend. Emails you send us are kept in our Gmail inbox (Google).',
         'Reviews: once we approve a review, it is public. Anyone visiting this site can see the name you gave, whether you are a player or an owner, your venue if you added it, your rating and your review. Reviews we haven’t approved are seen only by the Plotline team.',
         'Both are stored with Supabase, on servers in Singapore. We never sell your information or share it for marketing.',
       ],

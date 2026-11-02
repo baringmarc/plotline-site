@@ -74,4 +74,3 @@ npm run verify    # typecheck + lint + unit tests + build
 
 - Replace the remaining placeholders (TASKS T1.11b): `bookCallUrl` and real venues in `src/config/site.ts`, and make sure the demo URL `https://claudex-courts.plotline.fit` resolves.
 - Match features and pricing to what ships.
-- Name the email service in the Privacy notice, and have the draft Terms and Privacy (`src/config/legal.ts`) legally reviewed before the draft notice comes off.
