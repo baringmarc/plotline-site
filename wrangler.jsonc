@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "plotline-site",
+  "compatibility_date": "2026-10-30",
+  "main": "src/worker.ts",
+  // The Worker runs first so it can send www to the apex; everything else is served from dist/.
+  // Unknown paths get /index.html with a 200, so deep links like /terms work (assets/ files match first).
+  "assets": {
+    "directory": "./dist/",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  // The apex and www only; every other *.plotline.fit host belongs to court-booking-system.
+  "routes": [
+    { "pattern": "plotline.fit/*", "zone_name": "plotline.fit" },
+    { "pattern": "www.plotline.fit/*", "zone_name": "plotline.fit" }
+  ]
+}

@@ -30,7 +30,7 @@ describe('site content', () => {
     expect(site.bookCallUrl).toBe('')
   })
 
-  it('leaves PLACEHOLDER markers only on bookCallUrl, the venue list, the draft notice and the email service name', () => {
+  it('leaves PLACEHOLDER markers only on bookCallUrl and the venue list', () => {
     /** The first code line after each `PLACEHOLDER:` marker: the value it marks. */
     const marked = (text: string) => {
       const lines = text.split('\n')
@@ -47,9 +47,7 @@ describe('site content', () => {
     expect(inSite.some((l) => l.startsWith('export const venues'))).toBe(true)
 
     const inLegal = marked(legalSource)
-    expect(inLegal).toHaveLength(2)
-    expect(inLegal.some((l) => l.startsWith('export const legalDraftNotice'))).toBe(true)
-    expect(inLegal.some((l) => /email/i.test(l) && /to be named/.test(l))).toBe(true)
+    expect(inLegal).toHaveLength(0)
   })
 
   it('gives link previews an absolute share image', () => {

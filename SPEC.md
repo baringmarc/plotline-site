@@ -4,15 +4,15 @@ The source of truth for **what** the site does. [TASKS.md](TASKS.md) says what t
 [RESEARCH.md](RESEARCH.md) holds technical findings, [README.md](README.md) covers setup and deploy.
 Update this file in the same change as any behavior change, and add a row to §6 when a choice is made.
 
-> **Planned change (2026-10-27).** This spec describes the site **as it is today**. Under Plotline's SaaS plan, the owner sign-up and the 7-day trial are replaced by a **contact form** (a lead, no account, no trial), and this repo's backend (`venue_signups`, `reviews`, `register`, `feedback`) moves to `court-booking-system`, which owns the database and every Edge Function. The target and the contract are in court-booking-system's [`docs/PLATFORM.md`](../court-booking-system/docs/PLATFORM.md) and `docs/SAAS-PLAN.md` (Phase 5). Don't extend the sign-up flow; build toward the contact form.
+> This repo is the marketing frontend only. The database, Edge Functions and contract live in court-booking-system ([`docs/PLATFORM.md`](../court-booking-system/docs/PLATFORM.md)).
 
 ## 1. Overview
 
-Landing and owner sign-up site for a court booking product. Venue owners read about it, see venues and
-reviews, and start a 7-day free trial.
+Marketing site for a court booking product. Venue owners read about it, see the demo and
+reviews, and send a contact form; we then set their venue up with them.
 
 ### Goals
-- Convert venue owners: clear pitch, pricing, and a short sign-up form.
+- Convert venue owners: clear pitch, pricing, and a short contact form.
 - Show social proof: venues and approved reviews.
 - Keep abuse low: validation shared by browser and server, honeypot, timing check, CAPTCHA before launch.
 
@@ -22,16 +22,14 @@ reviews, and start a 7-day free trial.
 ## 2. Roles
 | Role | Can do |
 | --- | --- |
-| Visitor (`anon`) | Read the site, read approved reviews, submit a sign-up or a review through Edge Functions |
-| Owner (`authenticated`) | Everything a visitor can, plus read their own row in `venue_signups` |
-| Admin (Supabase Studio, service role) | Approve reviews, manage sign-ups |
+| Visitor (`anon`) | Read the site, read approved reviews, submit a contact form or a review through Edge Functions |
+| Admin (court-booking-system) | Approve reviews, read leads |
 
 ## 3. Pages
 | Route | Purpose |
 | --- | --- |
 | `/` | Landing page (sections listed in README) |
-| `/welcome` | Where the confirmation email lands |
-| `/terms`, `/privacy` | Draft Terms for venues and Privacy notice (`src/config/legal.ts`): the offer as in SAAS-PLAN §1 and "At a glance", what the two forms collect and why, under the Data Privacy Act. The only undecided part left is the name of the email service that sends us new leads (a visible "[service to be named]"), and both pages say they are drafts until a legal review |
+| `/terms`, `/privacy` | Terms for venues and Privacy notice (`src/config/legal.ts`): the offer as in SAAS-PLAN §1 and "At a glance", what the two forms collect and why, under the Data Privacy Act. Nothing undecided is left on either page: the email service is Resend, and no draft notice shows (`legalDraftNotice` is empty) |
 
 Every async view handles loading, empty and error states. Mobile-first.
 
@@ -88,15 +86,11 @@ Every async view handles loading, empty and error states. Mobile-first.
 3. `200 { ok: true }` shows "Thanks, we'll be in touch", plus a "book a call" link when `site.bookCallUrl` is set. Any other reply shows the function's own message, and the Turnstile widget resets for a fresh token (each token works once).
 4. Site key: `VITE_TURNSTILE_SITE_KEY`. Without it, development uses Cloudflare's always-pass test key, and a production build shows no widget (the function then refuses the form).
 
-**Until court-booking-system deploys `site-contact` and `site-review` (Phase 5), both forms show an error:** the functions don't exist yet. The old local backend (`register`, `feedback`) stays until then (T1.8), but nothing calls it.
-
 ### Reviews
 The review form posts to the platform's `site-review` function, which stores the review with `approved = false`. Only approved reviews are public (read from `reviews`).
 
 ## 5. Data model
-- `venue_signups`: one row per owner (limits are CHECK constraints; mirrored in `_shared/validate.ts`).
-- `reviews`: name, venue, quote (10–400), role (`player`|`owner`), rating (1–5), `approved`.
-- RLS on every table with explicit policies; triggers and helpers in the `private` schema.
+This repo has no database. The tables (`leads`, `reviews`) and their RLS live in court-booking-system (`docs/PLATFORM.md`); the site reads approved `reviews` with the publishable key, and `src/lib/database.types.ts` is generated from the shared project.
 
 ## 6. Decisions log
 | Date | Decision | Why |
@@ -114,9 +108,11 @@ The review form posts to the platform's `site-review` function, which stores the
 | 2026-10-27 | The contact form keeps the PLATFORM.md fields. "Best time to call" and "demo preference" go in the message placeholder for now | Extra fields are a contract change (PLATFORM.md §7); not worth it before launch |
 | 2026-10-29 | T1.11a values (the user's): support email `plotline.admin1@gmail.com`; Messenger `https://m.me/61595759948011`; Facebook `https://www.facebook.com/profile.php?id=61595759948011`; `bookCallUrl` stays empty; venues stay the demo only. Terms and Privacy: the provider and controller is "Plotline"; 1 week's notice before a fee change; contact-form leads are kept 1 year after our last contact; the Terms follow Philippine law. Set by us at the user's request: a suspension is lifted once the overdue invoice is paid, usually within one business day; a venue's PayMongo key is stored encrypted, read only by our server, never shown again (the admin pages show its last 4 characters), and if it may have leaked we disconnect it, tell the venue and help it replace the key; exit terms: leave any time by email with no notice period, fees for bookings confirmed before then go on a final invoice due within 7 days, the admin pages and CSV export stay open for 30 days after leaving, then the venue's data is deleted except what the law requires us to keep (such as invoices). The "At a glance" sheet gains "Provider" and "Leaving" rows. The Privacy notice says emails to us are kept in our Gmail inbox (Google); the service that sends us new-lead alerts is still to be named | The user's values and calls; the rest follow court-booking-system SAAS-PLAN §5 (manual suspension) and Phase 4 (encrypted keys, last 4 shown) |
 | 2026-11-01 | Added "no limit on courts" (short version list, FAQ, "At a glance" row) and the "Your venue, your way" section (`Highlights`). Checked against court-booking-system SPEC: no court cap since SAAS-PLAN 2026-10-25; booking emails live through Resend since 2026-10-30 (to players, not owners); subdomains live (T13.8); up to 10 payment accounts with QR (T11.10). The colour presets are left out until they are redone (the user's call). The 2026-10-27 "booking emails are off in production" reason no longer holds; owner booking alerts still don't exist, so they stay off the owner cards. The contact form still caps courts at 50 (`MAX_COURTS` in the platform's `siteForms.ts`) | The user asked to showcase these; each claim is a shipped feature (§3.1 Feature claims) |
+| 2026-11-02 | T1.8: the old local backend is deleted (`supabase/migrations`, `functions`, `tests`, `config.toml`, `seed.sql`, `docs/drafts/phase5`), with `/welcome`, `site.trialDays`, `courtOptions` and the `db:*`/`functions:serve`/`test:db` scripts. `db:types` generates `src/lib/database.types.ts` from the shared project (`SUPABASE_PROJECT_REF`). Phase 5 is live on the linked project, so the T1.8 hold ended | Phase 5 deployed `site-contact` and `site-review` (court-booking-system PLATFORM.md §5); the site now has no backend of its own |
+| 2026-11-02 | The Privacy notice names Resend as the email service for new-lead alerts, and the Terms and Privacy draft notice is removed (`legalDraftNotice` is empty) with no separate legal review | Already decided in court-booking-system: PLATFORM.md §4 (Environment, `LEAD_ALERT_TO`: lead alerts use the Resend booking-email transport) and SAAS-PLAN decisions 2026-11-01 ("The user removes the Terms and Privacy draft notice without a separate legal review") |
+| 2026-11-02 | The user's answers for launch: no book-a-call link (`bookCallUrl` stays empty); the venue list is the demo venue only; the booking fee is ₱10 and is set to 10 on production; the contact form keeps its 50-court limit (the page says "no limit on courts" for the product, the form is not a cap). Deploy: Cloudflare Workers static assets (`wrangler.jsonc`, `src/worker.ts` redirects www to the apex; `.env.production` holds the public production values incl. Turnstile site key `0x4AAAAAAFvBvpFgKwOYraXL`); `public/robots.txt` allows all so Facebook's scraper isn't refused | Production CORS for both origins checked 2026-11-02; PLATFORM.md §2 says www redirects to the apex |
 
 ## 7. Open questions
 - Turnstile CAPTCHA before launch: the token goes to the platform's `site-contact` function (its secret lives in court-booking-system), not to `auth.signUp`.
-- Still open for the Terms and Privacy notice (T1.11b): the name of the email service that sends us new-lead alerts (court-booking-system SAAS-PLAN Phase 0), and a legal review of both pages before the draft notice comes off.
 - A "book a call" link after the contact form (Google Calendar or Cal.com): which tool and whose calendar. Optional; the thank-you state works without it.
 - ~~Real SMTP provider for confirmation emails.~~ No longer needed here: the contact form creates no account, so the site sends no auth emails. Plotline's email sender is set up in court-booking-system (SAAS-PLAN Phase 0).
