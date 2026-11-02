@@ -7,8 +7,8 @@ and tracks progress. [RESEARCH.md](RESEARCH.md) holds the technical findings beh
 
 > Update this section at the end of every session or task. Keep it short; it's the first thing the next session reads.
 
-- **Current milestone:** Milestone 1, Launch readiness (broken down 2026-10-27).
-- **Next task:** Milestone 1 is complete. Open: replace the drawn player-side frames (`PlayerScreens.tsx`) once staging shows the ₱10 fee at checkout; delete `vercel.json` once nothing deploys there; then plan Milestone 2.
+- **Current milestone:** Milestone 2, Easier to read (planned 2026-11-02, nothing built yet). Milestone 1 is complete.
+- **Next task:** T2.1 (copy pass); design in the "Full Page Redesign" artifact linked under Milestone 2. Milestone 1 leftovers: replace the drawn player-side frames (`PlayerScreens.tsx`) once staging shows the ₱10 fee at checkout; delete `vercel.json` once nothing deploys there; then plan Milestone 2.
 - **State:** T1.1–T1.10 and T1.11a done (T1.8 done 2026-11-02: the old backend is removed). T1.11a set the user's values (SPEC §6, 2026-10-29): support email `plotline.admin1@gmail.com`, Messenger and Facebook links, "Provider" and "Leaving" rows in "At a glance", and the Terms and Privacy text (provider Plotline, PayMongo key handling, suspension lifted on payment, 1 week's fee notice, exit terms, 1-year lead retention). T1.11b code is done (2026-11-02): `bookCallUrl` stays empty and the venue list stays demo-only (the user's call), `wrangler.jsonc` + `src/worker.ts` (www → apex, tested) + `cf:deploy` + `.env.production` (public production values and the Turnstile site key) + `public/robots.txt`. Launch steps (all done and passed 2026-11-02 except (6)): (1) `npx wrangler login`, DNS for the apex and `www` proxied, `npm run cf:deploy`; (2) check the live site and send one real contact form; (3) re-scrape in Facebook's Sharing Debugger (it got 403 on the empty page; if it still does, a Cloudflare WAF/bot rule blocks `facebookexternalhit`); (4) send and approve a test review; (5) test `/admin/courts/:id` on a phone; (6) when staging shows the ₱10 fee at checkout (production is set to 10), tell me and I replace the drawn player-side frames. The email service (Resend) is named and the draft notice is off (2026-11-02, from court-booking-system). The contact form posts to `site-contact` and reviews to `site-review`, both live on the shared project since 2026-11-01.
 - **Blockers / notes:** The leaving terms and the 1-week fee notice (T1.11a) should be added to court-booking-system SAAS-PLAN §1, where the business terms are decided. The user's rule (2026-10-27): anything still to be decided or provided gets a placeholder now, and T1.11 collects the real values. Open from T1.7: none (`bookCallUrl` stays empty; the Turnstile site key is in `.env.production`). PLATFORM.md §4 should list the 503 reply that the drafted `site-contact` sends when its Turnstile secret is unset (a court-booking-system change). The owner cards leave out staff accounts (admins are promoted by hand, no staff UI) and booking alerts (emails off in production); add them only once they ship. "Run your courts from your phone" assumes the admin pages work on a phone; check `/admin/courts/:id` (the rate grid) when real screenshots are taken. The player's side steps 3–5 are drawn placeholders (`PlayerScreens.tsx`). Replace them with real screenshots once court-booking-system M11 shows the ₱10 fee at checkout, from a booking made on staging or the local stack, not production. `claudex-courts.plotline.fit` doesn't resolve yet; the demo button keeps it (the user's call). Open items for launch are in README "Before launch".
 - **Update (2026-11-01):** added "no limit on courts" and a `Highlights` section (6 cards, SPEC §3.1 row 4b); see SPEC §6. Colour presets deliberately not mentioned. The contact form still caps courts at 50. Ideas left for later: PayMongo detail, waiver at checkout, late-night/24h hours, the server-side double-booking guarantee.
@@ -130,6 +130,57 @@ Design reference for T1.1–T1.6: [taradula.com/list-your-venue](https://taradul
   - Depends: T1.11a; the user's values
   - Files: `src/config/site.ts`, `src/config/legal.ts`, `index.html`, `public/`, deploy env vars
   - Acceptance: `grep -rn PLACEHOLDER src index.html` finds only the two values the user chose to leave (`bookCallUrl` empty, the venue list demo-only; SPEC §6 2026-11-02); T1.9's and T1.10's acceptance hold with real values.
+
+## Milestone 2: Easier to read
+
+One-liner: the landing page below the hero has too much text in sections that look alike. Keep the content, cut the repetition, and carry the weight with a few visuals. Design reference (agreed with the user 2026-11-02, public): [Plotline Full Page Redesign](https://claude.ai/artifact/PLn4Lwnm4LMBfjUhhZMtTC). Front end only: no migrations, functions or contract change. Pricing wording must keep passing `npm run check:drift`.
+
+Decisions from the design review (2026-11-02):
+- Remove the hero stat tiles (₱0 / ₱10); the pricing section shows them.
+- The cost story is told in one place (Pricing). "The short version" becomes a slim card that links to it; the FAQ keeps only the money answers owners ask.
+- "At a glance" becomes its own short section right after Pricing, always open, not collapsed and not inside Pricing.
+- Keep the "A flat fee vs a percentage" table; the line chart was dropped as harder to read.
+- Player's side keeps the page background; only the five phone screens use the app's dark theme, for contrast.
+- Sequences (money flow, Getting started) share one vertical/horizontal timeline style.
+- Section order stays as today except "At a glance" moves up next to Pricing (SPEC §3.1 to be updated in T2.6).
+
+Order: copy first (cheap, safe, shows how much visual work is still needed), then visuals.
+
+- [ ] **T2.1 Copy pass**
+  - Do: in `site.ts`, shorten the long bodies and say each pricing fact once. Merge `shortVersion` into the slim card (one line on cost, the 8 "what you get" items as short chips). Tighten `highlights` and `features` to one line each (3 headline items plus a short "also" list for each). Regroup `faqs` into Players, Money and Your setup (3 each) and tighten the answers by about a third. Drop the hero `stats`. Move the "Provider" and "Leaving" rows into the new "At a glance" groups. Keep every claim that is a shipped feature (SPEC §3.1 "Feature claims"): nothing is deleted without a home elsewhere on the page.
+  - Depends: none
+  - Files: `src/config/site.ts`, `src/features/landing/sections.test.tsx`, `src/config/content.test.ts`
+  - Acceptance: no section's body copy is over 90 words (the FAQ per group); no pricing amount or "paid by the player" sentence appears in more than two sections; every amount still comes from `pricing`; `npm run check:drift` passes; Terms and "At a glance" still agree on provider and leaving; tests cover the word caps and the FAQ groups.
+
+- [ ] **T2.2 Pricing section and "At a glance"**
+  - Do: rework `Costs` and `MoneyFlow` into one Pricing section: the two stat tiles, a "never billed" row, the worked example as a stacked bar (the fee drawn at a readable minimum width, with a "not to scale" note), the flat vs percentage table as today, and "Where the money goes" as a four-step timeline (stacked on phones, a row from 760px). Restyle `AtAGlance` as its own section after it: four key figures and three groups (the service, the money, your data and leaving). Remove the hero stat tiles.
+  - Depends: T2.1
+  - Files: `src/features/landing/sections.tsx`, `src/features/landing/pricing.ts`, `src/routes/LandingPage.tsx`, `src/styles/global.css`, `src/features/landing/sections.test.tsx`
+  - Acceptance: the "Fee" label fits its bar at 360px and 1280px; the bar's total equals `workedExample()`; the table rows come from `feeComparison()`; the nav "Pricing" anchor still works; light and dark themes both correct; no horizontal scroll at 360px; a ₱15 fee replaces every ₱10 (existing test extended to the new markup).
+
+- [ ] **T2.3 "Your side" and "Your venue"**
+  - Do: make the two sections look different from each other. "Your side": three headline items beside a drawn "Today" grid with a payment-proof card, plus chips for the rest. "Your venue": a drawn browser frame of a venue page with four numbered callouts, the numbered list beside it, and chips for what players also get. Drawn with CSS and inline SVG from the site's tokens, no new image assets.
+  - Depends: T2.1
+  - Files: `src/features/landing/sections.tsx`, a new `src/features/landing/Illustrations.tsx`, `src/styles/global.css`, `site.ts`
+  - Acceptance: the two sections use different layouts; decorative drawings have `aria-hidden` or a text alternative; every feature claim from T2.1 is still on the page; correct in both themes; no horizontal scroll at 360px.
+
+- [ ] **T2.4 Player's side, short version, Getting started**
+  - Do: show the five player screens in the app's dark theme on the normal page background, at the screenshots' natural proportions (five columns from 1000px, a swipe row below). Turn open play into a one-line strip. Build the slim "short version" card and move "Getting started" onto the same timeline as the money flow.
+  - Depends: T2.1, T2.2 (shared timeline style)
+  - Files: `src/features/landing/sections.tsx`, `src/features/landing/PlayerScreens.tsx`, `src/styles/global.css`, `public/screens/`
+  - Acceptance: the five screens read clearly against the light section; the first two use real dark-mode screenshots of the demo venue if the demo is reachable, otherwise drawn dark screens (note it in the Handoff); alt text kept; the player-side open item (real fee screens from staging) stays in the Handoff.
+
+- [ ] **T2.5 FAQ in groups**
+  - Do: show the FAQ as three tabs (Players, Money, Your setup) with the first answer of each open; keyboard accessible (`role="tablist"`, arrow keys); the answers stay readable with JavaScript off.
+  - Depends: T2.1
+  - Files: `src/features/landing/sections.tsx`, `src/styles/global.css`, `src/features/landing/sections.test.tsx`
+  - Acceptance: tabs switch with click and arrow keys; all nine questions are reachable; with JS off every answer is visible; tests cover tab switching.
+
+- [ ] **T2.6 Close-out**
+  - Do: update SPEC.md (§3.1 section order and rows, a decisions-log row for the 2026-11-02 choices), README, and the Handoff; run the L1 grep for the terms this milestone removed (hero stats, short version cards, the line chart). Check the whole page at 360, 768 and 1280px in both themes, and run `/retro`.
+  - Depends: T2.1–T2.5
+  - Files: `SPEC.md`, `README.md`, `TASKS.md`
+  - Acceptance: `npm run verify` and the full gate pass; the page matches the artifact apart from the stand-in reviews and form; the reviewer reports no blocking issues.
 
 ## Retro follow-ups
 
