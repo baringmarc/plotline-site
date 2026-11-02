@@ -14,3 +14,4 @@
 {"ts":"2026-11-02T05:11:20.452Z","task":"adhoc","source":"guard","category":"reviewer-readonly","agent":"reviewer","command":"grep -rn -i \"vercel\\|deploy\\|wrangler\\|cloudflare\" SPEC.md README.md RESEARCH.md .env.example tsconfig.app.json tsconfig.node.json eslint.config.js vite.config.ts vitest.config.ts"}
 {"ts":"2026-11-02T05:12:13.828Z","task":"adhoc","source":"guard","category":"reviewer-readonly","agent":"reviewer","command":"cat src/config/pricing.ts; npm run check:drift 2>&1 | tail -4"}
 {"ts":"2026-11-02T05:12:56.115Z","task":"adhoc","source":"reviewer","severity":"major","category":"docs-drift","file":"TASKS.md:132","summary":"T1.11b acceptance grep PLACEHOLDER cannot pass with the two settled-deferred markers","round":1}
+{"ts":"2026-11-02T10:22:01.198Z","task":"adhoc","source":"retro","milestone":"M1","summary":"2 proposals, 2 approved: L1; T1.12 reviewer wording"}
