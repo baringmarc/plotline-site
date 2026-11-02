@@ -84,13 +84,27 @@ describe('Highlights, "Your venue" (T2.3)', () => {
     }
   })
 
-  it('puts the section head in the right column, beside the VenueFrame', () => {
-    const { container, getByRole, getByTestId } = render(<Highlights />)
+  it('puts the section head (label, h2, lead) full width above the .venue-split; the VenueFrame and the list with its chips side by side inside it', () => {
+    const { container, getByRole, getByTestId, getByText } = render(<Highlights />)
     const split = container.querySelector('.venue-split') as HTMLElement
+    expect(split).not.toBeNull()
+
+    // The head sits outside the split, and comes before it in the document.
+    const head = getByRole('heading', { level: 2, name: highlightsHead.title })
+    const label = getByText(highlightsHead.label)
+    const lead = getByText(highlightsHead.lead)
+    for (const el of [head, label, lead]) {
+      expect(split).not.toContainElement(el)
+      expect(el.compareDocumentPosition(split) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
+
+    // Inside the split: first the frame, then the column with the numbered list and the chips.
     const [first, second] = [...split.children] as HTMLElement[]
     expect(first).toBe(getByTestId('venue-frame'))
-    expect(second).toContainElement(getByRole('heading', { level: 2, name: highlightsHead.title }))
-    expect(second.querySelector('ol')).not.toBeNull()
+    expect(second).toBeDefined()
+    expect(second.querySelector('ol.venue-list')).not.toBeNull()
+    for (const chip of highlightsAlso) expect(second).toContainElement(getByText(chip))
+    expect(second).not.toContainElement(getByTestId('venue-frame'))
   })
 
   it('does not use the "Your side" layout or its drawing', () => {

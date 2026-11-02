@@ -233,10 +233,10 @@ export function Highlights() {
   return (
     <section id="venue">
       <div className="in">
+        <SectionHead label={highlightsHead.label} title={highlightsHead.title} lead={highlightsHead.lead} />
         <div className="venue-split">
           <VenueFrame />
           <div>
-            <SectionHead label={highlightsHead.label} title={highlightsHead.title} lead={highlightsHead.lead} />
             <ol className="venue-list">
               {highlights.map((h, i) => (
                 <li key={h.title}>

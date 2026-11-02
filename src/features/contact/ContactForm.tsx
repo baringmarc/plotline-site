@@ -123,7 +123,7 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
             required
           />
         </label>
-        <label className="f wide">
+        <label className="f">
           {t.venueName}
           <input
             placeholder={t.venueNamePlaceholder}
@@ -149,7 +149,7 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
             required
           />
         </label>
-        <label className="f wide">
+        <label className="f">
           <span>
             {t.facebook} <small>{t.optional}</small>
           </span>
@@ -217,8 +217,8 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
         </div>
       )}
 
-      <button className="btn main full" type="submit" disabled={send.isPending}>
-        {send.isPending ? contact.sending : `${contact.submit} →`}
+      <button className="btn main" type="submit" disabled={send.isPending}>
+        {send.isPending ? contact.sending : contact.submit}
       </button>
     </form>
   )
