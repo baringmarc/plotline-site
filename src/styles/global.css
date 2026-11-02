@@ -185,7 +185,6 @@ img { max-width: 100%; }
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
 }
 .hero .promises .eyebrow { margin-bottom: 4px; }
-.hero .stats { margin-bottom: 28px; }
 
 /* the short version's closing line */
 .money { text-align: center; font-family: var(--serif); font-weight: 600; font-size: 20px; margin: 28px auto 0; max-width: 620px; }
@@ -225,8 +224,10 @@ section.white { background: var(--bg-alt); }
 section.white .card { background: var(--bg); }
 .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.grid3.four { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1000px) { .grid3.four { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 860px) { .grid3 { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 620px) { .grid2, .grid3 { grid-template-columns: 1fr; } section { padding: 48px 0; } }
+@media (max-width: 620px) { .grid2, .grid3, .grid3.four { grid-template-columns: 1fr; } section { padding: 48px 0; } }
 .ticks { list-style: none; padding: 0; margin: 0; }
 .ticks li { padding: 6px 0 6px 28px; position: relative; }
 .ticks li::before {
@@ -431,7 +432,18 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--t
 .hint { color: var(--text-soft); font-size: 14px; }
 .stack { display: flex; flex-direction: column; gap: 14px; }
 
+/* a labelled row of short items under a card grid */
+.also { margin-top: 32px; text-align: center; }
+.also h3 { font-size: 15px; font-family: var(--sans); color: var(--text-soft); margin: 0 0 12px; }
+.card.short { max-width: 760px; margin: 0 auto; text-align: center; }
+.card.short h3 { margin: 0 0 14px; }
+/* the fact sheet's three groups */
+.glance-group { margin-top: 28px; }
+.glance-group h3 { font-size: 15px; font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.08em; color: var(--highlight); margin: 0 0 8px; }
+
 /* faq */
+.faq + .faq { margin-top: 18px; }
+.faq h3 { font-size: 15px; font-family: var(--sans); text-transform: uppercase; letter-spacing: 0.08em; color: var(--highlight); margin: 12px 0 2px; }
 .faq { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
 .faq details { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px 18px; }
 .faq summary { cursor: pointer; font-weight: 700; padding: 12px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; }

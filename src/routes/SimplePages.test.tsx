@@ -109,9 +109,11 @@ describe('TermsPage', () => {
       </MemoryRouter>,
     )
     const t = screen.getByRole('heading', { name: 'Leaving Plotline' }).closest('section')!.textContent ?? ''
-    const row = (label: string) => atAGlance.rows.find((r) => r.label === label)
+    const row = (label: string) => atAGlance.groups.flatMap((g) => g.rows).find((r) => r.label === label)
     const provider = row('Provider')
     const leaving = row('Leaving')
+    expect(provider).toBeDefined()
+    expect(leaving).toBeDefined()
     expect(provider?.value).toMatch(/^Plotline\b/)
     expect(screen.getByText(/^These terms cover/).textContent).toContain(provider?.value)
     expect(leaving?.value).toMatch(/any time/i)

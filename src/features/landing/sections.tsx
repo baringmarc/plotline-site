@@ -7,13 +7,17 @@ import {
   atAGlance,
   contactAnchor,
   costs,
+  faqGroups,
   faqHead,
-  faqs,
   finalBand,
   features,
+  featuresAlso,
+  featuresAlsoLabel,
   featuresHead,
   hero,
   highlights,
+  highlightsAlso,
+  highlightsAlsoLabel,
   highlightsHead,
   messageLink,
   moneyFlow,
@@ -48,15 +52,6 @@ export function Hero() {
               ))}
             </ul>
           </div>
-          <div className="stats">
-            {hero.stats.map((s) => (
-              <div key={s.label} className="stat">
-                <span className="lbl">{s.label}</span>
-                <span className="big">{s.value}</span>
-                <small>{s.note}</small>
-              </div>
-            ))}
-          </div>
           <div className="ctas">
             <a className="btn main" href={contactAnchor}>
               {hero.primaryCta} →
@@ -73,35 +68,22 @@ export function Hero() {
 }
 
 export function ShortVersion() {
-  const { get, cost } = shortVersion
+  const { get } = shortVersion
   return (
     <section className="white" id="short-version">
       <div className="in">
         <SectionHead label={shortVersion.label} title={shortVersion.title} lead={shortVersion.lead} />
-        <div className="grid2">
-          <Reveal className="card">
-            <h3>{get.title}</h3>
-            <ul className="ticks">
-              {get.points.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
-          </Reveal>
-          <Reveal className="card" delay={80}>
-            <h3>{cost.title}</h3>
-            <ul className="ticks">
-              {cost.points.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
-            <ul className="ticks crosses">
-              {cost.notCharged.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
-          </Reveal>
-        </div>
-        <p className="money">{shortVersion.money}</p>
+        <Reveal className="card short">
+          <h3>{get.title}</h3>
+          <div className="chips">
+            {get.points.map((p) => (
+              <span key={p}>{p}</span>
+            ))}
+          </div>
+          <p className="center midcta">
+            <a href="#pricing">{shortVersion.link}</a>
+          </p>
+        </Reveal>
       </div>
     </section>
   )
@@ -208,6 +190,20 @@ export function PlayerSide() {
   )
 }
 
+/** A labelled row of short items under a card grid. */
+function ChipList({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div className="also">
+      <h3>{label}</h3>
+      <div className="chips">
+        {items.map((i) => (
+          <span key={i}>{i}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function Features() {
   return (
     <section className="white" id="features">
@@ -225,6 +221,7 @@ export function Features() {
             </Reveal>
           ))}
         </div>
+        <ChipList label={featuresAlsoLabel} items={featuresAlso} />
       </div>
     </section>
   )
@@ -235,7 +232,7 @@ export function Highlights() {
     <section id="venue">
       <div className="in">
         <SectionHead label={highlightsHead.label} title={highlightsHead.title} lead={highlightsHead.lead} />
-        <div className="grid3">
+        <div className="grid3 four">
           {highlights.map((f, i) => (
             <Reveal key={f.title} className="card feature" delay={(i % 3) * 80}>
               <span className="ico" aria-hidden="true">
@@ -246,6 +243,7 @@ export function Highlights() {
             </Reveal>
           ))}
         </div>
+        <ChipList label={highlightsAlsoLabel} items={highlightsAlso} />
       </div>
     </section>
   )
@@ -394,14 +392,17 @@ export function Faq() {
             </>
           }
         />
-        <div className="faq">
-          {faqs.map((f) => (
-            <details key={f.q}>
-              <summary>{f.q}</summary>
-              <p>{f.a}</p>
-            </details>
-          ))}
-        </div>
+        {faqGroups.map((g) => (
+          <div key={g.id} className="faq" role="group" aria-labelledby={`faq-${g.id}`}>
+            <h3 id={`faq-${g.id}`}>{g.label}</h3>
+            {g.items.map((f, i) => (
+              <details key={f.q} open={i === 0}>
+                <summary>{f.q}</summary>
+                <p>{f.a}</p>
+              </details>
+            ))}
+          </div>
+        ))}
       </div>
     </section>
   )
@@ -411,15 +412,20 @@ export function AtAGlance() {
   return (
     <section id="at-a-glance">
       <div className="in narrow">
-        <SectionHead label={atAGlance.label} title={atAGlance.title} />
-        <dl className="facts">
-          {atAGlance.rows.map((r) => (
-            <div key={r.label}>
-              <dt>{r.label}</dt>
-              <dd>{r.value}</dd>
-            </div>
-          ))}
-        </dl>
+        <SectionHead label={atAGlance.label} title={atAGlance.title} lead={atAGlance.lead} />
+        {atAGlance.groups.map((g) => (
+          <div key={g.title} className="glance-group">
+            <h3>{g.title}</h3>
+            <dl className="facts">
+              {g.rows.map((r) => (
+                <div key={r.label}>
+                  <dt>{r.label}</dt>
+                  <dd>{r.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
       </div>
     </section>
   )

@@ -60,44 +60,31 @@ export const hero = {
   promises: [
     'Free for venues: no subscription and no setup fee',
     'Players pay you directly, into your own GCash, Maya or bank',
-    `A ${fee} booking fee per online booking, paid by the player`,
-  ],
-  stats: [
-    { label: 'To start', value: peso(0), note: 'and nothing every month' },
-    { label: 'The only fee', value: fee, note: 'per online booking, paid by the player' },
+    `Players add a ${fee} booking fee to each online booking`,
   ],
   primaryCta: 'Get your venue online',
   secondaryCta: 'See a live demo',
 }
 
+/** A slim card that points to Pricing; the cost story is told there once. */
 export const shortVersion = {
   label: 'The short version',
-  title: 'What you get, and what it costs',
-  lead: `Plotline costs your venue nothing. Players pay a ${fee} booking fee when they book online, and that is all we earn.`,
+  title: `Free for your venue. Players pay ${fee}.`,
+  lead: 'That fee is all we earn. Players pay you, not us, and Plotline never holds your money.',
+  link: 'See the full pricing',
   get: {
     title: 'What you get, free',
     points: [
-      'Your own booking page with your venue’s name',
-      'As many courts as you have, with no limit',
-      'A live slot grid for every court',
-      'Every booking and payment proof on your phone',
-      'Peak and off-peak rates, set by you',
-      'Open play sessions shown on your grid',
-      'We set up your courts, hours and rates with you',
-      'A walkthrough for you and your staff',
+      'Your own booking page',
+      'Unlimited courts',
+      'Live slot grid per court',
+      'Bookings and proofs on your phone',
+      'Peak and off-peak rates',
+      'Open play on your grid',
+      'Setup done with you',
+      'Walkthrough for your staff',
     ],
   },
-  cost: {
-    title: 'What it costs',
-    points: [
-      `${fee} per confirmed online booking, whatever its length or court`,
-      'Paid by the player and shown before they pay',
-      'You collect it with the court price',
-      'We bill the fees on one invoice a month',
-    ],
-    notCharged: ['No subscription', 'No setup fee', 'No monthly fee', `No fee on ${pricing.notBilled[0].toLowerCase()}`],
-  },
-  money: 'Players pay you, not us. Plotline never holds your money.',
 }
 
 export type Venue = { name: string; location: string; url?: string; logoUrl?: string }
@@ -122,12 +109,12 @@ export type ScreenMock = 'pay' | 'confirmed' | 'link'
 export const playerSide = {
   label: 'The player’s side',
   title: 'Booked in a minute, with no app to install',
-  lead: 'This is what your players see, from your link to their booking.',
+  lead: 'From your link to their booking.',
   stepLabel: (n: number, total: number) => `Step ${n} of ${total}`,
   steps: [
     {
       title: 'Find a free slot',
-      body: 'They open your link and see every court and hour, open or booked, with your peak and off-peak prices.',
+      body: 'Every court and hour, open or booked, with your peak and off-peak prices.',
       image: {
         src: '/screens/step-1-find.webp',
         width: 390,
@@ -137,7 +124,7 @@ export const playerSide = {
     },
     {
       title: 'Pick a time',
-      body: 'A tap picks an hour and more taps make it longer. The total shows as they go.',
+      body: 'Tap an hour, tap more to make it longer. The total shows as they go.',
       image: {
         src: '/screens/step-2-pick.webp',
         width: 390,
@@ -147,7 +134,7 @@ export const playerSide = {
     },
     {
       title: 'Pay you directly',
-      body: `The court price plus the ${fee} booking fee, into your GCash, Maya or bank with a proof, or through your PayMongo.`,
+      body: `Court price plus the ${fee} fee, into your GCash, Maya or bank, or through PayMongo.`,
       mock: 'pay',
     },
     {
@@ -157,7 +144,7 @@ export const playerSide = {
     },
     {
       title: 'Their booking, one link',
-      body: 'They get a private link to their booking. If they sign in, it’s in My bookings too.',
+      body: 'A private link to their booking. If they sign in, it’s in My bookings too.',
       mock: 'link',
     },
   ] as { title: string; body: string; image?: ScreenImage; mock?: ScreenMock }[],
@@ -188,90 +175,70 @@ export const playerSide = {
 /** A callout under the player's steps. Open play is a marked session on the grid; players don't sign up in the app. */
 export const openPlay = {
   title: 'Open play, on the same grid',
-  lead:
-    'Post a session on any courts and hours. Players see it on your booking page with your details and your RSVP or Reclub link, and nobody can book over it.',
-  points: ['On any courts', 'Your title and details', 'Up to 3 links', 'Never billed'],
+  lead: 'Post a session on any courts. Nobody can book over it.',
+  points: ['Your title and details', 'Up to 3 links', 'Never billed'],
 }
 
 /** The owner's side. Only features court-booking-system ships today (SPEC §3.1 "Feature claims"). */
 export const featuresHead = {
   label: 'Your side',
   title: 'Run your courts from your phone',
-  lead: 'Everything you need at the counter, on a phone or a laptop, with nothing new to learn.',
+  lead: 'Everything you need at the counter, with nothing new to learn.',
 }
 
 export const features = [
   {
     icon: '📅',
-    title: 'Today’s courts at a glance',
-    body: 'Every court and hour for today, with who is playing and their booking reference.',
+    title: 'Today at a glance',
+    body: 'Every court and hour, who is playing, and their reference.',
   },
   {
     icon: '🧾',
     title: 'Payment proofs in a tap',
-    body: 'See the proof, get a warning when the amount doesn’t match, then approve it or reject it with a reason so the player can send a new one.',
-  },
-  {
-    icon: '🌗',
-    title: 'Peak and off-peak rates',
-    body: 'Charge more on evenings and weekends and less when it’s quiet. Players see each price on the grid.',
-  },
-  {
-    icon: '🚧',
-    title: 'Hours and blackouts',
-    body: 'Set your opening hours and block off times for repairs or private events, so nobody books them.',
+    body: 'Approve it, or reject it with a reason. You get a warning if the amount is off.',
   },
   {
     icon: '🔁',
     title: 'Move a booking',
-    body: 'Rain, repairs or a request? Move a confirmed booking to another court or time for the same sport. The player sees the change and your reason.',
-  },
-  {
-    icon: '📈',
-    title: 'Earnings and occupancy',
-    body: 'Money collected by method, booked hours and how full each court is, for a day, week, month or your own range. Export it to CSV.',
+    body: 'Rain or repairs? Move it to another court or time in the same sport. The player sees your reason.',
   },
 ]
+
+export const featuresAlsoLabel = 'Also in your admin'
+export const featuresAlso = ['Peak and off-peak rates', 'Hours and blackouts', 'Earnings and occupancy, with CSV export']
 
 /** Platform features that make a venue's page its own. No colour presets yet: they are being redone (SPEC §3.1). */
 export const highlightsHead = {
   label: 'Your venue, your way',
   title: 'A booking page that looks like yours',
-  lead: 'Your name, your photos and your payment details, on a page your players can open without installing an app or creating an account.',
+  lead: 'Your name and your payment details, on a page players open without an app or an account.',
 }
 
 export const highlights = [
   {
     icon: '🎨',
-    title: 'Your venue, your page',
-    body: 'Add a banner, photos of each court, amenities, your Facebook and other social links, a Google Maps pin and your own house rules and policies.',
-  },
-  {
-    icon: '🏸',
-    title: 'Every sport in one venue',
-    body: 'Badminton, pickleball, basketball and tennis on one page. Courts are grouped by sport, in the order you choose.',
-  },
-  {
-    icon: '✉️',
-    title: 'Players get emails',
-    body: 'A booking email with their reference, then another when it is confirmed, cancelled or moved, or when a payment proof needs sending again. They come from your venue’s name.',
-  },
-  {
-    icon: '🙋',
-    title: 'Guests can book without an account',
-    body: 'A name and an email is all it takes. Players who do sign in, with Google or email, get their earlier bookings added to My bookings.',
+    title: 'Your look',
+    body: 'Banner, court photos, amenities, house rules, social links and a Google Maps pin.',
   },
   {
     icon: '🌐',
-    title: 'Your own web address',
-    body: 'Your venue gets its own address, like yourvenue.plotline.fit. Post it on your Facebook page and in your group chats.',
+    title: 'Your own address',
+    body: 'yourvenue.plotline.fit, ready for your Facebook page and group chats.',
   },
   {
     icon: '📲',
-    title: 'Several payment accounts, with QR codes',
-    body: 'List up to 10 GCash, Maya or bank accounts, each with its own QR code, so players can scan and pay.',
+    title: 'Your payment accounts',
+    body: 'Up to 10 GCash, Maya or bank accounts, each with its own QR code.',
+  },
+  {
+    icon: '🏸',
+    title: 'Every sport on one page',
+    body: 'Badminton, pickleball, basketball and tennis, grouped by sport in your order.',
   },
 ]
+
+export const highlightsAlsoLabel = 'Players also get'
+export const highlightsAlso = ['Guest booking, no account', 'Booking emails in your venue’s name', 'My bookings when they sign in']
 
 export const costs = {
   label: 'What it costs',
@@ -342,42 +309,53 @@ export const faqHead = {
   leadLink: 'Message us',
 }
 
-export const faqs = [
+export type FaqGroup = { id: 'players' | 'money' | 'setup'; label: string; items: { q: string; a: string }[] }
+
+export const faqGroups: FaqGroup[] = [
   {
-    q: 'Do my players need to download an app?',
-    a: 'No. Your booking page opens in any phone browser, straight from a Messenger or Facebook link. Players can book as a guest or sign in.',
+    id: 'players',
+    label: 'Players',
+    items: [
+      {
+        q: 'Do my players need an app?',
+        a: 'No. Your page opens in any phone browser, straight from a Messenger or Facebook link. Players can book as a guest or sign in.',
+      },
+      {
+        q: 'What if a player books and doesn’t pay?',
+        a: 'The slot is held for a set time. If no payment or proof arrives, it goes back on sale by itself, and nothing is billed.',
+      },
+      {
+        q: 'What if a player cancels?',
+        a: 'They can cancel up to your cut-off time, and you settle any refund with them. A confirmed booking’s fee still counts. If you cancel, the player gets the fee back and you aren’t billed.',
+      },
+    ],
   },
   {
-    q: 'What if a player books and doesn’t pay?',
-    a: 'The slot is held for a set time while they pay. If no payment or proof arrives, it goes back on sale by itself. Nothing is billed for a booking that was never confirmed.',
+    id: 'money',
+    label: 'Money',
+    items: [
+      {
+        q: 'How do I pay Plotline?',
+        a: 'One invoice a month for the fees your venue collected, with every booking listed. Pay by GCash or bank transfer.',
+      },
+      {
+        q: 'What does PayMongo cost?',
+        a: 'PayMongo charges its own fee on the whole online payment, between you and your PayMongo account. GCash, Maya and bank payments sent to you with a proof don’t go through it.',
+      },
+      {
+        q: 'Does open play cost anything?',
+        a: 'No. It shows on your grid so nobody books over it, and it is never billed.',
+      },
+    ],
   },
   {
-    q: 'What if a player cancels?',
-    a: `They can cancel up to your cut-off time, and you settle any refund with them directly. Once a booking was confirmed, its ${fee} fee still counts. If you cancel a booking, the player gets the fee back and it isn’t billed to you.`,
-  },
-  {
-    q: 'What does PayMongo cost?',
-    a: 'PayMongo charges its own fee on online payments, on the whole amount the player pays. That fee is between you and PayMongo, in your own account. GCash, Maya and bank payments sent to you with a proof don’t go through PayMongo.',
-  },
-  {
-    q: 'Is there a limit to how many courts I can add?',
-    a: 'No. Add every court you have, for any mix of badminton, pickleball, basketball and tennis. The price stays the same: nothing per court, and the same booking fee per online booking.',
-  },
-  {
-    q: 'Can I change my rates and hours later?',
-    a: 'Any time, from your admin pages. Your booking page shows the change right away.',
-  },
-  {
-    q: 'Does open play cost anything?',
-    a: 'No. Post a session with your details and links, and it shows on your grid so nobody books over it. Open play is never billed.',
-  },
-  {
-    q: 'Can my staff log in too?',
-    a: 'Yes. When we set up your venue, we also set up the logins you and your team need.',
-  },
-  {
-    q: 'How do I pay Plotline?',
-    a: 'Once a month we send one invoice for the booking fees your venue collected, with every booking listed. You pay it by GCash or bank transfer.',
+    id: 'setup',
+    label: 'Your setup',
+    items: [
+      { q: 'Is there a limit on courts?', a: 'No. Add every court you have, in any mix of sports. Nothing extra per court.' },
+      { q: 'Can I change rates and hours later?', a: 'Any time from your admin pages. Your booking page updates right away.' },
+      { q: 'Can my staff log in too?', a: 'Yes. We set up the logins for you and your team when we set up your venue.' },
+    ],
   },
 ]
 
@@ -385,18 +363,32 @@ export const faqs = [
 export const atAGlance = {
   label: 'At a glance',
   title: 'The whole offer, on one card',
-  rows: [
-    { label: 'Service', value: 'An online booking page for your courts, and admin pages to run them' },
-    { label: 'Courts', value: 'No limit on how many you add, and nothing extra per court' },
-    { label: 'Setup fee', value: peso(0) },
-    { label: 'Monthly fee', value: peso(0) },
-    { label: 'Booking fee', value: `${fee} per confirmed online booking, paid by the player` },
-    { label: 'Not billed', value: pricing.notBilled.map((n, i) => (i ? n[0].toLowerCase() + n.slice(1) : n)).join(', ') },
-    { label: 'Payments', value: 'Players pay you directly: GCash, Maya, bank, or your own PayMongo account' },
-    { label: 'Billing', value: 'One invoice a month, with every booking listed' },
-    { label: 'Your data', value: 'Export your bookings and payments to CSV from your admin pages' },
-    { label: 'Provider', value: provider },
-    { label: 'Leaving', value: 'Leave any time, with no notice period; your admin pages and CSV export stay open for 30 days' },
+  lead: 'Everything in writing, in plain words. It matches our Terms.',
+  groups: [
+    {
+      title: 'The service',
+      rows: [
+        { label: 'Service', value: 'An online booking page for your courts, and admin pages to run them' },
+        { label: 'Courts', value: 'No limit, and nothing extra per court' },
+        { label: 'Provider', value: provider },
+      ],
+    },
+    {
+      title: 'The money',
+      rows: [
+        { label: 'Booking fee', value: `${fee} per confirmed online booking, paid by the player` },
+        { label: 'Not billed', value: pricing.notBilled.map((n, i) => (i ? n[0].toLowerCase() + n.slice(1) : n)).join(', ') },
+        { label: 'Payments', value: 'Players pay you directly: GCash, Maya, bank, or your own PayMongo account' },
+        { label: 'Billing', value: 'One invoice a month, with every booking listed' },
+      ],
+    },
+    {
+      title: 'Your data and leaving',
+      rows: [
+        { label: 'Your data', value: 'Export your bookings and payments to CSV from your admin pages' },
+        { label: 'Leaving', value: 'Leave any time, with no notice period; your admin pages and CSV export stay open for 30 days' },
+      ],
+    },
   ],
 }
 
