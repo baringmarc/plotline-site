@@ -330,12 +330,20 @@ export const faqGroups: FaqGroup[] = [
         a: 'No. Your page opens in any phone browser, straight from a Messenger or Facebook link. Players can book as a guest or sign in.',
       },
       {
+        q: 'Can players see their booking later?',
+        a: 'Yes. Each booking has a private link that opens without an account, and signed-in players find it under My bookings.',
+      },
+      {
         q: 'What if a player books and doesn’t pay?',
         a: 'The slot is held for a set time. If no payment or proof arrives, it goes back on sale by itself, and nothing is billed.',
       },
       {
         q: 'What if a player cancels?',
-        a: 'They can cancel up to your cut-off time, and you settle any refund with them. A confirmed booking’s fee still counts. If you cancel, the player gets the fee back and you aren’t billed.',
+        a: 'They can cancel up to your cut-off time, and you settle any refund. A confirmed booking’s fee still counts.',
+      },
+      {
+        q: 'Can I cancel or move a booking?',
+        a: 'Yes. Move it to another court or time in the same sport; the player sees your reason. If you cancel it, the player gets the fee back and you aren’t billed.',
       },
     ],
   },
@@ -346,6 +354,10 @@ export const faqGroups: FaqGroup[] = [
       {
         q: 'How do I pay Plotline?',
         a: 'One invoice a month for the fees your venue collected, with every booking listed. Pay by GCash or bank transfer.',
+      },
+      {
+        q: 'Do I need a payment processor?',
+        a: 'No. Players pay you directly into your GCash, Maya or bank and send a proof, and you approve it. PayMongo is optional, on your own account, if you want online payments to confirm on their own.',
       },
       {
         q: 'What does PayMongo cost?',
@@ -362,8 +374,13 @@ export const faqGroups: FaqGroup[] = [
     label: 'Your setup',
     items: [
       { q: 'Is there a limit on courts?', a: 'No. Add every court you have, in any mix of sports. Nothing extra per court.' },
+      { q: 'Can I manage more than one facility?', a: 'Yes. Each branch is its own venue with its own booking page, and each is billed separately.' },
       { q: 'Can I change rates and hours later?', a: 'Any time from your admin pages. Your booking page updates right away.' },
       { q: 'Can my staff log in too?', a: 'Yes. We set up the logins for you and your team when we set up your venue.' },
+      {
+        q: 'Can I block off a court for maintenance?',
+        a: 'Yes. Block any court, or all of them, for the hours you choose. Players can’t book those times, and blocked times are never billed.',
+      },
     ],
   },
 ]

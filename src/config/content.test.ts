@@ -61,10 +61,10 @@ describe('site content', () => {
     expect(shortVersion.get.points).toHaveLength(8)
   })
 
-  it('replaces the flat FAQ list with three groups of three (T2.1)', () => {
+  it('replaces the flat FAQ list with three groups of 5, 4 and 5 questions (T2.1, grown 2026-11-02)', () => {
     expect(content).not.toHaveProperty('faqs')
     expect(faqGroups.map((g) => g.id)).toEqual(['players', 'money', 'setup'])
-    expect(faqGroups.map((g) => g.items.length)).toEqual([3, 3, 3])
+    expect(faqGroups.map((g) => g.items.length)).toEqual([5, 4, 5])
   })
 
   it('types no peso amount into the copy: every amount is built from pricing (T2.1)', () => {

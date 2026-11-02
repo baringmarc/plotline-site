@@ -605,6 +605,11 @@ function bodyWords(container: HTMLElement): number {
 }
 
 const MAX_BODY_WORDS = 90
+/** Words of answers allowed per FAQ group (user decision 2026-11-02, when the groups grew to 5/4/5). */
+const MAX_FAQ_GROUP_WORDS = 120
+/** Questions per FAQ group, in config order (players, money, setup). */
+const FAQ_GROUP_SIZES = [5, 4, 5]
+const FAQ_TOTAL = 14
 
 describe('body copy word cap (T2.1)', () => {
   it.each(PAGE_SECTIONS.filter(([name]) => name !== 'Faq'))(
@@ -615,11 +620,11 @@ describe('body copy word cap (T2.1)', () => {
     },
   )
 
-  it('each FAQ group has at most 90 words of answers', () => {
+  it('each FAQ group has at most 120 words of answers', () => {
     expect(faqGroups).toHaveLength(3)
     for (const g of faqGroups) {
       const total = g.items.reduce((n, item) => n + words(item.a), 0)
-      expect(total, g.id).toBeLessThanOrEqual(MAX_BODY_WORDS)
+      expect(total, g.id).toBeLessThanOrEqual(MAX_FAQ_GROUP_WORDS)
     }
   })
 })
@@ -704,14 +709,30 @@ describe('Highlights (T2.1)', () => {
 })
 
 describe('Faq groups (T2.1)', () => {
-  it('has three groups, Players, Money and Your setup, of three questions each', () => {
+  it('has three groups, Players, Money and Your setup, of 5, 4 and 5 questions (14 unique)', () => {
     expect(faqGroups.map((g) => g.id)).toEqual(['players', 'money', 'setup'])
+    expect(faqGroups.map((g) => g.label)).toEqual(['Players', 'Money', 'Your setup'])
+    expect(faqGroups.map((g) => g.items.length)).toEqual(FAQ_GROUP_SIZES)
     for (const g of faqGroups) {
-      expect(g.label.trim()).not.toBe('')
-      expect(g.items).toHaveLength(3)
+      for (const item of g.items) {
+        expect(item.q.trim(), g.id).not.toBe('')
+        expect(item.a.trim(), item.q).not.toBe('')
+      }
     }
     const questions = faqGroups.flatMap((g) => g.items.map((i) => i.q))
-    expect(new Set(questions).size).toBe(9)
+    expect(questions).toHaveLength(FAQ_TOTAL)
+    expect(new Set(questions).size).toBe(FAQ_TOTAL)
+  })
+
+  it.each([
+    ['players', 'Can players see their booking later?'],
+    ['players', 'Can I cancel or move a booking?'],
+    ['money', 'Do I need a payment processor?'],
+    ['setup', 'Can I manage more than one facility?'],
+    ['setup', 'Can I block off a court for maintenance?'],
+  ])('puts the approved question in the %s group: "%s"', (id, q) => {
+    const owners = faqGroups.filter((g) => g.items.some((i) => i.q === q)).map((g) => g.id)
+    expect(owners).toEqual([id])
   })
 
   it('renders a label for each group and every question and answer', () => {
@@ -939,11 +960,15 @@ describe('Faq tabs (T2.5)', () => {
 
   it('opens the first answer of each group and leaves the others closed', () => {
     const { container, getAllByRole } = render(<Faq />)
+    let seenGroups = 0
     for (const tab of getAllByRole('tab')) {
       const details = [...panelOf(container, tab).querySelectorAll('details')]
-      expect(details).toHaveLength(3)
-      expect(details.map((d) => d.open)).toEqual([true, false, false])
+      seenGroups += 1
+      const size = FAQ_GROUP_SIZES[seenGroups - 1]
+      expect(details).toHaveLength(size)
+      expect(details.map((d) => d.open)).toEqual(Array.from({ length: size }, (_, i) => i === 0))
     }
+    expect(seenGroups).toBe(3)
   })
 
   it('switches tabs on click: Money then Your setup then Players', async () => {
@@ -1000,7 +1025,7 @@ describe('Faq tabs (T2.5)', () => {
     expect(tabs[0]).toHaveFocus()
   })
 
-  it('makes all nine questions reachable: each one is shown once its group’s tab is selected', async () => {
+  it('makes all fourteen questions reachable: each one is shown once its group’s tab is selected', async () => {
     const user = userEvent.setup()
     const { getByRole, getByText } = render(<Faq />)
     const seen = new Set<string>()
@@ -1014,7 +1039,7 @@ describe('Faq tabs (T2.5)', () => {
         for (const item of other.items) expect(shown(getByText(item.q)), item.q).toBe(false)
       }
     }
-    expect(seen.size).toBe(9)
+    expect(seen.size).toBe(FAQ_TOTAL)
   })
 })
 
@@ -1071,12 +1096,14 @@ describe('Getting started marks (artifact design)', () => {
 describe('Faq layout (artifact design)', () => {
   it('each panel is a .faq of details, each summary with an aria-hidden chevron', () => {
     const { getAllByRole } = render(<Faq />)
-    for (const panel of getAllByRole('tabpanel', { hidden: true })) {
+    const panels = getAllByRole('tabpanel', { hidden: true })
+    expect(panels).toHaveLength(3)
+    panels.forEach((panel, i) => {
       expect(panel).toHaveClass('faq')
       const summaries = [...panel.querySelectorAll('details > summary')]
-      expect(summaries).toHaveLength(3)
+      expect(summaries, faqGroups[i].id).toHaveLength(FAQ_GROUP_SIZES[i])
       for (const s of summaries) expect(s.querySelector('.chev[aria-hidden="true"]')).not.toBeNull()
-    }
+    })
   })
 
   it('puts "Something else? Message us" in a p.more below the panels, not in the head', () => {
