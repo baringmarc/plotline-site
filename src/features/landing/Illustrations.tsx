@@ -90,15 +90,15 @@ export function VenueFrame() {
         <span className="pin">2</span>
       </div>
       <div className="browser-banner">
-        <img src="/demo/banner.jpg" alt="" width={1000} height={347} loading="lazy" />
+        <img src="/demo/banner.jpg" alt="" width={800} height={450} loading="lazy" />
         <strong>Claudex Courts</strong>
         <span className="pin">1</span>
       </div>
       <div className="browser-body">
         <div className="browser-photos">
-          <img src="/demo/court-1.jpg" alt="" width={400} height={300} loading="lazy" />
-          <img src="/demo/court-2.jpg" alt="" width={400} height={300} loading="lazy" />
-          <img src="/demo/court-3.jpg" alt="" width={400} height={300} loading="lazy" />
+          <img src="/demo/court-1.jpg" alt="" width={400} height={233} loading="lazy" />
+          <img src="/demo/court-2.jpg" alt="" width={400} height={618} loading="lazy" />
+          <img src="/demo/court-3.jpg" alt="" width={400} height={559} loading="lazy" />
         </div>
         <div className="browser-pay">
           <img src="/demo/qr.svg" alt="" width={62} height={62} loading="lazy" />
