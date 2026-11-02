@@ -12,8 +12,7 @@ Plotline's marketing site (target: `https://plotline.fit`). Venue owners read ab
 
   Read it before changing anything that talks to Supabase. To have it in a Claude Code session: `claude --add-dir ../court-booking-system`.
 - **Never add migrations, Edge Functions or database tests here.** All backend work happens in court-booking-system. Two repos pushing migrations to the same Supabase project break each other's migration history.
-- **Transitional (until SAAS-PLAN Phase 5):** this repo still holds its original local-only backend (`supabase/` with `venue_signups`, `reviews`, the `register` and `feedback` functions). It was never deployed and must not be. Phase 5 moves it to court-booking-system as `leads`/`reviews` and `site-contact`/`site-review` (this repo's side is drafted in `docs/drafts/phase5/`), and then `supabase/migrations`, `supabase/functions` and `supabase/tests` are deleted here.
-- `src/lib/siteForms.ts` (after Phase 5) is an **exact copy** of court-booking-system's `supabase/functions/_shared/siteForms.ts`, used only for instant form feedback. The server's check is the one that counts. Never edit the copy on its own; change the original, then copy it over.
+- `src/lib/siteForms.ts` is an **exact copy** of court-booking-system's `supabase/functions/_shared/siteForms.ts`, used only for instant form feedback. The server's check is the one that counts. Never edit the copy on its own; change the original, then copy it over.
 - The brand (palette, Fraunces and DM Sans, logo) follows court-booking-system's `docs/BRAND.md`.
 - Pricing copy must match court-booking-system's `docs/facts.json` (decided in SAAS-PLAN §1): free for venues, a booking fee per confirmed online booking, paid by the player. No free trial, no self-serve sign-up. The amount isn't final. `src/config/pricing.ts` holds the amount for the page; `npm run check:drift` fails if it, or any doc here, disagrees with facts.json (it needs `../court-booking-system` checked out, and skips otherwise).
 
@@ -27,10 +26,8 @@ Plotline's marketing site (target: `https://plotline.fit`). Venue owners read ab
 npm run dev / build / lint / test
 npm run verify            # typecheck + lint + test + build + check:drift
 node .claude/hooks/verify-gate.mjs --full   # the full gate: run before calling work done; commits need it
-npm run db:types          # after Phase 5: types from the shared project (see README)
+SUPABASE_PROJECT_REF=<ref> npm run db:types   # types from the shared project (see README)
 ```
-Until Phase 5 the old local backend scripts still exist (`db:start`, `functions:serve`, `test:db`, local ports 553xx). Use them only to run the site locally. Don't extend them.
-
 ## Rules
 - Visitor-facing copy lives in `src/config/site.ts`, not in components.
 - Data access: plain async functions in `features/<area>/api.ts`, wrapped by React Query hooks in `features/<area>/hooks.ts`. No Supabase calls inline in JSX. Forms call Edge Functions through `lib/functions.ts`.
@@ -45,7 +42,6 @@ Until Phase 5 the old local backend scripts still exist (`db:start`, `functions:
 - **Guard (PreToolUse hook, `.claude/hooks/guard.mjs`)** blocks before the fact: editing applied migrations, adding `.skip`/`.only` or removing assertions from tests, editing the test-writer's locked tests, secrets under `src/`, force pushes, `reset --hard`, amends, resetting a remote database, and edits to the harness itself (`.claude/hooks`, `settings.json`, `harness.json`, the ESLint config). If a block seems wrong, stop and ask the user rather than working around it.
 - Gate failures, guard blocks, reviewer findings and escalations are logged to `.claude/retro/failures.jsonl` (append-only; log with `node .claude/hooks/log-event.mjs`). `/retro` reads it.
 - Update the TASKS.md Handoff section at the end of each task; update SPEC.md when behavior changes.
-- `test:db` takes a lock (`scripts/with-lock.mjs`), so a second test run waits for the first instead of sharing the local database.
 
 ## Learned rules
 Lessons from repeated mistakes, added by `/retro` with the user's approval. Follow them like any rule above. Each lists the mistake categories it covers; `/retro` promotes a rule to a hard check if its mistake keeps happening anyway.

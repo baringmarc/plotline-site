@@ -17,7 +17,6 @@ export const site = {
   tagline: 'Online court booking for your venue',
   /** The brand line from the style guide, shown in the footer. */
   slogan: 'Plot your day. Fill your hours.',
-  trialDays: 7,
   supportEmail: 'plotline.admin1@gmail.com',
   /** Plotline's Messenger link. Empty: "Message us" links fall back to email. */
   messengerUrl: 'https://m.me/61595759948011',
@@ -439,5 +438,3 @@ export const contact = {
   thanksBody: 'We got your message and will contact you soon to set up a call.',
   bookCall: 'Or book a call now',
 }
-
-export const courtOptions = Array.from({ length: 12 }, (_, i) => i + 1)

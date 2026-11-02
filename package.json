@@ -10,15 +10,9 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:db": "node scripts/with-lock.mjs supabase test db",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run check:drift",
     "preview": "vite preview",
-    "db:start": "supabase start",
-    "db:stop": "supabase stop",
-    "db:reset:local": "supabase db reset --local",
-    "db:push": "supabase db push",
-    "db:types": "supabase gen types typescript --linked > src/lib/database.types.ts",
-    "functions:serve": "supabase functions serve --env-file supabase/functions/.env",
+    "db:types": "supabase gen types typescript --project-id ${SUPABASE_PROJECT_REF:?set SUPABASE_PROJECT_REF} > src/lib/database.types.ts",
     "check:drift": "node scripts/check-drift.mjs"
   },
   "dependencies": {

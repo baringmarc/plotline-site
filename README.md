@@ -40,25 +40,23 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 
 All pricing reads `src/config/pricing.ts`, and every claim must match SPEC §3.1 ("Pricing claims", "Feature claims").
 
-Other routes: `/terms` and `/privacy`. `/welcome` goes away with the old sign-up.
+Other routes: `/terms` and `/privacy`.
 
-## How the forms work (target, SAAS-PLAN Phase 5)
+## How the forms work
 
 1. **Contact form:** validated in the browser with `src/lib/siteForms.ts` (an exact copy of the platform's rules), protected by Cloudflare Turnstile and a honeypot, then posted to `site-contact`. That stores a **lead**; no account is created and there's no trial. We follow up and set the venue up together.
 2. **Review form:** posted to `site-review`, stored unapproved, and shown once we approve it.
-
-**Today (transitional):** both forms are built for the platform (T1.7), but `site-contact` and `site-review` aren't deployed yet, so sending shows an error until court-booking-system's Phase 5 ships. This repo's old local backend (`register`, `feedback`) is no longer called and is removed in T1.8, once Phase 5 is live.
 
 ## Local development
 
 ```bash
 npm install
-cp .env.example .env    # VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY (and later VITE_TURNSTILE_SITE_KEY)
+cp .env.example .env    # VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_TURNSTILE_SITE_KEY
 npm run dev             # http://localhost:5173
 ```
 
-- **After Phase 5:** point `.env` at the staging project, or at court-booking-system's local stack (`npx supabase start` in that repo; its API is on port 54321). Regenerate types with `npx supabase gen types typescript --project-id <staging-ref> > src/lib/database.types.ts`.
-- **Until then:** the old local backend still works (`npm run db:start`, then `npm run functions:serve`; Studio at http://127.0.0.1:55323, emails at http://127.0.0.1:55324). Don't deploy it.
+- Point `.env` at the staging project, or at court-booking-system's local stack (`npx supabase start` in that repo; its API is on port 54321). This repo has no database or functions of its own.
+- Regenerate the types after a schema change in court-booking-system: `SUPABASE_PROJECT_REF=<staging-ref> npm run db:types` (needs `npx supabase login`).
 
 ## Checks
 
@@ -75,5 +73,5 @@ npm run verify    # typecheck + lint + unit tests + build
 ## Before launch
 
 - Replace the remaining placeholders (TASKS T1.11b): `bookCallUrl` and real venues in `src/config/site.ts`, and make sure the demo URL `https://claudex-courts.plotline.fit` resolves.
-- Remove the free-trial and sign-up wording; match features and pricing to what ships.
+- Match features and pricing to what ships.
 - Name the email service in the Privacy notice, and have the draft Terms and Privacy (`src/config/legal.ts`) legally reviewed before the draft notice comes off.
