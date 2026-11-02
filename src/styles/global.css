@@ -224,10 +224,8 @@ section.white { background: var(--bg-alt); }
 section.white .card { background: var(--bg); }
 .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.grid3.four { grid-template-columns: repeat(4, 1fr); }
-@media (max-width: 1000px) { .grid3.four { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 860px) { .grid3 { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 620px) { .grid2, .grid3, .grid3.four { grid-template-columns: 1fr; } section { padding: 48px 0; } }
+@media (max-width: 620px) { .grid2, .grid3 { grid-template-columns: 1fr; } section { padding: 48px 0; } }
 .ticks { list-style: none; padding: 0; margin: 0; }
 .ticks li { padding: 6px 0 6px 28px; position: relative; }
 .ticks li::before {
@@ -365,9 +363,58 @@ section.dark .stat .big { color: var(--rose); }
 .mock .mcard { margin-top: auto; background: var(--warm-white); border: 1px solid var(--sand); border-radius: 12px; padding: 10px; }
 
 /* features */
-.feature .ico { font-size: 28px; }
-.feature h3 { margin: 8px 0 6px; font-size: 20px; }
-.feature p { margin: 0; color: var(--text-soft); }
+
+/* "Your side": items beside a drawn Today grid. "Your venue": a drawn browser frame beside a numbered list (T2.3) */
+.draw { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; font-size: 13px; color: var(--text); }
+.draw-bar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.draw-bar span { color: var(--text-soft); }
+.today-grid { display: grid; gap: 6px; }
+.today-grid, .today-row { grid-template-columns: 64px repeat(3, 1fr); }
+.today-grid > .today-h { text-align: center; color: var(--text-soft); font-size: 12px; }
+.today-row { display: grid; gap: 6px; align-items: center; grid-column: 1 / -1; }
+.today-c { font-weight: 700; }
+.slot { height: 26px; border-radius: 8px; border: 1px dashed var(--line); }
+.slot.s1 { background: var(--sage); border: 1px solid var(--sage-dark); }
+.slot.s2 { background: var(--rose-soft); border: 1px solid var(--rose); }
+.proof { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); flex-wrap: wrap; }
+.proof-thumb { width: 34px; height: 44px; border-radius: 6px; background: var(--panel); flex: none; }
+.proof-text { display: grid; flex: 1; min-width: 120px; }
+.proof-text span { color: var(--text-soft); }
+.proof-btns { display: flex; gap: 6px; }
+.proof-btns span { border: 1px solid var(--line); border-radius: 10px; padding: 4px 10px; font-weight: 700; }
+.proof-btns .ok { background: var(--sage); border-color: var(--sage-dark); color: var(--brown); }
+
+.side-split, .venue-split { display: grid; gap: 28px; align-items: center; }
+.side-items { display: grid; gap: 20px; }
+.side-item { display: flex; gap: 14px; align-items: flex-start; }
+.side-item .ico { font-size: 28px; flex: none; }
+.side-item h3 { margin: 0 0 4px; font-size: 20px; }
+.side-item p { margin: 0; color: var(--text-soft); }
+
+.frame { padding: 0; overflow: hidden; }
+.frame-bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; background: var(--panel); }
+.frame-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); display: block; }
+.frame-url { margin-left: 8px; flex: 1; min-width: 0; background: var(--bg); border-radius: 8px; padding: 4px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frame-page { padding: 14px; display: grid; gap: 12px; }
+.frame-banner { height: 70px; border-radius: 10px; background: var(--rose-soft); border: 1px solid var(--rose); position: relative; }
+.frame-title, .frame-sports, .frame-pay { display: flex; align-items: center; gap: 8px; position: relative; flex-wrap: wrap; }
+.frame-title strong { font-size: 16px; }
+.frame-sports span:not(.callout) { border: 1px solid var(--line); border-radius: 14px; padding: 3px 10px; font-weight: 700; }
+.qr { width: 28px; height: 28px; border-radius: 4px; background: repeating-conic-gradient(var(--text) 0 25%, var(--bg) 0 50%) 0 0 / 8px 8px; }
+.callout { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--highlight); color: var(--on-highlight); font-weight: 700; font-size: 12px; flex: none; }
+.frame-banner .callout { position: absolute; top: 8px; right: 8px; }
+.frame-title .callout, .frame-pay .callout, .frame-sports .callout { margin-left: auto; }
+
+.venue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; counter-reset: venue; }
+.venue-list li { counter-increment: venue; display: grid; grid-template-columns: 30px 1fr; gap: 12px; }
+.venue-list li::before { content: counter(venue); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--highlight); color: var(--on-highlight); font-weight: 700; font-size: 13px; }
+.venue-list h3 { margin: 0 0 4px; font-size: 20px; }
+.venue-list p { margin: 0; color: var(--text-soft); }
+
+@media (min-width: 860px) {
+  .side-split { grid-template-columns: 1fr 1fr; }
+  .venue-split { grid-template-columns: 1.1fr 1fr; }
+}
 
 /* what it costs: the two numbers, a worked example and a flat vs percentage table */
 .center-stats { justify-content: center; text-align: center; margin: 0 0 32px; }
@@ -527,13 +574,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--t
   .track > :nth-child(4n + 3) .badge { background: var(--sand); }
   .track > :nth-child(4n + 4) .badge { background: var(--terracotta); color: var(--cream); }
 
-  .feature .ico {
+  .side-item .ico {
     display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 14px;
     font-size: 24px; background: rgba(183, 196, 168, 0.22);
   }
-  .grid3 > .feature:nth-child(4n + 2) .ico { background: rgba(232, 196, 184, 0.22); }
-  .grid3 > .feature:nth-child(4n + 3) .ico { background: rgba(230, 217, 198, 0.18); }
-  .grid3 > .feature:nth-child(4n + 4) .ico { background: rgba(122, 63, 44, 0.6); }
+  .side-item:nth-child(2) .ico { background: rgba(232, 196, 184, 0.22); }
+  .side-item:nth-child(3) .ico { background: rgba(230, 217, 198, 0.18); }
 
   .step .num { background: var(--sage); color: var(--brown); }
   .flow > li:nth-child(4n + 2) .num { background: var(--rose); }

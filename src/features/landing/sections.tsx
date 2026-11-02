@@ -33,6 +33,7 @@ import {
   venuesHead,
   type Venue,
 } from '../../config/site'
+import { TodayGrid, VenueFrame } from './Illustrations'
 import { PlayerScreen } from './PlayerScreens'
 import { feeComparison, workedExample } from './pricing'
 
@@ -209,17 +210,21 @@ export function Features() {
     <section className="white" id="features">
       <div className="in">
         <SectionHead label={featuresHead.label} title={featuresHead.title} lead={featuresHead.lead} />
-        <div className="grid3">
-          {features.map((f, i) => (
-            // staggered by column, so each row of three fades in left to right
-            <Reveal key={f.title} className="card feature" delay={(i % 3) * 80}>
-              <span className="ico" aria-hidden="true">
-                {f.icon}
-              </span>
-              <h3>{f.title}</h3>
-              <p>{f.body}</p>
-            </Reveal>
-          ))}
+        <div className="side-split">
+          <div className="side-items">
+            {features.map((f, i) => (
+              <Reveal key={f.title} className="side-item" delay={i * 80}>
+                <span className="ico" aria-hidden="true">
+                  {f.icon}
+                </span>
+                <div>
+                  <h3>{f.title}</h3>
+                  <p>{f.body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <TodayGrid />
         </div>
         <ChipList label={featuresAlsoLabel} items={featuresAlso} />
       </div>
@@ -232,16 +237,18 @@ export function Highlights() {
     <section id="venue">
       <div className="in">
         <SectionHead label={highlightsHead.label} title={highlightsHead.title} lead={highlightsHead.lead} />
-        <div className="grid3 four">
-          {highlights.map((f, i) => (
-            <Reveal key={f.title} className="card feature" delay={(i % 3) * 80}>
-              <span className="ico" aria-hidden="true">
-                {f.icon}
-              </span>
-              <h3>{f.title}</h3>
-              <p>{f.body}</p>
-            </Reveal>
-          ))}
+        <div className="venue-split">
+          <VenueFrame />
+          <ol className="venue-list">
+            {highlights.map((h, i) => (
+              <li key={h.title}>
+                <Reveal delay={i * 80}>
+                  <h3>{h.title}</h3>
+                  <p>{h.body}</p>
+                </Reveal>
+              </li>
+            ))}
+          </ol>
         </div>
         <ChipList label={highlightsAlsoLabel} items={highlightsAlso} />
       </div>

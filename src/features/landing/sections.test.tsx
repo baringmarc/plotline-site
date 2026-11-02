@@ -629,3 +629,41 @@ describe('a different booking fee, across the page (T2.1)', () => {
     expect(container.textContent).toMatch(/₱15 per confirmed online booking/)
   })
 })
+
+// ---- T2.3 "Your side" and "Your venue" (layout details with the drawings mocked: sections.layout.test.tsx) ----
+
+/** True if the element is hidden from assistive tech, or sits in an image with a text alternative. */
+function hiddenOrLabelled(el: Element): boolean {
+  if (el.closest('[aria-hidden="true"]')) return true
+  const img = el.closest('[role="img"]')
+  return Boolean(img && (img.getAttribute('aria-label')?.trim() || img.getAttribute('aria-labelledby')?.trim()))
+}
+
+describe('drawings in Your side and Your venue (T2.3)', () => {
+  it('Features draws the Today grid inside its .side-split, hidden or labelled', () => {
+    const { container } = render(<Features />)
+    const split = container.querySelector('.side-split') as HTMLElement
+    expect(split).not.toBeNull()
+    const drawing = [...split.querySelectorAll('[aria-hidden="true"], [role="img"]')].find((el) =>
+      /proof/i.test(el.textContent ?? ''),
+    )
+    expect(drawing, 'a drawing with the payment-proof card').toBeDefined()
+    expect(hiddenOrLabelled(drawing!)).toBe(true)
+  })
+
+  it('Highlights draws the venue frame with four numbered callouts inside its .venue-split, hidden or labelled', () => {
+    const { container } = render(<Highlights />)
+    const callouts = [...container.querySelectorAll('.venue-split .callout')]
+    expect(callouts.map((c) => c.textContent?.trim())).toEqual(['1', '2', '3', '4'])
+    for (const c of callouts) expect(hiddenOrLabelled(c)).toBe(true)
+  })
+
+  it.each([
+    ['Features', Features],
+    ['Highlights', Highlights],
+  ])('%s: every inline SVG is aria-hidden or labelled, and no <img> is used', (_, Section) => {
+    const { container } = render(<Section />)
+    for (const svg of container.querySelectorAll('svg')) expect(hiddenOrLabelled(svg)).toBe(true)
+    expect(container.querySelector('img')).toBeNull()
+  })
+})

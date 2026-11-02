@@ -8,6 +8,8 @@ export default mergeConfig(
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
       include: ['src/**/*.test.{ts,tsx}'],
+      // Vitest blanks stylesheets by default, including `?raw` imports; a test reads global.css as text.
+      css: { include: [/global\.css/] },
       // Dummy values so modules importing lib/supabase.ts load. Tests must mock network calls.
       env: {
         VITE_SUPABASE_URL: 'http://localhost:55321',
