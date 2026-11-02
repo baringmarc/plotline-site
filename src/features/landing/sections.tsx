@@ -254,7 +254,7 @@ export function Costs() {
   const worked = workedExample(example.ratePerHour, example.hours, pricing.bookingFee)
   const rows = feeComparison(compare.courtPrices, pricing.bookingFee, compare.percent)
   return (
-    <section id="pricing">
+    <section className="white" id="pricing">
       <div className="in">
         <SectionHead label={costs.label} title={costs.title} lead={costs.lead} />
         <div className="stats center-stats">
@@ -266,10 +266,42 @@ export function Costs() {
             </div>
           ))}
         </div>
-        <div className="grid2">
-          <Reveal className="card">
-            <h3>{example.title}</h3>
-            <p className="hint">{example.caption(example.hours, peso(example.ratePerHour))}</p>
+        <div className="nots">
+          <span id="nots-label">{moneyFlow.neverBilled}</span>
+          <ul aria-labelledby="nots-label">
+            {pricing.notBilled.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </div>
+        <Reveal className="card">
+          <h3>{example.title}</h3>
+          <p className="hint">{example.caption(example.hours, peso(example.ratePerHour))}</p>
+          <div className="ex">
+            <div className="bar-wrap">
+              <div className="paysline">
+                {example.playerPaysLine} {peso(worked.playerPays)}
+              </div>
+              <div
+                className="stack"
+                role="img"
+                aria-label={`${example.courtLabel} ${peso(worked.courtPrice)} plus ${example.feeLabel.toLowerCase()} ${peso(worked.fee)}`}
+              >
+                <div className="court">
+                  {example.courtLabel} {peso(worked.courtPrice)}
+                </div>{' '}
+                <div className="fee">
+                  {example.feeLabel} {peso(worked.fee)}
+                </div>
+              </div>
+              <div className="brace" aria-hidden="true">
+                <span className="a">
+                  {example.venueKeeps} {peso(worked.venueKeeps)}
+                </span>
+                <span className="b">{example.ourFee}</span>
+              </div>
+              <p className="hint">{example.notToScale}</p>
+            </div>
             <dl className="facts sums">
               <div>
                 <dt>{example.courtPrice}</dt>
@@ -288,32 +320,37 @@ export function Costs() {
                 <dd>{peso(worked.venueKeeps)}</dd>
               </div>
             </dl>
-          </Reveal>
-          <Reveal className="card" delay={80}>
-            <h3>{compare.title}</h3>
-            <div className="tablewrap">
-              <table className="ptable">
-                <thead>
-                  <tr>
-                    <th scope="col">{compare.columns.courtPrice}</th>
-                    <th scope="col">{compare.columns.flat}</th>
-                    <th scope="col">{compare.columns.percentage(compare.percent)}</th>
+          </div>
+        </Reveal>
+        <Reveal className="card" delay={80}>
+          <h3>{compare.title}</h3>
+          <div className="tablewrap">
+            <table className="ptable">
+              <thead>
+                <tr>
+                  <th scope="col">{compare.columns.courtPrice}</th>
+                  <th scope="col">{compare.columns.flat}</th>
+                  <th scope="col">{compare.columns.percentage(compare.percent)}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.courtPrice}>
+                    <th scope="row">{peso(r.courtPrice)}</th>
+                    <td className="ours">{peso(r.flat)}</td>
+                    <td>{peso(r.percentage)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.courtPrice}>
-                      <th scope="row">{peso(r.courtPrice)}</th>
-                      <td className="ours">{peso(r.flat)}</td>
-                      <td>{peso(r.percentage)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="hint">{compare.note(compare.percent)}</p>
-          </Reveal>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="hint">{compare.note(compare.percent)}</p>
+        </Reveal>
+        <Reveal className="card" delay={80}>
+          <h3>{moneyFlow.label}</h3>
+          <Timeline steps={moneyFlow.steps} marks={['', 'you', 'you', 'inv']} />
+          <p className="quiet">{moneyFlow.quiet}</p>
+        </Reveal>
         <p className="center midcta">
           <a className="btn main" href={contactAnchor}>
             {costs.cta} →
@@ -324,35 +361,22 @@ export function Costs() {
   )
 }
 
-export function MoneyFlow() {
+/** A numbered sequence: stacked with a line down the side on phones, a row from 760px. `marks` colours a step's number. */
+function Timeline({ steps, marks = [] }: { steps: { title: string; body: string }[]; marks?: string[] }) {
   return (
-    <section className="dark" id="money">
-      <div className="in">
-        <SectionHead label={moneyFlow.label} title={moneyFlow.title} />
-        <ol className="flow">
-          {moneyFlow.steps.map((s, i) => (
-            <li key={s.title}>
-              <Reveal className="card step" delay={i * 80}>
-                <span className="num" aria-hidden="true">
-                  {i + 1}
-                </span>
-                <h3>{s.title}</h3>
-                <p>{s.body}</p>
-              </Reveal>
-            </li>
-          ))}
-        </ol>
-        <div className="card never">
-          <h3>{moneyFlow.neverBilled}</h3>
-          <ul className="ticks crosses">
-            {pricing.notBilled.map((n) => (
-              <li key={n}>{n}</li>
-            ))}
-          </ul>
-          <p className="money">{moneyFlow.quiet}</p>
-        </div>
-      </div>
-    </section>
+    <ol className="timeline">
+      {steps.map((s, i) => (
+        <li key={s.title} className={marks[i] || undefined}>
+          <span className="num" aria-hidden="true">
+            {i + 1}
+          </span>
+          <div>
+            <b>{s.title}</b>
+            <span>{s.body}</span>
+          </div>
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -413,6 +437,14 @@ export function AtAGlance() {
     <section id="at-a-glance">
       <div className="in narrow">
         <SectionHead label={atAGlance.label} title={atAGlance.title} lead={atAGlance.lead} />
+        <div className="keys">
+          {atAGlance.keyFigures.map((k, i) => (
+            <div key={k.label} className={i === 2 ? 'hot' : undefined}>
+              <b>{k.value}</b>
+              <span>{k.label}</span>
+            </div>
+          ))}
+        </div>
         {atAGlance.groups.map((g) => (
           <div key={g.title} className="glance-group">
             <h3>{g.title}</h3>

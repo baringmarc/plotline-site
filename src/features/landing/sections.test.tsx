@@ -9,6 +9,7 @@ import {
   featuresAlso,
   highlights,
   highlightsAlso,
+  moneyFlow,
   navLinks,
   peso,
   playerSide,
@@ -17,7 +18,8 @@ import {
   shortVersion,
   site,
 } from '../../config/site'
-import { workedExample } from './pricing'
+import { feeComparison, workedExample } from './pricing'
+import * as sectionsModule from './sections'
 import {
   AtAGlance,
   Costs,
@@ -26,7 +28,6 @@ import {
   Highlights,
   FinalBand,
   Hero,
-  MoneyFlow,
   PlayerSide,
   ShortVersion,
   Steps,
@@ -41,10 +42,9 @@ const STATIC_SECTIONS = [
   ['Features', Features],
   ['Highlights', Highlights],
   ['Costs', Costs],
-  ['MoneyFlow', MoneyFlow],
+  ['AtAGlance', AtAGlance],
   ['Steps', Steps],
   ['Faq', Faq],
-  ['AtAGlance', AtAGlance],
   ['FinalBand', FinalBand],
 ] as const
 
@@ -82,14 +82,18 @@ describe.each(STATIC_SECTIONS)('%s', (_, Section) => {
   })
 })
 
-describe('Costs', () => {
-  it('shows the worked example built from the fee', () => {
-    const { getByText } = render(<Costs />)
-    const worked = workedExample(costs.example.ratePerHour, costs.example.hours, pricing.bookingFee)
-    expect(getByText(peso(worked.playerPays))).toBeInTheDocument()
-    expect(getByText(`+ ${peso(pricing.bookingFee)}`)).toBeInTheDocument()
-  })
+/** The worked example the page uses, from config and the fee. */
+const worked = () => workedExample(costs.example.ratePerHour, costs.example.hours, pricing.bookingFee)
 
+/** True if some small element (a line, not the whole section) mentions `pattern` and contains `amount`. */
+function lineWith(container: HTMLElement, pattern: RegExp, amount: string): boolean {
+  return [...container.querySelectorAll('*')].some((el) => {
+    const t = el.textContent ?? ''
+    return t.length <= 120 && pattern.test(t) && new RegExp(`${amount}(?!\\d)`).test(t)
+  })
+}
+
+describe('Costs', () => {
   it('labels the percentage column as an illustration', () => {
     const { getByRole, getByText } = render(<Costs />)
     expect(getByRole('columnheader', { name: `A ${costs.compare.percent}% fee` })).toBeInTheDocument()
@@ -98,10 +102,102 @@ describe('Costs', () => {
   })
 })
 
-describe('MoneyFlow', () => {
-  it('lists everything that is never billed', () => {
-    const { getByText } = render(<MoneyFlow />)
-    for (const n of pricing.notBilled) expect(getByText(n)).toBeInTheDocument()
+// ---- T2.2 Pricing section --------------------------------------------------------------------
+
+describe('Pricing section (T2.2)', () => {
+  it('is one section that keeps id="pricing", so the nav "Pricing" anchor still works', () => {
+    const { container } = render(<Costs />)
+    expect(container.querySelectorAll('section')).toHaveLength(1)
+    expect(container.querySelector('section')).toHaveAttribute('id', 'pricing')
+    expect(navLinks.find((l) => l.label === 'Pricing')?.href).toBe('#pricing')
+  })
+
+  it('no longer exports MoneyFlow, and no separate money band is left on the page', () => {
+    expect(sectionsModule).not.toHaveProperty('MoneyFlow')
+    const { container } = render(
+      <>
+        {STATIC_SECTIONS.map(([name, Section]) => (
+          <Section key={name} />
+        ))}
+      </>,
+    )
+    expect(container.querySelector('#money')).toBeNull()
+    expect(container.querySelector('section.dark')).toBeNull()
+  })
+
+  it('shows the two stat tiles from config', () => {
+    const { getByText, getAllByText } = render(<Costs />)
+    expect(costs.stats).toHaveLength(2)
+    for (const s of costs.stats) {
+      expect(getByText(s.label)).toBeInTheDocument()
+      expect(getAllByText(s.value).length).toBeGreaterThan(0)
+    }
+  })
+
+  it('has a "Never billed" list with every item from pricing.notBilled', () => {
+    const { getByRole } = render(<Costs />)
+    const list = getByRole('list', { name: moneyFlow.neverBilled })
+    expect(list.tagName).toBe('UL')
+    expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toEqual(pricing.notBilled)
+  })
+
+  it('draws the worked example as a stacked bar labelled with the court price and the fee', () => {
+    const w = worked()
+    const { getByRole } = render(<Costs />)
+    const bar = getByRole('img', { name: new RegExp(peso(w.courtPrice)) })
+    const label = bar.getAttribute('aria-label') ?? ''
+    expect(label).toContain(peso(w.courtPrice))
+    expect(label).toMatch(new RegExp(`${peso(w.fee)}(?!\\d)`))
+    expect(bar.textContent).toMatch(/\bCourt\b/)
+    expect(bar.textContent).toMatch(/\bFee\b/)
+  })
+
+  it('the bar adds up to workedExample(): a "player pays" line with the total', () => {
+    const w = worked()
+    expect(w.playerPays).toBe(w.courtPrice + w.fee)
+    const { container } = render(<Costs />)
+    expect(lineWith(container, /player pays/i, peso(w.playerPays))).toBe(true)
+  })
+
+  it('says the fee segment is not drawn to scale', () => {
+    const { getByText } = render(<Costs />)
+    expect(getByText(/not (drawn )?to scale/i)).toBeInTheDocument()
+  })
+
+  it('builds every table row from feeComparison()', () => {
+    const rows = feeComparison(costs.compare.courtPrices, pricing.bookingFee, costs.compare.percent)
+    const { getByRole } = render(<Costs />)
+    const body = [...getByRole('table').querySelectorAll('tbody tr')].map((tr) =>
+      [...tr.querySelectorAll('th, td')].map((c) => c.textContent),
+    )
+    expect(body).toEqual(rows.map((r) => [peso(r.courtPrice), peso(r.flat), peso(r.percentage)]))
+  })
+
+  it('shows "Where the money goes" as a four-step timeline from moneyFlow.steps', () => {
+    const { container, getByText } = render(<Costs />)
+    expect(getByText(moneyFlow.label)).toBeInTheDocument()
+    const timeline = container.querySelector('ol.timeline') as HTMLElement
+    expect(timeline).not.toBeNull()
+    const items = within(timeline).getAllByRole('listitem')
+    expect(items).toHaveLength(4)
+    expect(moneyFlow.steps).toHaveLength(4)
+    moneyFlow.steps.forEach((s, i) => {
+      expect(items[i].textContent).toContain(s.title)
+      expect(items[i].textContent).toContain(s.body)
+    })
+  })
+
+  it('keeps the quiet-month line', () => {
+    const { getByText } = render(<Costs />)
+    expect(getByText(moneyFlow.quiet)).toBeInTheDocument()
+  })
+
+  it('ends with one call to action, to the contact form', () => {
+    const { getAllByRole } = render(<Costs />)
+    const links = getAllByRole('link')
+    expect(links).toHaveLength(1)
+    expect(links[0]).toHaveAttribute('href', contactAnchor)
+    expect(links[0].textContent).toContain(costs.cta)
   })
 })
 
@@ -168,10 +264,13 @@ describe('calls to action', () => {
 
 describe('AtAGlance', () => {
   const allRows = () => atAGlance.groups.flatMap((g) => g.rows)
+  /** The terms of the three groups (the key figures, however they're marked up, are left out). */
+  const groupTerms = (terms: HTMLElement[]) =>
+    terms.map((t) => t.textContent).filter((t) => !atAGlance.keyFigures.some((k) => k.label === t))
 
   it('lists every row of every group, with the fee from config', () => {
     const { getAllByRole, getByText } = render(<AtAGlance />)
-    expect(getAllByRole('term')).toHaveLength(allRows().length)
+    expect(groupTerms(getAllByRole('term'))).toHaveLength(allRows().length)
     expect(getByText(new RegExp(`^${peso(pricing.bookingFee)} per confirmed online booking`))).toBeInTheDocument()
     expect(allRows().map((r) => r.label)).not.toContain('Term')
   })
@@ -193,8 +292,7 @@ describe('AtAGlance', () => {
   it('renders each group title and its rows', () => {
     const { getByText, getAllByRole } = render(<AtAGlance />)
     for (const g of atAGlance.groups) expect(getByText(g.title)).toBeInTheDocument()
-    const terms = getAllByRole('term').map((t) => t.textContent)
-    expect(terms).toEqual(allRows().map((r) => r.label))
+    expect(groupTerms(getAllByRole('term'))).toEqual(allRows().map((r) => r.label))
   })
 
   it('keeps the "Provider" and "Leaving" rows (SPEC §3.1 row 10, T1.11a), now inside the groups', () => {
@@ -205,6 +303,34 @@ describe('AtAGlance', () => {
     expect(value('Leaving')).toMatch(/any time/i)
     expect(value('Leaving')).toMatch(/no notice period/i)
     expect(value('Leaving')).toMatch(/30 days/)
+  })
+})
+
+describe('AtAGlance key figures (T2.2)', () => {
+  it('has four key figures: ₱0 setup, ₱0 monthly, the fee per online booking, 30 days to export after leaving', () => {
+    const k = atAGlance.keyFigures
+    expect(k).toHaveLength(4)
+    expect(k.map((f) => f.value).slice(0, 3)).toEqual([peso(0), peso(0), peso(pricing.bookingFee)])
+    expect(k[0].label).toMatch(/setup/i)
+    expect(k[1].label).toMatch(/monthly/i)
+    expect(k[2].label).toMatch(/online booking/i)
+    const last = `${k[3].value} ${k[3].label}`
+    expect(last).toMatch(/30 days/)
+    expect(last).toMatch(/export/i)
+    expect(last).toMatch(/leav/i)
+    for (const f of k) expect(f.label.trim()).not.toBe('')
+  })
+
+  it('renders every key figure, above the three groups, and keeps id="at-a-glance"', () => {
+    const { container, getAllByText, getByText } = render(<AtAGlance />)
+    expect(container.querySelector('section')).toHaveAttribute('id', 'at-a-glance')
+    const firstGroup = getByText(atAGlance.groups[0].title)
+    const before = (el: Element) => Boolean(el.compareDocumentPosition(firstGroup) & Node.DOCUMENT_POSITION_FOLLOWING)
+    for (const f of atAGlance.keyFigures) {
+      expect(before(getByText(f.label)), f.label).toBe(true)
+      expect(getAllByText(f.value).some(before), f.value).toBe(true)
+    }
+    for (const g of atAGlance.groups) expect(getByText(g.title)).toBeInTheDocument()
   })
 })
 
@@ -240,26 +366,39 @@ describe('a different booking fee', () => {
     expect(found).not.toContain('₱10')
   })
 
-  it('changes the fee in what it costs and where the money goes', async () => {
+  it('changes the fee in the pricing section: bar, player pays line, table and timeline (T2.2)', async () => {
     vi.resetModules()
     vi.doMock('../../config/pricing', async (importOriginal) => {
       const real = await importOriginal<typeof import('../../config/pricing')>()
       const pricing = { ...real.pricing, bookingFee: 15 }
       return { pricing, peso: (n: number) => `${pricing.currency}${n.toLocaleString('en-PH')}` }
     })
-    const { Costs: SwappedCosts, MoneyFlow: SwappedFlow } = await import('./sections')
-    const { container, getByText, getAllByRole } = render(
-      <>
-        <SwappedCosts />
-        <SwappedFlow />
-      </>,
-    )
+    const { Costs: SwappedCosts } = await import('./sections')
+    const { container, getByRole, getAllByRole } = render(<SwappedCosts />)
     // 2 hours at ₱400: the player pays ₱815, the venue keeps ₱800
-    expect(getByText('+ ₱15')).toBeInTheDocument()
-    expect(getByText('₱815')).toBeInTheDocument()
+    const bar = getByRole('img', { name: /₱800/ })
+    expect(bar.getAttribute('aria-label')).toMatch(/₱15(?!\d)/)
+    expect(bar.getAttribute('aria-label')).not.toMatch(/₱10(?!\d)/)
+    expect(lineWith(container, /player pays/i, '₱815')).toBe(true)
     const flat = getAllByRole('row').slice(1).map((r) => r.querySelector('td.ours')?.textContent)
+    expect(flat).toHaveLength(costs.compare.courtPrices.length)
     expect(flat.every((v) => v === '₱15')).toBe(true)
-    expect(container.textContent).toMatch(/₱15 booking fee before they pay/)
+    expect(container.querySelector('ol.timeline')?.textContent).toMatch(/₱15 booking fee before they pay/)
+    expect(container.textContent).not.toMatch(/₱10(?!\d)/)
+  })
+
+  it('changes the fee key figure in "At a glance" (T2.2)', async () => {
+    vi.resetModules()
+    vi.doMock('../../config/pricing', async (importOriginal) => {
+      const real = await importOriginal<typeof import('../../config/pricing')>()
+      const pricing = { ...real.pricing, bookingFee: 15 }
+      return { pricing, peso: (n: number) => `${pricing.currency}${n.toLocaleString('en-PH')}` }
+    })
+    const swappedSite = await import('../../config/site')
+    const { AtAGlance: SwappedGlance } = await import('./sections')
+    expect(swappedSite.atAGlance.keyFigures.map((k) => k.value).slice(0, 3)).toEqual(['₱0', '₱0', '₱15'])
+    const { container, getByText } = render(<SwappedGlance />)
+    expect(getByText('₱15')).toBeInTheDocument()
     expect(container.textContent).not.toMatch(/₱10(?!\d)/)
   })
 })
@@ -477,11 +616,10 @@ describe('a different booking fee, across the page (T2.1)', () => {
         <swapped.Features />
         <swapped.Highlights />
         <swapped.Costs />
-        <swapped.MoneyFlow />
+        <swapped.AtAGlance />
         <swapped.Venues />
         <swapped.Steps />
         <swapped.Faq />
-        <swapped.AtAGlance />
         <swapped.FinalBand />
       </>,
     )

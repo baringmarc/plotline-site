@@ -6,7 +6,6 @@ import {
   Highlights,
   FinalBand,
   Hero,
-  MoneyFlow,
   PlayerSide,
   ShortVersion,
   Steps,
@@ -25,12 +24,11 @@ export function LandingPage() {
       <Features />
       <Highlights />
       <Costs />
-      <MoneyFlow />
+      <AtAGlance />
       <Venues />
       <ReviewsSection />
       <Steps />
       <Faq />
-      <AtAGlance />
       <ContactSection />
       <FinalBand />
     </>

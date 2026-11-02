@@ -28,13 +28,12 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 | The short version | `ShortVersion` | A slim card: the cost in one line, what you get as chips, a link to Pricing |
 | The player's side | `PlayerSide` | 5 phone screens (`public/screens/`, drawn ones in `PlayerScreens.tsx`), open play callout |
 | Your side | `Features` | Three headline items and three chips, only shipped features |
-| What it costs | `Costs` | Worked example and flat vs percentage table (`features/landing/pricing.ts`), mid-page CTA |
-| Where the money goes | `MoneyFlow` | Dark band: 4 steps, never billed |
+| What it costs | `Costs` | One Pricing section: two tiles, never billed, worked example as a stacked bar, flat vs percentage table (`features/landing/pricing.ts`), "Where the money goes" timeline, CTA |
+| At a glance | `AtAGlance` | Right after Pricing: four key figures, then the offer as a fact sheet in three groups |
 | Venues | `Venues` | Swipeable slider (`components/Slider.tsx`), two rows when 4+ venues. Later reads `public_venues`. |
 | Reviews | `features/reviews` | Approved reviews from Supabase + a review form |
 | Getting started | `Steps` | 4 setup steps |
 | FAQ | `Faq` | `<details>` accordion in three groups (Players, Money, Your setup), objection-led |
-| At a glance | `AtAGlance` | The offer as a fact sheet in three groups |
 | Contact | `features/contact` | Owner contact form at `#contact` → `site-contact`, with Turnstile (`components/Turnstile.tsx`) |
 | Final band + footer | `FinalBand`, `components/Footer.tsx` | |
 

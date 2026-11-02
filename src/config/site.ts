@@ -257,6 +257,11 @@ export const costs = {
     fee: 'Booking fee, paid by the player',
     playerPays: 'The player pays you',
     venueKeeps: 'You keep',
+    courtLabel: 'Court',
+    feeLabel: 'Fee',
+    playerPaysLine: 'The player pays',
+    ourFee: 'Our fee',
+    notToScale: 'The fee is drawn wider than its true share so it can be read. Not to scale.',
   },
   compare: {
     title: 'A flat fee vs a percentage',
@@ -271,7 +276,6 @@ export const costs = {
 
 export const moneyFlow = {
   label: 'Where the money goes',
-  title: 'Players pay you. We send one invoice a month.',
   steps: [
     { title: 'The player books', body: `They see the court price and the ${fee} booking fee before they pay.` },
     {
@@ -359,11 +363,20 @@ export const faqGroups: FaqGroup[] = [
   },
 ]
 
+/** How long a leaving venue's admin pages and CSV export stay open (the Terms say the same). */
+const exportDays = 30
+
 /** The offer as a fact sheet. It must agree with the Terms (./legal). */
 export const atAGlance = {
   label: 'At a glance',
   title: 'The whole offer, on one card',
   lead: 'Everything in writing, in plain words. It matches our Terms.',
+  keyFigures: [
+    { value: peso(0), label: 'setup' },
+    { value: peso(0), label: 'monthly' },
+    { value: fee, label: 'per online booking' },
+    { value: `${exportDays} days`, label: 'to export after leaving' },
+  ],
   groups: [
     {
       title: 'The service',
@@ -386,7 +399,7 @@ export const atAGlance = {
       title: 'Your data and leaving',
       rows: [
         { label: 'Your data', value: 'Export your bookings and payments to CSV from your admin pages' },
-        { label: 'Leaving', value: 'Leave any time, with no notice period; your admin pages and CSV export stay open for 30 days' },
+        { label: 'Leaving', value: `Leave any time, with no notice period; your admin pages and CSV export stay open for ${exportDays} days` },
       ],
     },
   ],
