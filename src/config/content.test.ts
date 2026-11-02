@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest'
 import html from '../../index.html?raw'
 import legalSource from './legal.ts?raw'
 import source from './site.ts?raw'
-import { messageLink, site, venues } from './site'
+import * as content from './site'
+import { faqGroups, hero, messageLink, shortVersion, site, venues } from './site'
 
 describe('site content', () => {
   it('has no sample or example values left', () => {
@@ -52,5 +53,22 @@ describe('site content', () => {
 
   it('gives link previews an absolute share image', () => {
     expect(html).toMatch(/property="og:image" content="https:\/\/[^"]+\/og\.jpg"/)
+  })
+
+  it('drops the hero stat tiles and the short version\'s cost card (T2.1)', () => {
+    expect(hero).not.toHaveProperty('stats')
+    expect(shortVersion).not.toHaveProperty('cost')
+    expect(shortVersion.get.points).toHaveLength(8)
+  })
+
+  it('replaces the flat FAQ list with three groups of 5, 4 and 5 questions (T2.1, grown 2026-11-02)', () => {
+    expect(content).not.toHaveProperty('faqs')
+    expect(faqGroups.map((g) => g.id)).toEqual(['players', 'money', 'setup'])
+    expect(faqGroups.map((g) => g.items.length)).toEqual([5, 4, 5])
+  })
+
+  it('types no peso amount into the copy: every amount is built from pricing (T2.1)', () => {
+    // amounts come from `peso(...)` / `${fee}`; a literal "₱" followed by a digit in site.ts would bypass pricing
+    expect(source).not.toMatch(/₱\s?\d/)
   })
 })

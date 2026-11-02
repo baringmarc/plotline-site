@@ -24,17 +24,16 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 | Section | Component | Notes |
 | --- | --- | --- |
 | Sticky nav | `components/Nav.tsx` | Frosted bar; links fold into a menu on phones; "Get started" goes to `#contact` |
-| Hero | `Hero` | Promises, ₱0 / booking-fee stat tiles, CTA and demo link, CSS phone mockup (`components/PhoneMockup.tsx`) |
-| The short version | `ShortVersion` | What you get free, what it costs, what's never charged |
-| The player's side | `PlayerSide` | 5 phone screens (`public/screens/`, drawn ones in `PlayerScreens.tsx`), open play callout |
-| Your side | `Features` | Six owner feature cards, only shipped features |
-| What it costs | `Costs` | Worked example and flat vs percentage table (`features/landing/pricing.ts`), mid-page CTA |
-| Where the money goes | `MoneyFlow` | Dark band: 4 steps, never billed |
+| Hero | `Hero` | Promises, CTA and demo link, CSS phone mockup (`components/PhoneMockup.tsx`) |
+| The short version | `ShortVersion` | A two-column card: the cost in one line and a link to Pricing, beside what you get as ticked chips |
+| The player's side | `PlayerSide` | 4 drawn dark phone screens (`PlayerScreens.tsx`, the pay screen with a GCash QR), open play card |
+| Your side | `Features` | Three headline items and three chips, only shipped features |
+| What it costs | `Costs` | One Pricing section: two tiles, never billed, worked example as a stacked bar, "Where the money goes" timeline, flat vs percentage table (`features/landing/pricing.ts`), CTA |
+| At a glance | `AtAGlance` | Right after Pricing: four key figures, then the offer as a fact sheet in three groups |
 | Venues | `Venues` | Swipeable slider (`components/Slider.tsx`), two rows when 4+ venues. Later reads `public_venues`. |
 | Reviews | `features/reviews` | Approved reviews from Supabase + a review form |
 | Getting started | `Steps` | 4 setup steps |
-| FAQ | `Faq` | `<details>` accordion, objection-led |
-| At a glance | `AtAGlance` | The offer as a fact sheet |
+| FAQ | `Faq` | three tabs (Players, Money, Your setup) of `<details>` answers, objection-led |
 | Contact | `features/contact` | Owner contact form at `#contact` → `site-contact`, with Turnstile (`components/Turnstile.tsx`) |
 | Final band + footer | `FinalBand`, `components/Footer.tsx` | |
 
@@ -78,6 +77,6 @@ Cloudflare Workers with static assets, on `plotline.fit` and `www.plotline.fit` 
 
 ## Before launch
 
-- Deploy (above), then check the Messenger preview of `og.jpg`, send a test review and approve it in the console, and take the player-side screenshots once staging shows the ₱10 fee.
+- Deploy (above), then check the Messenger preview of `og.jpg`, send a test review and approve it in the console, and replace the drawn player-side screens once staging shows the ₱10 fee.
 - `bookCallUrl` stays empty and the venue list shows only the demo venue until there are real ones (`src/config/site.ts`).
 - Match features and pricing to what ships.

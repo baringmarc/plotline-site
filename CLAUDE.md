@@ -46,4 +46,4 @@ SUPABASE_PROJECT_REF=<ref> npm run db:types   # types from the shared project (s
 ## Learned rules
 Lessons from repeated mistakes, added by `/retro` with the user's approval. Follow them like any rule above. Each lists the mistake categories it covers; `/retro` promotes a rule to a hard check if its mistake keeps happening anyway.
 
-_(none yet)_
+- **L1** Before calling a task done, update the TASKS.md Handoff (State, Next task) and the SPEC.md banner and goals, and grep README, SPEC and TASKS for terms the task removed or changed. Write acceptance greps so they pass with the leftovers on purpose (for example the two kept PLACEHOLDER markers). _Why:_ the reviewer blocked three tasks for stale docs. _(categories: docs-drift; added 2026-11-02 from /retro M1)_
