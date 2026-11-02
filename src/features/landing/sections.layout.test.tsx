@@ -1,6 +1,6 @@
 import { render, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { features, featuresAlso, highlights, highlightsAlso } from '../../config/site'
+import { features, featuresAlso, featuresHead, highlights, highlightsAlso, highlightsHead } from '../../config/site'
 import { Features, Highlights } from './sections'
 
 // The drawings are swapped for markers so these tests can see where each section places them.
@@ -8,6 +8,7 @@ import { Features, Highlights } from './sections'
 vi.mock('./Illustrations', () => ({
   TodayGrid: () => <div data-testid="today-grid" aria-hidden="true" />,
   VenueFrame: () => <div data-testid="venue-frame" aria-hidden="true" />,
+  FeatureIcon: ({ name }: { name: string }) => <svg data-testid={`icon-${name}`} aria-hidden="true" />,
 }))
 
 // ---- T2.3 "Your side" and "Your venue": two different layouts ------------------------------------
@@ -27,6 +28,22 @@ describe('Features, "Your side" (T2.3)', () => {
   it('keeps the 3 "also in your admin" chips', () => {
     const { getByText } = render(<Features />)
     for (const chip of featuresAlso) expect(getByText(chip)).toBeInTheDocument()
+  })
+
+  it('puts the section head, the items and the chips together in the left column, the TodayGrid beside them', () => {
+    const { container, getByRole, getByTestId, getByText } = render(<Features />)
+    const split = container.querySelector('.side-split') as HTMLElement
+    const left = split.firstElementChild as HTMLElement
+    const head = getByRole('heading', { level: 2, name: featuresHead.title })
+    expect(left).toContainElement(head)
+    for (const f of features) expect(left).toContainElement(getByRole('heading', { name: f.title }))
+    for (const chip of featuresAlso) expect(left).toContainElement(getByText(chip))
+    expect(left).not.toContainElement(getByTestId('today-grid'))
+  })
+
+  it('draws a FeatureIcon for each headline item, by its config icon name', () => {
+    const { getByTestId } = render(<Features />)
+    for (const f of features) expect(getByTestId(`icon-${f.icon}`)).toBeInTheDocument()
   })
 
   it('does not use the "Your venue" layout or its drawing', () => {
@@ -65,6 +82,15 @@ describe('Highlights, "Your venue" (T2.3)', () => {
       expect(el).toBeInTheDocument()
       expect(ol).not.toContainElement(el)
     }
+  })
+
+  it('puts the section head in the right column, beside the VenueFrame', () => {
+    const { container, getByRole, getByTestId } = render(<Highlights />)
+    const split = container.querySelector('.venue-split') as HTMLElement
+    const [first, second] = [...split.children] as HTMLElement[]
+    expect(first).toBe(getByTestId('venue-frame'))
+    expect(second).toContainElement(getByRole('heading', { level: 2, name: highlightsHead.title }))
+    expect(second.querySelector('ol')).not.toBeNull()
   })
 
   it('does not use the "Your side" layout or its drawing', () => {

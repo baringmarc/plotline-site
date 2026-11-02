@@ -25,10 +25,10 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 | --- | --- | --- |
 | Sticky nav | `components/Nav.tsx` | Frosted bar; links fold into a menu on phones; "Get started" goes to `#contact` |
 | Hero | `Hero` | Promises, CTA and demo link, CSS phone mockup (`components/PhoneMockup.tsx`) |
-| The short version | `ShortVersion` | A slim card: the cost in one line, what you get as chips, a link to Pricing |
-| The player's side | `PlayerSide` | 4 drawn dark phone screens (`PlayerScreens.tsx`), open play strip |
+| The short version | `ShortVersion` | A two-column card: the cost in one line and a link to Pricing, beside what you get as ticked chips |
+| The player's side | `PlayerSide` | 4 drawn dark phone screens (`PlayerScreens.tsx`, the pay screen with a GCash QR), open play card |
 | Your side | `Features` | Three headline items and three chips, only shipped features |
-| What it costs | `Costs` | One Pricing section: two tiles, never billed, worked example as a stacked bar, flat vs percentage table (`features/landing/pricing.ts`), "Where the money goes" timeline, CTA |
+| What it costs | `Costs` | One Pricing section: two tiles, never billed, worked example as a stacked bar, "Where the money goes" timeline, flat vs percentage table (`features/landing/pricing.ts`), CTA |
 | At a glance | `AtAGlance` | Right after Pricing: four key figures, then the offer as a fact sheet in three groups |
 | Venues | `Venues` | Swipeable slider (`components/Slider.tsx`), two rows when 4+ venues. Later reads `public_venues`. |
 | Reviews | `features/reviews` | Approved reviews from Supabase + a review form |

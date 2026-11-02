@@ -40,7 +40,7 @@ describe('LandingPage section order (T2.2)', () => {
     expect(ids).not.toContain('money')
   })
 
-  it('keeps every other section in its place', () => {
+  it('keeps every other section in its place, ending with the final band (id="final")', () => {
     expect(sectionIds()).toEqual([
       'short-version',
       'players',
@@ -53,6 +53,7 @@ describe('LandingPage section order (T2.2)', () => {
       'start',
       'faq',
       'contact',
+      'final',
     ])
   })
 })

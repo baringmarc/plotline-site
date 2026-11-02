@@ -34,7 +34,7 @@ import {
   venuesHead,
   type Venue,
 } from '../../config/site'
-import { TodayGrid, VenueFrame } from './Illustrations'
+import { FeatureIcon, TodayGrid, VenueFrame } from './Illustrations'
 import { PlayerScreen } from './PlayerScreens'
 import { feeComparison, workedExample } from './pricing'
 
@@ -72,19 +72,24 @@ export function Hero() {
 export function ShortVersion() {
   const { get } = shortVersion
   return (
-    <section className="white" id="short-version">
+    <section className="white tight" id="short-version">
       <div className="in">
-        <SectionHead label={shortVersion.label} title={shortVersion.title} lead={shortVersion.lead} />
-        <Reveal className="card short">
-          <h3>{get.title}</h3>
-          <div className="chips">
-            {get.points.map((p) => (
-              <span key={p}>{p}</span>
-            ))}
+        <Reveal className="short">
+          <div>
+            <span className="eyebrow">{shortVersion.label}</span>
+            <h2 className="title">{withHighlight(shortVersion.title, shortVersion.titleHighlight)}</h2>
+            <p>
+              {shortVersion.lead} <a href="#pricing">{shortVersion.link}</a>
+            </p>
           </div>
-          <p className="center midcta">
-            <a href="#pricing">{shortVersion.link}</a>
-          </p>
+          <div>
+            <h3 className="get">{withHighlight(get.title, get.titleHighlight)}</h3>
+            <div className="chips">
+              {get.points.map((p) => (
+                <span key={p}>{p}</span>
+              ))}
+            </div>
+          </div>
         </Reveal>
       </div>
     </section>
@@ -104,36 +109,26 @@ function withHighlight(text: string, words: string) {
   )
 }
 
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('')
-}
-
 function VenueCard({ venue }: { venue: Venue }) {
-  const body = (
-    <>
-      <span className="badge">{venue.logoUrl ? <img src={venue.logoUrl} alt="" loading="lazy" /> : initials(venue.name)}</span>
-      <span>
+  return (
+    <div className="vcard">
+      <span className="badge">{venue.logoUrl ? <img src={venue.logoUrl} alt="" loading="lazy" /> : venue.name.charAt(0).toUpperCase()}</span>
+      <div>
         <b>{venue.name}</b>
         <small>{venue.location}</small>
-      </span>
-    </>
-  )
-  return venue.url ? (
-    <a className="card venue" href={venue.url} target="_blank" rel="noreferrer">
-      {body}
-    </a>
-  ) : (
-    <div className="card venue">{body}</div>
+      </div>
+      {venue.url && (
+        <a className="btn ghost" href={venue.url} target="_blank" rel="noreferrer">
+          {venuesHead.open}
+        </a>
+      )}
+    </div>
   )
 }
 
 export function Venues() {
   return (
-    <section id="venues">
+    <section className="white" id="venues">
       <div className="in">
         <SectionHead label={venuesHead.label} title={venuesHead.title} lead={venuesHead.lead} />
         {/* a few venues sit in one centred row; a longer list becomes a swipeable slider */}
@@ -175,7 +170,17 @@ export function PlayerSide() {
             </li>
           ))}
         </ol>
-        <p className="openplay-strip">{openPlay.text}</p>
+        <div className="openplay-strip">
+          <div>
+            <b>{openPlay.title}</b>
+            <span>{openPlay.text}</span>
+          </div>
+          <div className="chips">
+            {openPlay.chips.map((c) => (
+              <span key={c}>{c}</span>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -199,24 +204,26 @@ export function Features() {
   return (
     <section className="white" id="features">
       <div className="in">
-        <SectionHead label={featuresHead.label} title={featuresHead.title} lead={featuresHead.lead} />
         <div className="side-split">
-          <div className="side-items">
-            {features.map((f, i) => (
-              <Reveal key={f.title} className="side-item" delay={i * 80}>
-                <span className="ico" aria-hidden="true">
-                  {f.icon}
-                </span>
-                <div>
-                  <h3>{f.title}</h3>
-                  <p>{f.body}</p>
-                </div>
-              </Reveal>
-            ))}
+          <div>
+            <SectionHead label={featuresHead.label} title={featuresHead.title} lead={featuresHead.lead} />
+            <div className="side-items">
+              {features.map((f, i) => (
+                <Reveal key={f.title} className="side-item" delay={i * 80}>
+                  <span className="ico" aria-hidden="true">
+                    <FeatureIcon name={f.icon} />
+                  </span>
+                  <div>
+                    <h3>{f.title}</h3>
+                    <p>{f.body}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+            <ChipList label={featuresAlsoLabel} items={featuresAlso} />
           </div>
           <TodayGrid />
         </div>
-        <ChipList label={featuresAlsoLabel} items={featuresAlso} />
       </div>
     </section>
   )
@@ -226,21 +233,23 @@ export function Highlights() {
   return (
     <section id="venue">
       <div className="in">
-        <SectionHead label={highlightsHead.label} title={highlightsHead.title} lead={highlightsHead.lead} />
         <div className="venue-split">
           <VenueFrame />
-          <ol className="venue-list">
-            {highlights.map((h, i) => (
-              <li key={h.title}>
-                <Reveal delay={i * 80}>
-                  <h3>{h.title}</h3>
-                  <p>{h.body}</p>
-                </Reveal>
-              </li>
-            ))}
-          </ol>
+          <div>
+            <SectionHead label={highlightsHead.label} title={highlightsHead.title} lead={highlightsHead.lead} />
+            <ol className="venue-list">
+              {highlights.map((h, i) => (
+                <li key={h.title}>
+                  <Reveal delay={i * 80}>
+                    <h3>{h.title}</h3>
+                    <p>{h.body}</p>
+                  </Reveal>
+                </li>
+              ))}
+            </ol>
+            <ChipList label={highlightsAlsoLabel} items={highlightsAlso} />
+          </div>
         </div>
-        <ChipList label={highlightsAlsoLabel} items={highlightsAlso} />
       </div>
     </section>
   )
@@ -254,26 +263,23 @@ export function Costs() {
     <section className="white" id="pricing">
       <div className="in">
         <SectionHead label={costs.label} title={costs.title} lead={costs.lead} />
-        <div className="stats center-stats">
-          {costs.stats.map((s) => (
-            <div key={s.label} className="stat">
-              <span className="lbl">{s.label}</span>
-              <span className="big">{s.value}</span>
-              <small>{s.note}</small>
+        <div className="tiles">
+          {costs.stats.map((s, i) => (
+            <div key={s.label} className={i === 1 ? 'tile hot' : 'tile'}>
+              <div className="k">{s.label}</div>
+              <div className="big">{s.value}</div>
+              <div className="s">{s.note}</div>
             </div>
           ))}
         </div>
-        <div className="nots">
-          <span id="nots-label">{moneyFlow.neverBilled}</span>
-          <ul aria-labelledby="nots-label">
-            {pricing.notBilled.map((n) => (
-              <li key={n}>{n}</li>
-            ))}
-          </ul>
-        </div>
+        <ul className="nots" aria-label={moneyFlow.neverBilled}>
+          {pricing.notBilled.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
         <Reveal className="card">
           <h3>{example.title}</h3>
-          <p className="hint">{example.caption(example.hours, peso(example.ratePerHour))}</p>
+          <p className="card-sub">{example.caption(example.hours, peso(example.ratePerHour))}</p>
           <div className="ex">
             <div className="bar-wrap">
               <div className="paysline">
@@ -299,25 +305,31 @@ export function Costs() {
               </div>
               <p className="hint">{example.notToScale}</p>
             </div>
-            <dl className="facts sums">
+            <dl className="sum">
               <div>
                 <dt>{example.courtPrice}</dt>
                 <dd>{peso(worked.courtPrice)}</dd>
               </div>
               <div>
                 <dt>{example.fee}</dt>
-                <dd>+ {peso(worked.fee)}</dd>
+                <dd>{peso(worked.fee)}</dd>
               </div>
-              <div className="total">
+              <div>
                 <dt>{example.playerPays}</dt>
                 <dd>{peso(worked.playerPays)}</dd>
               </div>
-              <div className="total">
+              <div>
                 <dt>{example.venueKeeps}</dt>
                 <dd>{peso(worked.venueKeeps)}</dd>
               </div>
             </dl>
           </div>
+        </Reveal>
+        <Reveal className="card" delay={80}>
+          <h3>{moneyFlow.label}</h3>
+          <p className="card-sub">{moneyFlow.lead}</p>
+          <Timeline steps={moneyFlow.steps} marks={['', 'you', 'you', 'inv']} />
+          <p className="quiet">{moneyFlow.quiet}</p>
         </Reveal>
         <Reveal className="card" delay={80}>
           <h3>{compare.title}</h3>
@@ -342,11 +354,6 @@ export function Costs() {
             </table>
           </div>
           <p className="hint">{compare.note(compare.percent)}</p>
-        </Reveal>
-        <Reveal className="card" delay={80}>
-          <h3>{moneyFlow.label}</h3>
-          <Timeline steps={moneyFlow.steps} marks={['', 'you', 'you', 'inv']} />
-          <p className="quiet">{moneyFlow.quiet}</p>
         </Reveal>
         <p className="center midcta">
           <a className="btn main" href={contactAnchor}>
@@ -382,7 +389,7 @@ export function Steps() {
     <section id="start">
       <div className="in">
         <SectionHead label={stepsHead.label} title={stepsHead.title} lead={stepsHead.lead} />
-        <Timeline steps={steps} />
+        <Timeline steps={steps} marks={['', 'you', 'you', 'inv']} />
       </div>
     </section>
   )
@@ -415,11 +422,6 @@ export function Faq() {
         <SectionHead
           label={faqHead.label}
           title={faqHead.title}
-          lead={
-            <>
-              {faqHead.lead} <a href={messageLink}>{faqHead.leadLink}</a>.
-            </>
-          }
         />
         <div className="faq-tabs" role="tablist" aria-label={faqHead.title}>
           {faqGroups.map((g, i) => (
@@ -452,12 +454,22 @@ export function Faq() {
           >
             {g.items.map((f, j) => (
               <details key={f.q} open={j === 0}>
-                <summary>{f.q}</summary>
+                <summary>
+                  {f.q}
+                  <span className="chev" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M5 9l7 7 7-7" />
+                    </svg>
+                  </span>
+                </summary>
                 <p>{f.a}</p>
               </details>
             ))}
           </div>
         ))}
+        <p className="more">
+          {faqHead.lead} <a href={messageLink}>{faqHead.leadLink}</a>
+        </p>
       </div>
     </section>
   )
@@ -466,7 +478,7 @@ export function Faq() {
 export function AtAGlance() {
   return (
     <section id="at-a-glance">
-      <div className="in narrow">
+      <div className="in">
         <SectionHead label={atAGlance.label} title={atAGlance.title} lead={atAGlance.lead} />
         <div className="keys">
           {atAGlance.keyFigures.map((k, i) => (
@@ -476,19 +488,21 @@ export function AtAGlance() {
             </div>
           ))}
         </div>
-        {atAGlance.groups.map((g) => (
-          <div key={g.title} className="glance-group">
-            <h3>{g.title}</h3>
-            <dl className="facts">
-              {g.rows.map((r) => (
-                <div key={r.label}>
-                  <dt>{r.label}</dt>
-                  <dd>{r.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        ))}
+        <div className="groups">
+          {atAGlance.groups.map((g) => (
+            <div key={g.title} className="grp">
+              <h3>{g.title}</h3>
+              <dl>
+                {g.rows.map((r) => (
+                  <div key={r.label}>
+                    <dt>{r.label}</dt>
+                    <dd>{r.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -496,7 +510,7 @@ export function AtAGlance() {
 
 export function FinalBand() {
   return (
-    <section className="band">
+    <section className="band" id="final">
       <div className="in">
         <img src="/logo.svg" alt="" width={56} height={56} />
         <h2>{finalBand.title}</h2>

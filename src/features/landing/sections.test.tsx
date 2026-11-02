@@ -6,6 +6,7 @@ import {
   contactAnchor,
   costs,
   faqGroups,
+  faqHead,
   features,
   featuresAlso,
   highlights,
@@ -21,6 +22,8 @@ import {
   site,
   steps,
   stepsHead,
+  venues,
+  venuesHead,
 } from '../../config/site'
 import { feeComparison, workedExample } from './pricing'
 import * as sectionsModule from './sections'
@@ -163,9 +166,59 @@ describe('Pricing section (T2.2)', () => {
     expect(lineWith(container, /player pays/i, peso(w.playerPays))).toBe(true)
   })
 
-  it('says the fee segment is not drawn to scale', () => {
+  it('says the fee segment is drawn wider than its true share (example.notToScale, artifact wording)', () => {
+    expect(costs.example.notToScale).toBe('The fee is drawn wider than its true share so it can be read.')
+    expect(costs.example.notToScale).not.toMatch(/not to scale/i)
     const { getByText } = render(<Costs />)
-    expect(getByText(/not (drawn )?to scale/i)).toBeInTheDocument()
+    expect(getByText(costs.example.notToScale)).toBeInTheDocument()
+  })
+
+  it('shows the stat tiles as .tile cards, the second one .tile.hot', () => {
+    const { container } = render(<Costs />)
+    const tiles = [...container.querySelectorAll('.tile')]
+    expect(tiles).toHaveLength(costs.stats.length)
+    expect(tiles[0]).not.toHaveClass('hot')
+    expect(tiles[1]).toHaveClass('hot')
+    costs.stats.forEach((st, i) => {
+      expect(tiles[i].textContent).toContain(st.label)
+      expect(tiles[i].textContent).toContain(st.value)
+      expect(tiles[i].textContent).toContain(st.note)
+    })
+  })
+
+  it('names the "Never billed" list by aria-label only, with no visible label', () => {
+    const { getByRole, queryByText } = render(<Costs />)
+    expect(getByRole('list', { name: moneyFlow.neverBilled })).toHaveAttribute('aria-label', moneyFlow.neverBilled)
+    expect(queryByText(moneyFlow.neverBilled)).toBeNull()
+  })
+
+  it('orders the cards: worked example, then "Where the money goes" with its lead, then the comparison table', () => {
+    const { getByRole, getByText } = render(<Costs />)
+    const example = getByRole('heading', { name: costs.example.title })
+    const flow = getByRole('heading', { name: moneyFlow.label })
+    const compare = getByRole('heading', { name: costs.compare.title })
+    const follows = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(follows(example, flow)).toBe(true)
+    expect(follows(flow, compare)).toBe(true)
+    const lead = getByText(moneyFlow.lead)
+    expect(follows(flow, lead)).toBe(true)
+    expect(follows(lead, compare)).toBe(true)
+    expect(follows(compare, getByRole('table'))).toBe(true)
+  })
+
+  it('lists the worked example’s sum in a dl.sum, with no "+" before the fee', () => {
+    const w = worked()
+    const { container } = render(<Costs />)
+    const sum = container.querySelector('dl.sum') as HTMLElement
+    expect(sum).not.toBeNull()
+    const rows = [...sum.querySelectorAll('dt')].map((dt) => [dt.textContent, dt.nextElementSibling?.textContent])
+    expect(rows).toEqual([
+      [costs.example.courtPrice, peso(w.courtPrice)],
+      [costs.example.fee, peso(w.fee)],
+      [costs.example.playerPays, peso(w.playerPays)],
+      [costs.example.venueKeeps, peso(w.venueKeeps)],
+    ])
+    expect(sum.textContent).not.toContain('+')
   })
 
   it('builds every table row from feeComparison()', () => {
@@ -221,19 +274,25 @@ describe('PlayerSide (T2.4)', () => {
     expect(queryByText(/Step \d of 5/)).toBeNull()
   })
 
-  it('draws all four screens (pick, pay, confirmed, link) and uses no screenshots', () => {
+  it('draws all four screens (pick, pay, confirmed, link) and uses no screenshots; the only image is the pay screen’s QR', () => {
     expect(playerSide.steps.map((s) => s.mock)).toEqual(['pick', 'pay', 'confirmed', 'link'])
     for (const s of playerSide.steps) expect(s).not.toHaveProperty('image')
-    const { container } = render(<PlayerSide />)
-    expect(container.querySelector('img')).toBeNull()
+    const { container, getByRole } = render(<PlayerSide />)
     expect(container.innerHTML).not.toMatch(/\/screens\//)
+    const imgs = [...container.querySelectorAll('img')]
+    expect(imgs).toHaveLength(1)
+    expect(imgs[0]).toHaveAttribute('src', '/demo/qr.svg')
+    expect(imgs[0]).toHaveAttribute('alt', '')
+    const steps = within(getByRole('list', { name: playerSide.label })).getAllByRole('listitem')
+    expect(steps[1]).toContainElement(imgs[0])
   })
 
   it('shows each drawn screen in the app’s dark theme, hidden from screen readers, one per step', () => {
     const { getByRole } = render(<PlayerSide />)
     const steps = within(getByRole('list', { name: playerSide.label })).getAllByRole('listitem')
+    for (const step of steps) expect(step.querySelector('.mock')).toBeNull()
     for (const step of steps) {
-      const screens = step.querySelectorAll('.mock.dark')
+      const screens = step.querySelectorAll('.frame .scr')
       expect(screens).toHaveLength(1)
       expect(screens[0].closest('[aria-hidden="true"]')).not.toBeNull()
       expect(screens[0].textContent?.trim()).not.toBe('')
@@ -260,34 +319,58 @@ describe('PlayerSide (T2.4)', () => {
   it('draws the payment with the court price plus the fee', () => {
     const { container } = render(<PlayerSide />)
     const total = peso(playerSide.sample.courtPrice + pricing.bookingFee)
-    const pay = [...container.querySelectorAll('.mock')].find((m) => m.textContent?.includes(playerSide.mocks.payTitle))
+    const pay = [...container.querySelectorAll('.scr')].find((m) => m.textContent?.includes(playerSide.mocks.payTitle))
+    expect(pay).toBeDefined()
     expect(pay?.textContent).toContain(total)
   })
 
-  it('turns open play into a one-line strip: one short text, no card, no chips', () => {
-    // cast so this compiles before and after openPlay changes shape
-    const { text } = openPlay as unknown as { text: string }
-    expect(typeof text).toBe('string')
+  it('shows open play as one card: its title, a short text and its chips (artifact design)', () => {
+    const { title, text, chips } = openPlay
     expect(openPlay).not.toHaveProperty('points')
+    expect(title).toMatch(/open play/i)
     expect(words(text)).toBeLessThanOrEqual(18)
-    expect(text).toMatch(/open play/i)
+    expect(chips.length).toBeGreaterThan(0)
     const { container } = render(<PlayerSide />)
-    const strips = container.querySelectorAll('.openplay-strip')
-    expect(strips).toHaveLength(1)
-    expect(strips[0].textContent).toContain(text)
-    expect(container.querySelector('.card.openplay, .openplay.card')).toBeNull()
-    expect(strips[0].closest('.card')).toBeNull()
-    expect(container.querySelector('.chips')).toBeNull()
+    const cards = container.querySelectorAll('.openplay-strip')
+    expect(cards).toHaveLength(1)
+    const card = cards[0] as HTMLElement
+    expect(within(card).getByText(title)).toBeInTheDocument()
+    expect(within(card).getByText(text)).toBeInTheDocument()
+    const chipEls = [...card.querySelectorAll('.chips > span')].map((c) => c.textContent)
+    expect(chipEls).toEqual(chips)
+    expect(container.querySelectorAll('.chips')).toHaveLength(1)
   })
 })
 
-describe('ShortVersion, the slim card (T2.4)', () => {
-  it('is one slim card whose only link goes to #pricing', () => {
+describe('ShortVersion, the two-column card (artifact design 2026-11-02)', () => {
+  it('is one .short card whose only link goes to #pricing, with no SectionHead above it', () => {
     const { container, getAllByRole } = render(<ShortVersion />)
-    expect(container.querySelectorAll('.card')).toHaveLength(1)
+    expect(container.querySelectorAll('.short')).toHaveLength(1)
+    expect(container.querySelector('.shead')).toBeNull()
     const links = getAllByRole('link')
     expect(links).toHaveLength(1)
     expect(links[0]).toHaveAttribute('href', '#pricing')
+    expect(container.querySelector('.short')).toContainElement(links[0])
+  })
+
+  it('left column: the label, the title with "Free" highlighted in <em>, and the lead with the pricing link', () => {
+    const { container, getByRole } = render(<ShortVersion />)
+    const [left] = [...(container.querySelector('.short') as HTMLElement).children] as HTMLElement[]
+    expect(within(left).getByText(shortVersion.label)).toBeInTheDocument()
+    const h2 = within(left).getByRole('heading', { level: 2 })
+    expect(h2.textContent).toBe(shortVersion.title)
+    expect(h2.querySelector('em')?.textContent).toBe('Free')
+    expect(left.textContent).toContain(shortVersion.lead)
+    expect(left).toContainElement(getByRole('link', { name: shortVersion.link }))
+  })
+
+  it('right column: "What you get, free" and the 8 points as chips', () => {
+    const { container } = render(<ShortVersion />)
+    const cols = [...(container.querySelector('.short') as HTMLElement).children] as HTMLElement[]
+    expect(cols).toHaveLength(2)
+    const right = cols[1]
+    expect(within(right).getByRole('heading', { name: shortVersion.get.title })).toBeInTheDocument()
+    expect([...right.querySelectorAll('.chips > span')].map((c) => c.textContent)).toEqual(shortVersion.get.points)
   })
 })
 
@@ -478,7 +561,7 @@ describe('a different booking fee', () => {
     const flat = getAllByRole('row').slice(1).map((r) => r.querySelector('td.ours')?.textContent)
     expect(flat).toHaveLength(costs.compare.courtPrices.length)
     expect(flat.every((v) => v === '₱15')).toBe(true)
-    expect(container.querySelector('ol.timeline')?.textContent).toMatch(/₱15 booking fee before they pay/)
+    expect(container.querySelector('ol.timeline')?.textContent).toMatch(/court price and the ₱15 fee first/)
     expect(container.textContent).not.toMatch(/₱10(?!\d)/)
   })
 
@@ -571,11 +654,11 @@ describe('ShortVersion (T2.1)', () => {
     }
   })
 
-  it('states the fee from pricing exactly once, in its head (the cost line)', () => {
+  it('states the fee from pricing exactly once, in its title (the cost line)', () => {
     const fee = peso(pricing.bookingFee)
-    const { container } = render(<ShortVersion />)
+    const { container, getByRole } = render(<ShortVersion />)
     expect(amounts(container).filter((a) => a === fee)).toHaveLength(1)
-    expect(amounts(container.querySelector('.shead') as HTMLElement)).toEqual([fee])
+    expect(amounts(getByRole('heading', { level: 2 }))).toEqual([fee])
     expect(shortVersion).not.toHaveProperty('cost')
   })
 
@@ -746,20 +829,36 @@ describe('drawings in Your side and Your venue (T2.3)', () => {
     expect(hiddenOrLabelled(drawing!)).toBe(true)
   })
 
-  it('Highlights draws the venue frame with four numbered callouts inside its .venue-split, hidden or labelled', () => {
+  it('Highlights draws the venue frame with four numbered pins inside its .venue-split, hidden or labelled', () => {
     const { container } = render(<Highlights />)
-    const callouts = [...container.querySelectorAll('.venue-split .callout')]
-    expect(callouts.map((c) => c.textContent?.trim())).toEqual(['1', '2', '3', '4'])
-    for (const c of callouts) expect(hiddenOrLabelled(c)).toBe(true)
+    const pins = [...container.querySelectorAll('.venue-split .pin')]
+    expect(pins.map((c) => c.textContent?.trim()).sort()).toEqual(['1', '2', '3', '4'])
+    for (const c of pins) expect(hiddenOrLabelled(c)).toBe(true)
+    expect(container.querySelector('.callout')).toBeNull()
   })
 
   it.each([
     ['Features', Features],
     ['Highlights', Highlights],
-  ])('%s: every inline SVG is aria-hidden or labelled, and no <img> is used', (_, Section) => {
+  ])('%s: every inline SVG is aria-hidden or labelled', (_, Section) => {
     const { container } = render(<Section />)
     for (const svg of container.querySelectorAll('svg')) expect(hiddenOrLabelled(svg)).toBe(true)
+  })
+
+  it('Features uses no <img>', () => {
+    const { container } = render(<Features />)
     expect(container.querySelector('img')).toBeNull()
+  })
+
+  it('Highlights uses only the demo venue’s photos and QR (/demo/), decorative (alt="") and hidden', () => {
+    const { container } = render(<Highlights />)
+    const imgs = [...container.querySelectorAll('img')]
+    expect(imgs.length).toBeGreaterThan(0)
+    for (const img of imgs) {
+      expect(img.getAttribute('src')).toMatch(/^\/demo\//)
+      expect(img).toHaveAttribute('alt', '')
+      expect(hiddenOrLabelled(img)).toBe(true)
+    }
   })
 })
 
@@ -916,5 +1015,91 @@ describe('Faq tabs (T2.5)', () => {
       }
     }
     expect(seen.size).toBe(9)
+  })
+})
+
+// ---- Landing page follows the artifact design (2026-11-02) -------------------------------------
+
+describe('section heads (artifact design)', () => {
+  it.each(STATIC_SECTIONS.filter(([name]) => name !== 'Hero' && name !== 'FinalBand' && name !== 'ShortVersion'))(
+    '%s: its head is a plain left-aligned .shead, with no accent bar and no "left" modifier',
+    (_, Section) => {
+      const { container } = render(<Section />)
+      const heads = [...container.querySelectorAll('.shead')]
+      expect(heads.length).toBeGreaterThan(0)
+      for (const h of heads) {
+        expect(h.className).toBe('shead')
+        expect(h.querySelector('.bar')).toBeNull()
+      }
+    },
+  )
+})
+
+describe('Venues (artifact design)', () => {
+  it('sits on a white section with one .vcard per venue', () => {
+    const { container } = render(<Venues />)
+    expect(container.querySelector('section#venues')).toHaveClass('white')
+    expect(container.querySelectorAll('.vcard')).toHaveLength(venues.length)
+  })
+
+  it('each card shows the first letter as its badge, the name and location, and a ghost "Open the demo" link to the demo', () => {
+    const { container } = render(<Venues />)
+    const cards = [...container.querySelectorAll('.vcard')] as HTMLElement[]
+    venues.forEach((v, i) => {
+      const card = cards[i]
+      expect(card.querySelector('.badge')?.textContent).toBe(v.name.charAt(0).toUpperCase())
+      expect(card.textContent).toContain(v.name)
+      expect(card.textContent).toContain(v.location)
+      const link = within(card).getByRole('link', { name: venuesHead.open })
+      expect(link).toHaveAttribute('href', v.url)
+      expect(link).toHaveClass('btn', 'ghost')
+      expect(link).toHaveAttribute('target', '_blank')
+    })
+    expect(venuesHead.open).toBe('Open the demo')
+    expect(venues[0].url).toBe(site.demoUrl)
+  })
+})
+
+describe('Getting started marks (artifact design)', () => {
+  it('marks steps 2 and 3 "you" and step 4 "inv" on the timeline', () => {
+    const { container } = render(<Steps />)
+    const items = [...container.querySelectorAll('ol.timeline > li')]
+    expect(items.map((li) => li.className)).toEqual(['', 'you', 'you', 'inv'])
+  })
+})
+
+describe('Faq layout (artifact design)', () => {
+  it('each panel is a .faq of details, each summary with an aria-hidden chevron', () => {
+    const { getAllByRole } = render(<Faq />)
+    for (const panel of getAllByRole('tabpanel', { hidden: true })) {
+      expect(panel).toHaveClass('faq')
+      const summaries = [...panel.querySelectorAll('details > summary')]
+      expect(summaries).toHaveLength(3)
+      for (const s of summaries) expect(s.querySelector('.chev[aria-hidden="true"]')).not.toBeNull()
+    }
+  })
+
+  it('puts "Something else? Message us" in a p.more below the panels, not in the head', () => {
+    const { container, getAllByRole, getByRole } = render(<Faq />)
+    const more = container.querySelector('p.more') as HTMLElement
+    expect(more).not.toBeNull()
+    expect(more.textContent).toContain(faqHead.lead)
+    expect(more).toContainElement(getByRole('link', { name: faqHead.leadLink }))
+    const panels = getAllByRole('tabpanel', { hidden: true })
+    const last = panels[panels.length - 1]
+    expect(Boolean(last.compareDocumentPosition(more) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true)
+    expect(container.querySelector('.shead')?.textContent).not.toContain(faqHead.lead)
+  })
+})
+
+describe('AtAGlance layout (artifact design)', () => {
+  it('shows the key figures in .keys and the three groups as .grp cards in .groups, each titled by an h3', () => {
+    const { container } = render(<AtAGlance />)
+    expect(container.querySelector('.keys')?.children).toHaveLength(atAGlance.keyFigures.length)
+    const groups = [...container.querySelectorAll('.groups > .grp')]
+    expect(groups).toHaveLength(3)
+    atAGlance.groups.forEach((g, i) => {
+      expect(within(groups[i] as HTMLElement).getByRole('heading', { level: 3, name: g.title })).toBeInTheDocument()
+    })
   })
 })

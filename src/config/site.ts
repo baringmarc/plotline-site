@@ -70,10 +70,12 @@ export const hero = {
 export const shortVersion = {
   label: 'The short version',
   title: `Free for your venue. Players pay ${fee}.`,
+  titleHighlight: 'Free',
   lead: 'That fee is all we earn. Players pay you, not us, and Plotline never holds your money.',
   link: 'See the full pricing',
   get: {
     title: 'What you get, free',
+    titleHighlight: 'free',
     points: [
       'Your own booking page',
       'Unlimited courts',
@@ -99,6 +101,7 @@ export const venuesHead = {
   label: 'Venues',
   title: 'See a venue on Plotline',
   lead: 'Claudex Courts is our demo venue. Open it to see a booking page the way players see it.',
+  open: 'Open the demo',
 }
 
 /** The drawn phone screens, in the app's dark theme. */
@@ -115,13 +118,13 @@ export const playerSide = {
       title: 'Pick a free slot',
       body: 'Every court and hour, with your peak and off-peak prices. Tap an hour, tap more to make it longer.',
       mock: 'pick',
-      alt: 'The booking grid on a phone: three pickleball courts by the hour, with a slot picked on Pickleball 2 for 5 PM to 7 PM, the total and a Continue button.',
+      alt: 'The booking grid on a phone: three pickleball courts by the hour, open and booked slots, Pickleball 2 picked for 5 PM to 7 PM, the total and a Continue button.',
     },
     {
       title: 'Pay you directly',
       body: `Court price plus the ${fee} fee, into your GCash, Maya or bank, or through PayMongo.`,
       mock: 'pay',
-      alt: 'The payment screen: court price plus the booking fee, a choice of GCash, Maya, bank or PayMongo, and an upload button.',
+      alt: 'The payment screen: court price plus the booking fee, a choice of GCash, Maya, bank or PayMongo, the venue’s GCash QR code, and an upload button.',
     },
     {
       title: 'You confirm it',
@@ -140,20 +143,28 @@ export const playerSide = {
   sample: {
     court: 'Pickleball 2',
     when: 'Wed, Oct 28 · 5 PM–7 PM',
+    day: 'Wed, Oct 28',
+    hoursLabel: '5 to 7 PM',
     hours: 2,
     courtPrice: 1000,
     reference: 'CB-7K2QDM',
     link: 'claudex-courts.plotline.fit/booking/…',
   },
   mocks: {
-    findTitle: 'Book a court',
-    day: 'Wed, Oct 28',
+    findTitle: 'Claudex Courts',
+    findSub: 'Booking by Plotline',
+    days: ['Thu', 'Fri', 'Sat'],
     findCourts: ['Pickleball 1', 'Pickleball 2', 'Pickleball 3'],
-    findCourtsShort: ['P1', 'P2', 'P3'],
-    findHours: ['1 PM', '3 PM', '5 PM', '7 PM'],
-    pickTotal: 'Total so far',
+    findHours: ['4 PM', '5 PM', '6 PM', '7 PM', '8 PM'],
+    open: 'Open',
+    booked: 'Booked',
+    picked: 'Yours',
+    hoursPicked: '2 hours',
     continue: 'Continue',
     payTitle: 'Pay the venue',
+    paySub: 'Pickleball 2 · 5 to 7 PM',
+    qrTitle: 'Pay with GCash',
+    qrNote: 'Scan to pay the venue',
     court: (hours: number) => `Court, ${hours} hours`,
     fee: 'Booking fee',
     total: 'Total',
@@ -161,6 +172,7 @@ export const playerSide = {
     payButton: 'Upload payment proof',
     confirmed: 'Confirmed',
     reference: 'Reference',
+    confirmedTitle: 'Booking',
     linkTitle: 'Save this link',
     linkBody: 'It opens this booking without an account.',
     copy: 'Copy link',
@@ -169,7 +181,9 @@ export const playerSide = {
 
 /** A one-line strip under the player's steps. Open play is a marked session on the grid; players don't sign up in the app. */
 export const openPlay = {
-  text: 'Open play sits on the same grid, and nobody can book over it.',
+  title: 'Open play, on the same grid',
+  text: 'Post a session on any courts and hours. Nobody can book over it, and it is never billed.',
+  chips: ['Your title and details', 'Up to 3 links'],
 }
 
 /** The owner's side. Only features court-booking-system ships today (SPEC §3.1 "Feature claims"). */
@@ -181,17 +195,17 @@ export const featuresHead = {
 
 export const features = [
   {
-    icon: '📅',
+    icon: 'calendar',
     title: 'Today at a glance',
     body: 'Every court and hour, who is playing, and their reference.',
   },
   {
-    icon: '🧾',
+    icon: 'receipt',
     title: 'Payment proofs in a tap',
     body: 'Approve it, or reject it with a reason. You get a warning if the amount is off.',
   },
   {
-    icon: '🔁',
+    icon: 'move',
     title: 'Move a booking',
     body: 'Rain or repairs? Move it to another court or time in the same sport. The player sees your reason.',
   },
@@ -236,16 +250,16 @@ export const highlightsAlso = ['Guest booking, no account', 'Booking emails in y
 export const costs = {
   label: 'What it costs',
   title: `${fee} per online booking. Nothing else.`,
-  lead: 'The player pays the booking fee on top of your court price, so your rate stays yours.',
+  lead: 'The player pays the fee on top of your court price, so your rate stays yours.',
   stats: [
-    { label: 'Setup and monthly', value: peso(0), note: 'no subscription and no setup fee' },
-    { label: 'Per online booking', value: fee, note: 'paid by the player, whatever its length' },
+    { label: 'Setup and monthly', value: peso(0), note: 'No subscription and no setup fee' },
+    { label: 'Per confirmed online booking', value: fee, note: 'Paid by the player, whatever the length' },
   ],
   example: {
     title: 'One booking, worked out',
     ratePerHour: 400,
     hours: 2,
-    caption: (hours: number, rate: string) => `${hours} hours at ${rate} an hour`,
+    caption: (hours: number, rate: string) => `${hours} hours at ${rate} an hour.`,
     courtPrice: 'Court price',
     fee: 'Booking fee, paid by the player',
     playerPays: 'The player pays you',
@@ -254,7 +268,7 @@ export const costs = {
     feeLabel: 'Fee',
     playerPaysLine: 'The player pays',
     ourFee: 'Our fee',
-    notToScale: 'The fee is drawn wider than its true share so it can be read. Not to scale.',
+    notToScale: 'The fee is drawn wider than its true share so it can be read.',
   },
   compare: {
     title: 'A flat fee vs a percentage',
@@ -269,14 +283,12 @@ export const costs = {
 
 export const moneyFlow = {
   label: 'Where the money goes',
+  lead: 'Players pay you, not us. Plotline never holds your money.',
   steps: [
-    { title: 'The player books', body: `They see the court price and the ${fee} booking fee before they pay.` },
-    {
-      title: 'They pay you',
-      body: 'Straight into your own GCash, Maya or bank account, or through your own PayMongo account.',
-    },
-    { title: 'The booking is confirmed', body: 'When you approve their payment proof, or as soon as PayMongo confirms it.' },
-    { title: 'One invoice a month', body: 'Early each month we bill the fees from the month before, with every booking listed.' },
+    { title: 'Player books', body: `Sees the court price and the ${fee} fee first.` },
+    { title: 'They pay you', body: 'Into your GCash, Maya, bank or PayMongo.' },
+    { title: 'Booking confirmed', body: 'When you approve the proof, or PayMongo confirms.' },
+    { title: 'One invoice a month', body: 'The fees from last month, every booking listed.' },
   ],
   neverBilled: 'Never billed',
   quiet: 'A quiet month costs you nothing.',

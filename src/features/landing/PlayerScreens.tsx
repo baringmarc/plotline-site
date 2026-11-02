@@ -4,43 +4,64 @@ import { peso, playerSide, pricing, type ScreenMock } from '../../config/site'
 
 const { sample, mocks } = playerSide
 
-function Row({ hour, row }: { hour: string; row: number }) {
-  return (
-    <>
-      <i>{hour}</i>
-      {mocks.findCourts.map((c, i) => (
-        <span key={c} className={row === 2 && i === 1 ? 'slot on' : row === 1 && i === 2 ? 'slot taken' : 'slot'} />
-      ))}
-    </>
-  )
+/** Which cells of the booking grid (hour row, court column) are booked, and which two the player picked. */
+const TAKEN = new Set(['0-1', '1-0', '1-1', '2-2', '4-1'])
+const PICKED = new Set(['1-1', '2-1'])
+
+function cellClass(row: number, col: number): string {
+  const key = `${row}-${col}`
+  return PICKED.has(key) ? 'picked' : TAKEN.has(key) ? 'taken' : 'free'
 }
 
 function Pick() {
   return (
     <>
-      <b className="mtitle">{mocks.findTitle}</b>
-      <span>{mocks.day}</span>
-      <div className="mgrid">
-        <i />
-        {mocks.findCourtsShort.map((c) => (
+      <div className="scr-head">
+        {mocks.findTitle}
+        <small>{mocks.findSub}</small>
+      </div>
+      <div className="scr-days">
+        {mocks.days.map((d, i) => (
+          <span key={d} className={i === 1 ? 'on' : undefined}>
+            {d}
+          </span>
+        ))}
+      </div>
+      <div className="scr-grid">
+        <span />
+        {mocks.findCourts.map((c) => (
           <b key={c}>{c}</b>
         ))}
         {mocks.findHours.map((h, r) => (
-          <Row key={h} hour={h} row={r} />
+          <div key={h} style={{ display: 'contents' }}>
+            <i>{h}</i>
+            {mocks.findCourts.map((c, i) => (
+              <span key={c} className={`scr-cell ${cellClass(r, i)}`} />
+            ))}
+          </div>
         ))}
       </div>
-      <span className="mcard">
-        <b>{sample.court}</b>
-        <br />
-        {sample.when}
-      </span>
-      <dl className="msum">
-        <div className="mtotal">
-          <dt>{mocks.pickTotal}</dt>
-          <dd>{peso(sample.courtPrice)}</dd>
+      <div className="scr-key">
+        <span>
+          <span className="scr-cell free" />
+          {mocks.open}
+        </span>
+        <span>
+          <span className="scr-cell taken" />
+          {mocks.booked}
+        </span>
+        <span>
+          <span className="scr-cell picked" />
+          {mocks.picked}
+        </span>
+      </div>
+      <div className="scr-sum">
+        <div>
+          <span>{mocks.hoursPicked}</span>
+          <b>{peso(sample.courtPrice)}</b>
         </div>
-      </dl>
-      <span className="mbtn">{mocks.continue}</span>
+        <div className="scr-btn">{mocks.continue}</div>
+      </div>
     </>
   )
 }
@@ -48,29 +69,39 @@ function Pick() {
 function Pay() {
   return (
     <>
-      <b className="mtitle">{mocks.payTitle}</b>
-      <dl className="msum">
-        <div>
-          <dt>{mocks.court(sample.hours)}</dt>
-          <dd>{peso(sample.courtPrice)}</dd>
-        </div>
-        <div>
-          <dt>{mocks.fee}</dt>
-          <dd>{peso(pricing.bookingFee)}</dd>
-        </div>
-        <div className="mtotal">
-          <dt>{mocks.total}</dt>
-          <dd>{peso(sample.courtPrice + pricing.bookingFee)}</dd>
-        </div>
-      </dl>
-      <div className="mchips">
-        {mocks.methods.map((m, i) => (
-          <span key={m} className={i === 0 ? 'on' : undefined}>
-            {m}
-          </span>
-        ))}
+      <div className="scr-head">
+        {mocks.payTitle}
+        <small>{mocks.paySub}</small>
       </div>
-      <span className="mbtn">{mocks.payButton}</span>
+      <div className="scr-body">
+        <div className="scr-row">
+          <span>{mocks.court(sample.hours)}</span>
+          <span>{peso(sample.courtPrice)}</span>
+        </div>
+        <div className="scr-row">
+          <span>{mocks.fee}</span>
+          <span>{peso(pricing.bookingFee)}</span>
+        </div>
+        <div className="scr-row tot">
+          <span>{mocks.total}</span>
+          <span>{peso(sample.courtPrice + pricing.bookingFee)}</span>
+        </div>
+        <div className="scr-chips">
+          {mocks.methods.map((m) => (
+            <span key={m}>{m}</span>
+          ))}
+        </div>
+        <div className="scr-pay">
+          <img src="/demo/qr.svg" alt="" width={52} height={52} loading="lazy" />
+          <div>
+            <b>{mocks.qrTitle}</b>
+            <span>{mocks.qrNote}</span>
+          </div>
+        </div>
+      </div>
+      <div className="scr-sum">
+        <div className="scr-btn">{mocks.payButton}</div>
+      </div>
     </>
   )
 }
@@ -78,19 +109,25 @@ function Pay() {
 function Confirmed() {
   return (
     <>
-      <span className="mbadge">✓ {mocks.confirmed}</span>
-      <b className="mtitle">{sample.court}</b>
-      <span>{sample.when}</span>
-      <dl className="msum">
-        <div>
-          <dt>{mocks.reference}</dt>
-          <dd>{sample.reference}</dd>
+      <div className="scr-head">
+        {mocks.confirmedTitle}
+        <small>{mocks.findTitle}</small>
+      </div>
+      <div className="scr-body">
+        <div className="scr-badge">{mocks.confirmed}</div>
+        <div className="scr-row">
+          <span>{sample.court}</span>
+          <span>{sample.hoursLabel}</span>
         </div>
-        <div className="mtotal">
-          <dt>{mocks.total}</dt>
-          <dd>{peso(sample.courtPrice + pricing.bookingFee)}</dd>
+        <div className="scr-row">
+          <span>{sample.day}</span>
+          <span>{peso(sample.courtPrice + pricing.bookingFee)}</span>
         </div>
-      </dl>
+        <div className="scr-row">
+          <span>{mocks.reference}</span>
+          <span>{sample.reference}</span>
+        </div>
+      </div>
     </>
   )
 }
@@ -98,15 +135,16 @@ function Confirmed() {
 function Link() {
   return (
     <>
-      <b className="mtitle">{mocks.linkTitle}</b>
-      <span>{mocks.linkBody}</span>
-      <span className="murl">{sample.link}</span>
-      <span className="mbtn">{mocks.copy}</span>
-      <span className="mcard">
-        <b>{sample.court}</b>
-        <br />
-        {sample.when}
-      </span>
+      <div className="scr-head">
+        {mocks.linkTitle}
+        <small>{mocks.linkBody}</small>
+      </div>
+      <div className="scr-body">
+        <div className="scr-url">{sample.link}</div>
+      </div>
+      <div className="scr-sum">
+        <div className="scr-btn">{mocks.copy}</div>
+      </div>
     </>
   )
 }
@@ -116,7 +154,7 @@ const SCREENS: Record<ScreenMock, () => React.JSX.Element> = { pick: Pick, pay: 
 export function PlayerScreen({ mock }: { mock: ScreenMock }) {
   const Screen = SCREENS[mock]
   return (
-    <div className="mock dark" aria-hidden="true">
+    <div className="scr" aria-hidden="true">
       <Screen />
     </div>
   )
