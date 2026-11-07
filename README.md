@@ -30,7 +30,7 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 | Your side | `Features` | Three headline items and three chips, only shipped features |
 | What it costs | `Costs` | One Pricing section: two tiles, never billed, worked example as a stacked bar, "Where the money goes" timeline, flat vs percentage table (`features/landing/pricing.ts`), CTA |
 | At a glance | `AtAGlance` | Right after Pricing: four key figures, then the offer as a fact sheet in three groups |
-| Venues | `Venues` | Swipeable slider (`components/Slider.tsx`), two rows when 4+ venues. Later reads `public_venues`. |
+| Venues | `VenuesSection` | Reads `public_venues` (`features/venues/`); swipeable slider (`components/Slider.tsx`), two rows when 4+ venues; the demo card when the feed is empty. |
 | Reviews | `features/reviews` | Approved reviews from Supabase + a review form |
 | Getting started | `Steps` | 4 setup steps |
 | FAQ | `Faq` | three tabs (Players, Money, Your setup) of `<details>` answers, objection-led |
@@ -78,5 +78,5 @@ Cloudflare Workers with static assets, on `plotline.fit` and `www.plotline.fit` 
 ## Before launch
 
 - Deploy (above), then check the Messenger preview of `og.jpg`, send a test review and approve it in the console, and replace the drawn player-side screens once staging shows the ₱10 fee.
-- `bookCallUrl` stays empty and the venue list shows only the demo venue until there are real ones (`src/config/site.ts`).
+- `bookCallUrl` stays empty (`src/config/site.ts`). The venue list is live: a venue appears once a platform admin approves it in the console (court-booking-system).
 - Match features and pricing to what ships.

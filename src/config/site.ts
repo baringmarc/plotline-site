@@ -89,19 +89,25 @@ export const shortVersion = {
   },
 }
 
-export type Venue = { name: string; location: string; url?: string; logoUrl?: string }
+export type Venue = { name: string; location: string; url: string }
 
-/**
- * PLACEHOLDER: only the demo venue for now. Add real venues (with their permission) and switch `venuesHead`
- * to the "already booking online" wording; never list a venue that doesn't use Plotline.
- */
-export const venues: Venue[] = [{ name: 'Claudex Courts', location: 'Our demo venue', url: site.demoUrl }]
+/** The demo venue. Real venues come from the live feed (`public_venues`); the demo is never one of them. */
+export const demoVenue: Venue = { name: 'Claudex Courts', location: 'Our demo venue', url: site.demoUrl }
 
 export const venuesHead = {
   label: 'Venues',
   title: 'See a venue on Plotline',
   lead: 'Claudex Courts is our demo venue. Open it to see a booking page the way players see it.',
   open: 'Open the demo',
+}
+
+/** The Venues section once at least one approved venue is in the feed. */
+export const venuesLive = {
+  label: 'Venues',
+  title: 'Venues already booking online',
+  lead: 'Courts that take bookings on Plotline. Open one to book the way your players would.',
+  open: 'Book a court',
+  demo: 'Or try our demo venue, Claudex Courts',
 }
 
 /** The drawn phone screens, in the app's dark theme. */

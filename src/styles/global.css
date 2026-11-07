@@ -294,6 +294,10 @@ section.white .vcard { background: var(--bg); }
 .vcard b { display: block; font: 600 19px var(--serif); line-height: 1.25; }
 .vcard small { display: block; color: var(--text-soft); font-size: 15px; }
 .vcard .btn { margin-left: auto; padding: 10px 20px; font-size: 14px; }
+/* placeholder cards while the venue feed loads, the height of a real card */
+section.white .vcard.skeleton { height: 90px; border-color: transparent; background: linear-gradient(90deg, var(--skeleton), var(--skeleton-hi), var(--skeleton)); background-size: 200% 100%; }
+.venue-demo { margin: 20px 0 0; }
+.venue-demo a { color: var(--text-soft); font-weight: 600; }
 /* the venues and their reviews read as one section */
 #venues { padding-bottom: 56px; }
 #reviews { padding-top: 0; }

@@ -9,8 +9,8 @@ import {
   PlayerSide,
   ShortVersion,
   Steps,
-  Venues,
 } from '../features/landing/sections'
+import { VenuesSection } from '../features/venues/VenuesSection'
 import { ReviewsSection } from '../features/reviews/ReviewsSection'
 import { ContactSection } from '../features/contact/ContactForm'
 
@@ -25,7 +25,7 @@ export function LandingPage() {
       <Highlights />
       <Costs />
       <AtAGlance />
-      <Venues />
+      <VenuesSection />
       <ReviewsSection />
       <Steps />
       <Faq />

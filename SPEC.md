@@ -22,7 +22,7 @@ reviews, and send a contact form; we then set their venue up with them.
 ## 2. Roles
 | Role | Can do |
 | --- | --- |
-| Visitor (`anon`) | Read the site, read approved reviews, submit a contact form or a review through Edge Functions |
+| Visitor (`anon`) | Read the site, read approved reviews and approved venues (`public_venues`), submit a contact form or a review through Edge Functions |
 | Admin (court-booking-system) | Approve reviews, read leads |
 
 ## 3. Pages
@@ -48,7 +48,7 @@ Every async view handles loading, empty and error states. Mobile-first.
 | 4b | Your venue, your way | Four headline items (`Highlights`, after Your side): your look (banner, court photos, amenities, social links, Maps pin, house rules), the venue's own `<slug>.plotline.fit` address, up to 10 payment accounts with QR codes, every sport on one page; and three "players also get" chips (guest booking, booking emails in the venue's name, My bookings). No colour presets (being redone) |
 | 5 | What it costs | One Pricing section (T2.2): two stat tiles, a "never billed" row of crossed pills (labelled for screen readers only), a worked example drawn as a stacked bar (court price + ₱10 = what the player pays; the venue keeps the full court price; the fee is drawn wider than its share and says so), then "Where the money goes", then a flat fee vs an illustrative percentage fee table at several booking sizes. Amounts are computed from the fee in config, never typed in |
 | 6 | Where the money goes | Inside Pricing as a timeline: a 4-step flow: player books → pays the venue (its own GCash, Maya, bank or PayMongo) → the booking is confirmed → Plotline sends one monthly invoice for the fees. What's never billed sits above the worked example |
-| 7 | Venues and reviews | `Venues` lists only venues that use Plotline (for now the demo venue, Claudex Courts, as a centred card; a slider once there are more than 3), then `ReviewsSection` |
+| 7 | Venues and reviews | `VenuesSection` reads the live `public_venues` feed (active venues a platform admin approved; refreshed every 5 minutes and when the tab regains focus, no redeploy): their cards (logo or first letter, name, city, a link to `<slug>.plotline.fit`) in a centred row, a slider once there are more than 3, under the "already booking online" wording, plus a separate link to the demo. While it loads, skeleton cards; when the feed is empty or fails, the demo venue Claudex Courts as a centred card, as before (never an error or a zero). The demo venue never appears in the feed. Then `ReviewsSection` |
 | 8 | Getting started | 4 steps: you contact us → we set up your courts, hours and rates → you get your booking link → we walk you and your team through it (no QR poster: it isn't a product feature) |
 | 9 | FAQ | Objection-led questions in three tabs: Players (5), Money (4), Your setup (5), the first answer of each open; at most 120 words of answers per tab (see the rules below) |
 | 10 | At a glance | A label/value fact sheet in three groups: the service (service, courts, provider), the money (booking fee, not billed, payments, billing), your data and leaving (CSV export, leaving; §6, 2026-10-29). Four key figures sit above the groups: ₱0 setup, ₱0 monthly, the fee per online booking, 30 days to export after leaving (T2.2). The section follows Pricing |
@@ -90,7 +90,7 @@ Every async view handles loading, empty and error states. Mobile-first.
 The review form posts to the platform's `site-review` function, which stores the review with `approved = false`. Only approved reviews are public (read from `reviews`).
 
 ## 5. Data model
-This repo has no database. The tables (`leads`, `reviews`) and their RLS live in court-booking-system (`docs/PLATFORM.md`); the site reads approved `reviews` with the publishable key, and `src/lib/database.types.ts` is generated from the shared project.
+This repo has no database. The tables (`leads`, `reviews`) and their RLS live in court-booking-system (`docs/PLATFORM.md`); the site reads approved `reviews` and the `public_venues` view with the publishable key, and `src/lib/database.types.ts` is generated from the shared project.
 
 ## 6. Decisions log
 | Date | Decision | Why |
@@ -116,6 +116,7 @@ This repo has no database. The tables (`leads`, `reviews`) and their RLS live in
 | 2026-11-02 | T2.5: the FAQ is three tabs (Players, Money, Your setup). "Answers readable with JS off" is reworded to "all nine Q&As are in the DOM up front; inactive panels use `hidden`" (the user's call). The site is a client-rendered SPA, so the whole page is blank without JavaScript; a prerender would be a separate task. §3.1's fade-in line was reworded to match | A literal JS-off FAQ can't hold without prerendering |
 | 2026-11-02 | The sections below the hero were rebuilt to match the design artifact (left-aligned section heads with no accent bar, two-column short version, four dark player screens with a GCash QR on the pay screen, a dark Today view, a booking-page frame using the demo venue's own photos and a real QR from `public/demo/`, pricing cards in the artifact's order, three-card At a glance, tab FAQ). Copy tied to the Terms stays as in `site.ts`; the pricing tiles and money-flow wording follow the artifact. The visible "Never billed" label is now an `aria-label` only | The user asked for the artifact to be followed exactly; earlier tasks had worked from the task text and drifted |
 | 2026-11-02 | FAQ grows from 9 to 14 questions (the user's list, checked against court-booking-system's SAAS-PLAN and demo script): can players see their booking later, can I cancel or move a booking, do I need a payment processor, can I manage more than one facility (SAAS-PLAN 2026-10-24: one owner, several venues, each billed separately), can I block off a court. Word cap per tab 90 → 120. Not added: manual bookings (walk-ins are hidden and not claimed), customising the link and sports (already on the page), account (covered by the app answer), setup time (no documented figure) | The user wanted more owner questions answered |
+| 2026-11-07 | T3.1: the Venues section reads `public_venues` live instead of the demo-only list (supersedes the 2026-10-29 and 2026-11-02 "demo venue only" calls; court-booking-system T17.7 made Showcase approval platform-admin-only). Empty or failed feed → the demo card only; `claudex-courts` is filtered out of the feed and keeps its own link; 5-minute stale time plus refetch on focus, no polling; at most 24 venues, by name. The venue-list PLACEHOLDER is gone; only `bookCallUrl` keeps one | The user's calls (2026-11-07): visitors never see an error, a zero or an unapproved venue, and the demo is never presented as a customer |
 
 ## 7. Open questions
 - Turnstile CAPTCHA before launch: the token goes to the platform's `site-contact` function (its secret lives in court-booking-system), not to `auth.signUp`.
