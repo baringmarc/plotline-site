@@ -7,7 +7,7 @@ Plotline's marketing site (target: `https://plotline.fit`). Venue owners read ab
 - **Its `docs/PLATFORM.md` is the single source of truth** for what this site depends on:
   - the domains and Supabase projects;
   - the `site-contact` and `site-review` Edge Functions (fields, rules, replies);
-  - the public reads (`reviews`, and later `public_venues`);
+  - the public reads (`reviews` and `public_venues`);
   - the env vars.
 
   Read it before changing anything that talks to Supabase. To have it in a Claude Code session: `claude --add-dir ../court-booking-system`.
@@ -46,4 +46,4 @@ SUPABASE_PROJECT_REF=<ref> npm run db:types   # types from the shared project (s
 ## Learned rules
 Lessons from repeated mistakes, added by `/retro` with the user's approval. Follow them like any rule above. Each lists the mistake categories it covers; `/retro` promotes a rule to a hard check if its mistake keeps happening anyway.
 
-- **L1** Before calling a task done, update the TASKS.md Handoff (State, Next task) and the SPEC.md banner and goals, and grep README, SPEC and TASKS for terms the task removed or changed. Write acceptance greps so they pass with the leftovers on purpose (for example the two kept PLACEHOLDER markers). _Why:_ the reviewer blocked three tasks for stale docs. _(categories: docs-drift; added 2026-11-02 from /retro M1)_
+- **L1** Before calling a task done, update the TASKS.md Handoff (State, Next task) and the SPEC.md banner and goals, and grep README, SPEC and TASKS for terms the task removed or changed. Write acceptance greps so they pass with the leftovers on purpose (for example the kept PLACEHOLDER marker on `bookCallUrl`). _Why:_ the reviewer blocked three tasks for stale docs. _(categories: docs-drift; added 2026-11-02 from /retro M1)_

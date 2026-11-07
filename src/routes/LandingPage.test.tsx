@@ -4,11 +4,12 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { LandingPage } from './LandingPage'
 
-// No network: the reviews read and the forms are mocked at their api modules.
+// No network: the reviews read, the venue feed and the forms are mocked at their api modules.
 vi.mock('../features/reviews/api', () => ({
   fetchApprovedReviews: () => Promise.resolve([]),
   sendReview: vi.fn(),
 }))
+vi.mock('../features/venues/api', () => ({ fetchPublicVenues: () => Promise.resolve([]), DEMO_SLUG: 'claudex-courts' }))
 vi.mock('../features/contact/api', () => ({ sendContact: vi.fn() }))
 vi.mock('../components/Turnstile', () => ({ Turnstile: () => null }))
 

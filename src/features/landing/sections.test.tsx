@@ -1,5 +1,7 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   atAGlance,
@@ -22,8 +24,6 @@ import {
   site,
   steps,
   stepsHead,
-  venues,
-  venuesHead,
 } from '../../config/site'
 import { feeComparison, workedExample } from './pricing'
 import * as sectionsModule from './sections'
@@ -38,8 +38,25 @@ import {
   PlayerSide,
   ShortVersion,
   Steps,
-  Venues,
 } from './sections'
+import { VenuesSection } from '../venues/VenuesSection'
+
+// No network: the venue feed is mocked at its api module (T3.1).
+vi.mock('../venues/api', () => ({ fetchPublicVenues: () => Promise.resolve([]), DEMO_SLUG: 'claudex-courts' }))
+
+/** The Venues section in its demo state (an empty feed), rendered at once from a seeded cache (T3.1). */
+function VenuesDemo() {
+  const [client] = useState(() => {
+    const c = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    c.setQueryData(['venues', 'public'], [])
+    return c
+  })
+  return (
+    <QueryClientProvider client={client}>
+      <VenuesSection />
+    </QueryClientProvider>
+  )
+}
 
 /** Every section that needs no data (Venues and the reviews have their own states). */
 const STATIC_SECTIONS = [
@@ -592,7 +609,7 @@ describe('Hero', () => {
 // ---- T2.1 Copy pass ----------------------------------------------------------------------------
 
 /** Every section of the landing page that renders without data (the reviews and the form aside). */
-const PAGE_SECTIONS = [...STATIC_SECTIONS, ['Venues', Venues]] as const
+const PAGE_SECTIONS = [...STATIC_SECTIONS, ['Venues', VenuesDemo]] as const
 
 /** Words in a piece of text, split on whitespace. */
 function words(text: string | null | undefined): number {
@@ -807,6 +824,11 @@ describe('a different booking fee, across the page (T2.1)', () => {
       return { pricing, peso: (n: number) => `${pricing.currency}${n.toLocaleString('en-PH')}` }
     })
     const swapped = await import('./sections')
+    // The Venues section (T3.1) in its demo state, from the same fresh module registry as the swapped pricing.
+    const { VenuesSection: SwappedVenues } = await import('../venues/VenuesSection')
+    const rq = await import('@tanstack/react-query')
+    const venuesClient = new rq.QueryClient({ defaultOptions: { queries: { retry: false } } })
+    venuesClient.setQueryData(['venues', 'public'], [])
     const { container } = render(
       <>
         <swapped.Hero />
@@ -816,7 +838,9 @@ describe('a different booking fee, across the page (T2.1)', () => {
         <swapped.Highlights />
         <swapped.Costs />
         <swapped.AtAGlance />
-        <swapped.Venues />
+        <rq.QueryClientProvider client={venuesClient}>
+          <SwappedVenues />
+        </rq.QueryClientProvider>
         <swapped.Steps />
         <swapped.Faq />
         <swapped.FinalBand />
@@ -1060,28 +1084,15 @@ describe('section heads (artifact design)', () => {
   )
 })
 
-describe('Venues (artifact design)', () => {
-  it('sits on a white section with one .vcard per venue', () => {
-    const { container } = render(<Venues />)
-    expect(container.querySelector('section#venues')).toHaveClass('white')
-    expect(container.querySelectorAll('.vcard')).toHaveLength(venues.length)
+describe('Venues (artifact design, moved to features/venues in T3.1)', () => {
+  it('is no longer a static section: VenuesSection replaces Venues (its tests: VenuesSection.test.tsx)', () => {
+    expect(sectionsModule).not.toHaveProperty('Venues')
   })
 
-  it('each card shows the first letter as its badge, the name and location, and a ghost "Open the demo" link to the demo', () => {
-    const { container } = render(<Venues />)
-    const cards = [...container.querySelectorAll('.vcard')] as HTMLElement[]
-    venues.forEach((v, i) => {
-      const card = cards[i]
-      expect(card.querySelector('.badge')?.textContent).toBe(v.name.charAt(0).toUpperCase())
-      expect(card.textContent).toContain(v.name)
-      expect(card.textContent).toContain(v.location)
-      const link = within(card).getByRole('link', { name: venuesHead.open })
-      expect(link).toHaveAttribute('href', v.url)
-      expect(link).toHaveClass('btn', 'ghost')
-      expect(link).toHaveAttribute('target', '_blank')
-    })
-    expect(venuesHead.open).toBe('Open the demo')
-    expect(venues[0].url).toBe(site.demoUrl)
+  it('the demo state sits on a white section with one .vcard', () => {
+    const { container } = render(<VenuesDemo />)
+    expect(container.querySelector('section#venues')).toHaveClass('white')
+    expect(container.querySelectorAll('.vcard')).toHaveLength(1)
   })
 })
 

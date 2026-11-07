@@ -3,7 +3,6 @@ import { useRef, useState, type KeyboardEvent } from 'react'
 import { PhoneMockup } from '../../components/PhoneMockup'
 import { Reveal } from '../../components/Reveal'
 import { SectionHead } from '../../components/SectionHead'
-import { Slider } from '../../components/Slider'
 import {
   atAGlance,
   contactAnchor,
@@ -30,9 +29,6 @@ import {
   site,
   steps,
   stepsHead,
-  venues,
-  venuesHead,
-  type Venue,
 } from '../../config/site'
 import { FeatureIcon, TodayGrid, VenueFrame } from './Illustrations'
 import { PlayerScreen } from './PlayerScreens'
@@ -106,47 +102,6 @@ function withHighlight(text: string, words: string) {
       <em>{words}</em>
       {text.slice(at + words.length)}
     </>
-  )
-}
-
-function VenueCard({ venue }: { venue: Venue }) {
-  return (
-    <div className="vcard">
-      <span className="badge">{venue.logoUrl ? <img src={venue.logoUrl} alt="" loading="lazy" /> : venue.name.charAt(0).toUpperCase()}</span>
-      <div>
-        <b>{venue.name}</b>
-        <small>{venue.location}</small>
-      </div>
-      {venue.url && (
-        <a className="btn ghost" href={venue.url} target="_blank" rel="noreferrer">
-          {venuesHead.open}
-        </a>
-      )}
-    </div>
-  )
-}
-
-export function Venues() {
-  return (
-    <section className="white" id="venues">
-      <div className="in">
-        <SectionHead label={venuesHead.label} title={venuesHead.title} lead={venuesHead.lead} />
-        {/* a few venues sit in one centred row; a longer list becomes a swipeable slider */}
-        {venues.length > 3 ? (
-          <Slider label="Venues" twoRows={venues.length >= 4}>
-            {venues.map((v) => (
-              <VenueCard key={v.name} venue={v} />
-            ))}
-          </Slider>
-        ) : (
-          <div className="venuerow">
-            {venues.map((v) => (
-              <VenueCard key={v.name} venue={v} />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
   )
 }
 

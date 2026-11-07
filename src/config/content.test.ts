@@ -5,15 +5,16 @@ import html from '../../index.html?raw'
 import legalSource from './legal.ts?raw'
 import source from './site.ts?raw'
 import * as content from './site'
-import { faqGroups, hero, messageLink, shortVersion, site, venues } from './site'
+import { demoVenue, faqGroups, hero, messageLink, shortVersion, site } from './site'
 
 describe('site content', () => {
   it('has no sample or example values left', () => {
     for (const text of [source, html]) expect(text).not.toMatch(/example\.com|your-page|Sample /)
   })
 
-  it('lists only real venues: for now the demo venue, linked to the demo', () => {
-    expect(venues).toEqual([expect.objectContaining({ name: 'Claudex Courts', url: site.demoUrl })])
+  it('keeps only the demo venue in config, linked to the demo; real venues come from the live feed (T3.1)', () => {
+    expect(demoVenue).toEqual(expect.objectContaining({ name: 'Claudex Courts', url: site.demoUrl }))
+    expect(content).not.toHaveProperty('venues')
   })
 
   it('sends "Message us" to email until the Messenger link is set', () => {
@@ -31,7 +32,7 @@ describe('site content', () => {
     expect(site.bookCallUrl).toBe('')
   })
 
-  it('leaves PLACEHOLDER markers only on bookCallUrl and the venue list', () => {
+  it('leaves a PLACEHOLDER marker only on bookCallUrl (the venue list is live since T3.1)', () => {
     /** The first code line after each `PLACEHOLDER:` marker: the value it marks. */
     const marked = (text: string) => {
       const lines = text.split('\n')
@@ -43,9 +44,9 @@ describe('site content', () => {
       })
     }
     const inSite = marked(source)
-    expect(inSite).toHaveLength(2)
+    expect(inSite).toHaveLength(1)
     expect(inSite.some((l) => l.startsWith('bookCallUrl:'))).toBe(true)
-    expect(inSite.some((l) => l.startsWith('export const venues'))).toBe(true)
+    expect(inSite.some((l) => /export const (venues|demoVenue)/.test(l))).toBe(false)
 
     const inLegal = marked(legalSource)
     expect(inLegal).toHaveLength(0)
