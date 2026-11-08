@@ -28,12 +28,13 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 | The short version | `ShortVersion` | A two-column card: the cost in one line and a link to Pricing, beside what you get as ticked chips |
 | The player's side | `PlayerSide` | 4 drawn dark phone screens (`PlayerScreens.tsx`, the pay screen with a GCash QR), open play card |
 | Your side | `Features` | Three headline items and three chips, only shipped features |
+| Your venue, your way | `Highlights` | Four headline items (your look, own `<slug>.plotline.fit` address, payment accounts, every sport) and three "players also get" chips, beside a drawn booking-page frame (`Illustrations.tsx`) |
 | What it costs | `Costs` | One Pricing section: two tiles, never billed, worked example as a stacked bar, "Where the money goes" timeline, flat vs percentage table (`features/landing/pricing.ts`), CTA |
 | At a glance | `AtAGlance` | Right after Pricing: four key figures, then the offer as a fact sheet in three groups |
 | Venues | `VenuesSection` | Reads `public_venues` (`features/venues/`); swipeable slider (`components/Slider.tsx`), two rows when 4+ venues; the demo card when the feed is empty. |
 | Reviews | `features/reviews` | Approved reviews from Supabase + a review form |
 | Getting started | `Steps` | 4 setup steps |
-| FAQ | `Faq` | three tabs (Players, Money, Your setup) of `<details>` answers, objection-led |
+| FAQ | `Faq` | Three tabs (Players, Money, Your setup) with `<details>` answers, the first of each open, objection-led; all Q&As stay in the DOM |
 | Contact | `features/contact` | Owner contact form at `#contact` → `site-contact`, with Turnstile (`components/Turnstile.tsx`) |
 | Final band + footer | `FinalBand`, `components/Footer.tsx` | |
 
