@@ -1,18 +1,8 @@
 /**
- * Drawings for "Your side" and "Your venue". Inline markup coloured from the site's tokens, so both
- * themes work. They are decorative: the section text carries the meaning. Sample names and times are
- * made up; no amounts are shown. The venue page uses the demo venue's own photos from /demo.
+ * Drawings for "Your venue". Inline markup coloured from the site's tokens, so both themes work. They
+ * are decorative: the section text carries the meaning. No amounts are shown. The venue page uses the
+ * demo venue's own photos from /demo. ("Your side" uses real admin screenshots since T4.1.)
  */
-
-const COURTS = ['Court 1', 'Court 2', 'Court 3', 'Court 4']
-const HOURS = ['5 PM', '6 PM', '7 PM', '8 PM']
-/** [hour][court]: a guest's first name for a booking, 'Open' for a free slot, 'Proof' for one waiting on a payment proof */
-const SLOTS = [
-  ['Ana', 'Open', 'Ben', 'Open'],
-  ['Ana', 'Proof', 'Ben', 'Cris'],
-  ['Open', 'Proof', 'Open', 'Cris'],
-  ['Open', 'Open', 'Dan', 'Open'],
-]
 
 const ICONS: Record<string, React.JSX.Element> = {
   calendar: (
@@ -30,52 +20,12 @@ const ICONS: Record<string, React.JSX.Element> = {
   move: <path d="M4 8h13l-3-3M20 16H7l3 3" />,
 }
 
-/** The line icon in a "Your side" item. Unknown names draw nothing. */
+/** A small line icon (calendar, receipt, move). Unknown names draw nothing. */
 export function FeatureIcon({ name }: { name: string }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       {ICONS[name]}
     </svg>
-  )
-}
-
-export function TodayGrid() {
-  return (
-    <div className="dash" aria-hidden="true">
-      <div className="dash-top">
-        <b>Today</b>
-        <span>Wed, Oct 28</span>
-      </div>
-      <div className="dash-grid">
-        <span />
-        {COURTS.map((c) => (
-          <span key={c} className="h">
-            {c}
-          </span>
-        ))}
-        {SLOTS.map((row, r) => (
-          <div key={HOURS[r]} style={{ display: 'contents' }}>
-            <span className="t">{HOURS[r]}</span>
-            {row.map((cell, c) => (
-              <div key={c} className={`dash-cell ${cell === 'Open' ? 'open' : cell === 'Proof' ? 'wait' : 'booked'}`}>
-                {cell}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="dash-proof">
-        <span className="dash-thumb" />
-        <span className="txt">
-          <b>Court 2, 6 to 8 PM</b>
-          Proof received. Amount matches.
-        </span>
-        <span className="btns">
-          <span className="ok">Approve</span>
-          <span>Reject</span>
-        </span>
-      </div>
-    </div>
   )
 }
 

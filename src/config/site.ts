@@ -192,33 +192,112 @@ export const openPlay = {
   chips: ['Your title and details', 'Up to 3 links'],
 }
 
-/** The owner's side. Only features court-booking-system ships today (SPEC §3.1 "Feature claims"). */
-export const featuresHead = {
-  label: 'Your side',
-  title: 'Run your courts from your phone',
-  lead: 'Everything you need at the counter, with nothing new to learn.',
+/** One screenshot of the app's admin, made in court-booking-system (T21.1) and copied to public/admin-tour/. */
+export type AdminShot = { src: string; alt: string; width: number; height: number }
+
+/** One tab of the admin tour: an admin page, its screenshots and two or three callouts. */
+export type AdminTourTab = {
+  id: string
+  label: string
+  title: string
+  shots: AdminShot[]
+  phone?: AdminShot
+  callouts: string[]
 }
 
-export const features = [
+const desktop = (file: string, alt: string): AdminShot => ({ src: `/admin-tour/${file}`, alt, width: 1280, height: 800 })
+const phone = (file: string, alt: string): AdminShot => ({ src: `/admin-tour/${file}`, alt, width: 720, height: 1520 })
+
+/**
+ * The owner's side: a tour of the seven admin pages, in the app's sidebar order, with real screenshots
+ * of the demo venue. Only features court-booking-system ships today (SPEC §3.1 "Feature claims").
+ */
+export const adminTourHead = {
+  label: 'Your side',
+  title: 'Run your courts from your phone',
+  lead: 'Every venue gets its own admin, on the computer at the counter or on your phone. These are its seven pages, shown with our demo venue.',
+}
+
+export const adminTour: AdminTourTab[] = [
   {
-    icon: 'calendar',
+    id: 'dashboard',
+    label: 'Dashboard',
     title: 'Today at a glance',
-    body: 'Every court and hour, who is playing, and their reference.',
+    shots: [
+      desktop('dashboard-desktop.png', 'The admin dashboard: payment proofs to review, today’s bookings and the next booking'),
+      desktop('earnings-desktop.png', 'Earnings for this month: money collected, booking fees and booked hours'),
+    ],
+    phone: phone('dashboard-phone.png', 'The same dashboard on a phone screen'),
+    callouts: [
+      'Every court and hour today, who is playing, and their reference.',
+      'Earnings for today, this week or this month, with booked hours.',
+      'Export your bookings and payments as CSV.',
+    ],
   },
   {
-    icon: 'receipt',
+    id: 'bookings',
+    label: 'Bookings',
     title: 'Payment proofs in a tap',
-    body: 'Approve it, or reject it with a reason. You get a warning if the amount is off.',
+    shots: [desktop('bookings-desktop.png', 'The bookings list with a player’s payment proof open for review')],
+    phone: phone('bookings-phone.png', 'A payment proof under review on a phone screen'),
+    callouts: [
+      'Check payment proofs: approve, or reject with a reason. You get a warning if the amount is off.',
+      'Move a booking to another court or time in the same sport. The player sees your reason.',
+    ],
   },
   {
-    icon: 'move',
-    title: 'Move a booking',
-    body: 'Rain or repairs? Move it to another court or time in the same sport. The player sees your reason.',
+    id: 'schedule',
+    label: 'Schedule',
+    title: 'Hours, closures and rates',
+    shots: [desktop('schedule-desktop.png', 'Opening hours for each day of the week, with a week-at-a-glance chart')],
+    callouts: [
+      'Set your opening hours for each day of the week.',
+      'Block off one court or the whole venue: blackouts nobody can book over.',
+      'Set peak and off-peak rates for the busy hours.',
+    ],
+  },
+  {
+    id: 'open-play',
+    label: 'Open Play',
+    title: 'Open play on the same grid',
+    shots: [desktop('open-play-desktop.png', 'The open play page with upcoming sessions')],
+    callouts: [
+      'Post a session on any courts and hours, with your title and details.',
+      'Nobody can book over it, and it is never billed.',
+    ],
+  },
+  {
+    id: 'courts',
+    label: 'Courts',
+    title: 'Every court, by sport',
+    shots: [desktop('courts-desktop.png', 'The courts page: courts grouped by sport, each with its hourly rate')],
+    callouts: [
+      'Add as many courts as you have, grouped by sport.',
+      'Give each court its photos and its own hourly rate.',
+    ],
+  },
+  {
+    id: 'reports',
+    label: 'Reports',
+    title: 'Plotline’s fees, in the open',
+    shots: [desktop('reports-desktop.png', 'The fee statement: this month’s booking fees so far and the month’s totals')],
+    callouts: [
+      'See this month’s booking fees as they add up.',
+      'Each month’s totals and your past invoices in one place.',
+    ],
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    title: 'Your venue, your rules',
+    shots: [desktop('settings-desktop.png', 'Venue settings in five groups, from the venue profile to policies')],
+    callouts: [
+      'Your venue’s name, location and contact details.',
+      'Payment accounts and the instructions players see.',
+      'Booking window, payment hold, cancellation rules and your waiver.',
+    ],
   },
 ]
-
-export const featuresAlsoLabel = 'Also in your admin'
-export const featuresAlso = ['Peak and off-peak rates', 'Hours and blackouts', 'Earnings and occupancy, with CSV export']
 
 /** Platform features that make a venue's page its own. No colour presets yet: they are being redone (SPEC §3.1). */
 export const highlightsHead = {

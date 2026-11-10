@@ -1,8 +1,8 @@
 import {
+  AdminTour,
   AtAGlance,
   Costs,
   Faq,
-  Features,
   Highlights,
   FinalBand,
   Hero,
@@ -21,7 +21,7 @@ export function LandingPage() {
       <Hero />
       <ShortVersion />
       <PlayerSide />
-      <Features />
+      <AdminTour />
       <Highlights />
       <Costs />
       <AtAGlance />

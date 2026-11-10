@@ -27,7 +27,7 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 | Hero | `Hero` | Promises, CTA and demo link, CSS phone mockup (`components/PhoneMockup.tsx`) |
 | The short version | `ShortVersion` | A two-column card: the cost in one line and a link to Pricing, beside what you get as ticked chips |
 | The player's side | `PlayerSide` | 4 drawn dark phone screens (`PlayerScreens.tsx`, the pay screen with a GCash QR), open play card |
-| Your side | `Features` | Three headline items and three chips, only shipped features |
+| Your side | `AdminTour` | Tabbed tour of the seven admin pages with real screenshots (`public/admin-tour/`, made in court-booking-system), callouts of shipped features only |
 | Your venue, your way | `Highlights` | Four headline items (your look, own `<slug>.plotline.fit` address, payment accounts, every sport) and three "players also get" chips, beside a drawn booking-page frame (`Illustrations.tsx`) |
 | What it costs | `Costs` | One Pricing section: two tiles, never billed, worked example as a stacked bar, "Where the money goes" timeline, flat vs percentage table (`features/landing/pricing.ts`), CTA |
 | At a glance | `AtAGlance` | Right after Pricing: four key figures, then the offer as a fact sheet in three groups |

@@ -4,16 +4,14 @@ import { PhoneMockup } from '../../components/PhoneMockup'
 import { Reveal } from '../../components/Reveal'
 import { SectionHead } from '../../components/SectionHead'
 import {
+  adminTour,
+  adminTourHead,
   atAGlance,
   contactAnchor,
   costs,
   faqGroups,
   faqHead,
   finalBand,
-  features,
-  featuresAlso,
-  featuresAlsoLabel,
-  featuresHead,
   hero,
   highlights,
   highlightsAlso,
@@ -30,7 +28,7 @@ import {
   steps,
   stepsHead,
 } from '../../config/site'
-import { FeatureIcon, TodayGrid, VenueFrame } from './Illustrations'
+import { VenueFrame } from './Illustrations'
 import { PlayerScreen } from './PlayerScreens'
 import { feeComparison, workedExample } from './pricing'
 
@@ -155,30 +153,102 @@ function ChipList({ label, items }: { label: string; items: string[] }) {
   )
 }
 
-export function Features() {
+/** A tablist's keys (WAI-ARIA tabs): arrows wrap, Home and End jump. Null for any other key. */
+function nextTab(key: string, i: number, last: number): number | null {
+  if (key === 'ArrowRight') return i === last ? 0 : i + 1
+  if (key === 'ArrowLeft') return i === 0 ? last : i - 1
+  if (key === 'Home') return 0
+  if (key === 'End') return last
+  return null
+}
+
+/** "Your side": a tour of the admin pages, one tab each, with real screenshots. Hidden panels' images are lazy, so they load only when shown. */
+export function AdminTour() {
+  const [active, setActive] = useState(0)
+  const tabs = useRef<(HTMLButtonElement | null)[]>([])
+
+  const onKeyDown = (e: KeyboardEvent, i: number) => {
+    const next = nextTab(e.key, i, adminTour.length - 1)
+    if (next === null) return
+    e.preventDefault()
+    setActive(next)
+    tabs.current[next]?.focus()
+  }
+
   return (
     <section className="white" id="features">
       <div className="in">
-        <div className="side-split">
-          <div>
-            <SectionHead label={featuresHead.label} title={featuresHead.title} lead={featuresHead.lead} />
-            <div className="side-items">
-              {features.map((f, i) => (
-                <Reveal key={f.title} className="side-item" delay={i * 80}>
-                  <span className="ico" aria-hidden="true">
-                    <FeatureIcon name={f.icon} />
-                  </span>
-                  <div>
-                    <h3>{f.title}</h3>
-                    <p>{f.body}</p>
+        <SectionHead label={adminTourHead.label} title={adminTourHead.title} lead={adminTourHead.lead} />
+        <div className="admin-tabs" role="tablist" aria-label={adminTourHead.title}>
+          {adminTour.map((t, i) => (
+            <button
+              key={t.id}
+              ref={(el) => {
+                tabs.current[i] = el
+              }}
+              type="button"
+              role="tab"
+              id={`admin-tab-${t.id}`}
+              aria-selected={i === active}
+              aria-controls={`admin-panel-${t.id}`}
+              tabIndex={i === active ? 0 : -1}
+              onClick={() => setActive(i)}
+              onKeyDown={(e) => onKeyDown(e, i)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {adminTour.map((t, i) => (
+          <div
+            key={t.id}
+            className="admin-panel"
+            role="tabpanel"
+            id={`admin-panel-${t.id}`}
+            aria-labelledby={`admin-tab-${t.id}`}
+            hidden={i !== active}
+          >
+            <div className="admin-shots">
+              {t.shots.map((s, j) => (
+                <div key={s.src} className="admin-frame">
+                  <div className="browser-bar" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
                   </div>
-                </Reveal>
+                  <img
+                    src={s.src}
+                    alt={s.alt}
+                    width={s.width}
+                    height={s.height}
+                    loading={i === 0 && j === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                  />
+                </div>
               ))}
             </div>
-            <ChipList label={featuresAlsoLabel} items={featuresAlso} />
+            <div className="admin-text">
+              <h3>{t.title}</h3>
+              <ul>
+                {t.callouts.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+              {t.phone && (
+                <div className="admin-phone">
+                  <img
+                    src={t.phone.src}
+                    alt={t.phone.alt}
+                    width={t.phone.width}
+                    height={t.phone.height}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              )}
+            </div>
           </div>
-          <TodayGrid />
-        </div>
+        ))}
       </div>
     </section>
   )
@@ -359,13 +429,7 @@ export function Faq() {
     tabs.current[i]?.focus()
   }
   const onKeyDown = (e: KeyboardEvent, i: number) => {
-    const last = faqGroups.length - 1
-    const next =
-      e.key === 'ArrowRight' ? (i === last ? 0 : i + 1)
-      : e.key === 'ArrowLeft' ? (i === 0 ? last : i - 1)
-      : e.key === 'Home' ? 0
-      : e.key === 'End' ? last
-      : null
+    const next = nextTab(e.key, i, faqGroups.length - 1)
     if (next === null) return
     e.preventDefault()
     select(next)
