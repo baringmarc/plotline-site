@@ -1,9 +1,10 @@
 // The static sections of the landing page, top to bottom. Their words come from config/site.ts.
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { PhoneMockup } from '../../components/PhoneMockup'
 import { Reveal } from '../../components/Reveal'
 import { SectionHead } from '../../components/SectionHead'
 import {
+  adminDemo,
   adminTour,
   adminTourHead,
   atAGlance,
@@ -162,6 +163,53 @@ function nextTab(key: string, i: number, last: number): number | null {
   return null
 }
 
+/**
+ * "Watch the demo": the silent admin video, click to play. preload="none" and no autoplay, so nothing of the video
+ * loads until play; the poster waits until the block nears the viewport (straight away without IntersectionObserver),
+ * so the first load fetches nothing new. The captions track is off by default: they are burned into the picture.
+ */
+export function AdminDemo() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [near, setNear] = useState(() => typeof IntersectionObserver === 'undefined')
+
+  useEffect(() => {
+    const el = ref.current
+    if (near || !el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNear(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin: '400px 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [near])
+
+  return (
+    <div className="admin-demo" ref={ref}>
+      <h3>{adminDemo.title}</h3>
+      <p>{adminDemo.caption}</p>
+      <video
+        controls
+        preload="none"
+        playsInline
+        width={adminDemo.width}
+        height={adminDemo.height}
+        poster={near ? adminDemo.poster : undefined}
+      >
+        {adminDemo.sources.map((s) => (
+          <source key={s.src} src={s.src} type={s.type} />
+        ))}
+        <track kind="captions" src={adminDemo.captions.src} srcLang={adminDemo.captions.srclang} label={adminDemo.captions.label} />
+        {adminDemo.fallback}
+      </video>
+    </div>
+  )
+}
+
 /** "Your side": a tour of the admin pages, one tab each, with real screenshots. Hidden panels' images are lazy, so they load only when shown. */
 export function AdminTour() {
   const [active, setActive] = useState(0)
@@ -249,6 +297,7 @@ export function AdminTour() {
             </div>
           </div>
         ))}
+        <AdminDemo />
       </div>
     </section>
   )

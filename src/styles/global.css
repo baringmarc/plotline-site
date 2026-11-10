@@ -23,6 +23,7 @@
   --text-soft: var(--brown-soft);
   --line: var(--sand);
   --highlight: var(--terracotta);
+  --mark: var(--rose);        /* the highlighter band under an <em> word */
   --on-highlight: var(--cream);
   --panel: var(--sand);
   --band: var(--brown);
@@ -64,6 +65,7 @@
     --text-soft: var(--sand);
     --line: var(--brown-soft);
     --highlight: var(--rose);
+    --mark: rgba(232, 196, 184, 0.28); /* see-through, so the rose word on it stays whole */
     --on-highlight: var(--brown);
     --panel: #4a3b33;
     --band: #2a211d;
@@ -401,6 +403,11 @@ section.white .vcard.skeleton { height: 90px; border-color: transparent; backgro
 .admin-text ul { margin: 0; padding-left: 20px; display: grid; gap: 10px; color: var(--text-soft); font-size: 16px; }
 .admin-phone { margin-top: 24px; max-width: 220px; border: 6px solid var(--text); border-radius: 26px; overflow: hidden; box-shadow: var(--shadow); background: var(--surface); }
 .admin-phone img { width: 100%; }
+/* "Watch the demo" (T4.2): the silent admin video under the tour, a fixed 16:9 box so nothing shifts. */
+.admin-demo { margin-top: 48px; max-width: 880px; }
+.admin-demo h3 { margin: 0 0 6px; font-size: 22px; line-height: 1.2; }
+.admin-demo p { margin: 0 0 16px; color: var(--text-soft); font-size: 15px; }
+.admin-demo video { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 16 / 9; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 
 /* the venue page in a browser frame, with the venue's own photos */
 .browser { background: var(--surface); border-radius: 18px; border: 1px solid var(--line); box-shadow: var(--shadow); overflow: hidden; max-width: 560px; width: 100%; justify-self: center; position: relative; color: var(--text); }
@@ -549,7 +556,7 @@ form.formcard > .btn { align-self: flex-start; }
 .short p a { font-weight: 700; }
 .short .get { margin: 0 0 12px; font: 700 17px var(--sans); }
 @media (min-width: 760px) { .short { grid-template-columns: 1fr 1.3fr; gap: 48px; padding: 36px; } }
-.short em { font-style: normal; color: var(--highlight); background: linear-gradient(transparent 62%, var(--rose) 62%); padding: 0 4px; border-radius: 3px; }
+.short em { font-style: normal; color: var(--highlight); background: linear-gradient(transparent 62%, var(--mark) 62%); padding: 0 4px; border-radius: 3px; }
 
 /* faq: three tabs, each with its own list of questions */
 .faq-tabs { display: flex; gap: 8px; margin: 0 0 20px; flex-wrap: wrap; }

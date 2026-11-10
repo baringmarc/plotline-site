@@ -37,9 +37,9 @@ describe('admin tour config (T4.1)', () => {
     expect(adminTour.map((t) => t.label)).toEqual(LABELS)
   })
 
-  it('keeps the section label "Your side" and the nav link to #features unchanged', () => {
+  it('keeps the section label "Your side" and names the nav link to #features "For venue owners" (user, 2026-11-11)', () => {
     expect(adminTourHead.label).toBe('Your side')
-    expect(navLinks).toContainEqual({ href: '#features', label: 'Your side' })
+    expect(navLinks).toContainEqual({ href: '#features', label: 'For venue owners' })
   })
 
   it('has a head that says every venue gets its own admin, and keeps the "from your phone" line', () => {

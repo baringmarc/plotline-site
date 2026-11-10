@@ -36,7 +36,7 @@ const fee = peso(pricing.bookingFee)
 /** Section anchors in the top bar. Each must match a section id on the landing page. */
 export const navLinks = [
   { href: '#players', label: 'For players' },
-  { href: '#features', label: 'Your side' },
+  { href: '#features', label: 'For venue owners' },
   { href: '#pricing', label: 'Pricing' },
   { href: '#faq', label: 'FAQ' },
 ]
@@ -298,6 +298,24 @@ export const adminTour: AdminTourTab[] = [
     ],
   },
 ]
+
+/**
+ * "Watch the demo" under the tour: the scripted, silent admin video made in court-booking-system (T21.2), self-hosted
+ * in public/admin-tour/. Click to play only. The captions are burned into the picture, so the track is off by default.
+ */
+export const adminDemo = {
+  title: 'Watch the demo',
+  caption: 'The admin in 70 seconds. No sound: the captions are on screen.',
+  width: 1280,
+  height: 720,
+  poster: '/admin-tour/admin-demo-poster.jpg',
+  sources: [
+    { src: '/admin-tour/admin-demo.webm', type: 'video/webm' },
+    { src: '/admin-tour/admin-demo.mp4', type: 'video/mp4' },
+  ],
+  captions: { src: '/admin-tour/admin-demo.vtt', srclang: 'en', label: 'English' },
+  fallback: 'Your browser can’t play this video.',
+}
 
 /** Platform features that make a venue's page its own. No colour presets yet: they are being redone (SPEC §3.1). */
 export const highlightsHead = {
