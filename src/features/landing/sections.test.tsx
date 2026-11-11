@@ -9,8 +9,6 @@ import {
   costs,
   faqGroups,
   faqHead,
-  features,
-  featuresAlso,
   highlights,
   highlightsAlso,
   moneyFlow,
@@ -31,7 +29,7 @@ import {
   AtAGlance,
   Costs,
   Faq,
-  Features,
+  AdminTour,
   Highlights,
   FinalBand,
   Hero,
@@ -63,7 +61,7 @@ const STATIC_SECTIONS = [
   ['Hero', Hero],
   ['ShortVersion', ShortVersion],
   ['PlayerSide', PlayerSide],
-  ['Features', Features],
+  ['AdminTour', AdminTour],
   ['Highlights', Highlights],
   ['Costs', Costs],
   ['AtAGlance', AtAGlance],
@@ -693,25 +691,6 @@ describe('ShortVersion (T2.1)', () => {
   })
 })
 
-describe('Features (T2.1)', () => {
-  it('shows exactly 3 headline cards and 3 "also" chips', () => {
-    expect(features).toHaveLength(3)
-    expect(featuresAlso).toHaveLength(3)
-    const { getByRole, getByText } = render(<Features />)
-    for (const f of features) {
-      expect(getByRole('heading', { name: f.title })).toBeInTheDocument()
-      expect(getByText(f.body)).toBeInTheDocument()
-    }
-    for (const chip of featuresAlso) expect(getByText(chip)).toBeInTheDocument()
-  })
-
-  it('keeps peak/off-peak rates, hours and blackouts, and earnings and occupancy with CSV as chips', () => {
-    expect(featuresAlso.some((c) => /peak/i.test(c) && /off-peak/i.test(c))).toBe(true)
-    expect(featuresAlso.some((c) => /hours/i.test(c) && /blackout/i.test(c))).toBe(true)
-    expect(featuresAlso.some((c) => /earnings/i.test(c) && /occupancy/i.test(c) && /CSV/.test(c))).toBe(true)
-  })
-})
-
 describe('Highlights (T2.1)', () => {
   it('shows exactly 4 headline cards and 3 "also" chips', () => {
     expect(highlights).toHaveLength(4)
@@ -775,7 +754,7 @@ const FEATURE_CLAIMS: [string, RegExp][] = [
   ['peak and off-peak rates', /peak and off-peak/i],
   ['hours and blackouts', /blackout/i],
   ['earnings', /earnings/i],
-  ['occupancy', /occupancy/i],
+  ['booked hours', /booked hours/i],
   ['CSV export', /CSV/],
   ['payment proofs', /payment proofs?/i],
   ['move a booking', /move a (confirmed )?booking/i],
@@ -834,7 +813,7 @@ describe('a different booking fee, across the page (T2.1)', () => {
         <swapped.Hero />
         <swapped.ShortVersion />
         <swapped.PlayerSide />
-        <swapped.Features />
+        <swapped.AdminTour />
         <swapped.Highlights />
         <swapped.Costs />
         <swapped.AtAGlance />
@@ -863,17 +842,6 @@ function hiddenOrLabelled(el: Element): boolean {
 }
 
 describe('drawings in Your side and Your venue (T2.3)', () => {
-  it('Features draws the Today grid inside its .side-split, hidden or labelled', () => {
-    const { container } = render(<Features />)
-    const split = container.querySelector('.side-split') as HTMLElement
-    expect(split).not.toBeNull()
-    const drawing = [...split.querySelectorAll('[aria-hidden="true"], [role="img"]')].find((el) =>
-      /proof/i.test(el.textContent ?? ''),
-    )
-    expect(drawing, 'a drawing with the payment-proof card').toBeDefined()
-    expect(hiddenOrLabelled(drawing!)).toBe(true)
-  })
-
   it('Highlights draws the venue frame with four numbered pins inside its .venue-split, hidden or labelled', () => {
     const { container } = render(<Highlights />)
     const pins = [...container.querySelectorAll('.venue-split .pin')]
@@ -883,16 +851,11 @@ describe('drawings in Your side and Your venue (T2.3)', () => {
   })
 
   it.each([
-    ['Features', Features],
+    ['AdminTour', AdminTour],
     ['Highlights', Highlights],
   ])('%s: every inline SVG is aria-hidden or labelled', (_, Section) => {
     const { container } = render(<Section />)
     for (const svg of container.querySelectorAll('svg')) expect(hiddenOrLabelled(svg)).toBe(true)
-  })
-
-  it('Features uses no <img>', () => {
-    const { container } = render(<Features />)
-    expect(container.querySelector('img')).toBeNull()
   })
 
   it('Highlights uses only the demo venue’s photos and QR (/demo/), decorative (alt="") and hidden', () => {

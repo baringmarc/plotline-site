@@ -1,14 +1,12 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import css from '../../styles/global.css?raw'
-import { features } from '../../config/site'
-import { FeatureIcon, TodayGrid, VenueFrame } from './Illustrations'
+import { FeatureIcon, VenueFrame } from './Illustrations'
 import source from './Illustrations.tsx?raw'
 
 // ---- T2.3 "Your side" and "Your venue": the two drawings -----------------------------------------
 
 const DRAWINGS = [
-  ['TodayGrid', TodayGrid],
   ['VenueFrame', VenueFrame],
 ] as const
 
@@ -47,32 +45,6 @@ describe.each(DRAWINGS)('%s (T2.3)', (_, Drawing) => {
   it('has nothing focusable inside (a hidden drawing must not add tab stops)', () => {
     const { container } = render(<Drawing />)
     expect(container.querySelector('a, button, input, select, textarea, [tabindex]')).toBeNull()
-  })
-})
-
-describe('TodayGrid (T2.3, artifact design 2026-11-02)', () => {
-  it('draws a "Today" grid in the app’s dark theme (.dash), with no images', () => {
-    const { container } = render(<TodayGrid />)
-    const root = container.firstElementChild as HTMLElement
-    expect(root).toHaveClass('dash')
-    expect([...root.querySelectorAll('*')].some((el) => el.textContent?.trim() === 'Today')).toBe(true)
-    expect(container.querySelector('img')).toBeNull()
-  })
-
-  it('draws 4 courts by 4 hours: Court 1 to Court 4 and 16 slot cells', () => {
-    const { container } = render(<TodayGrid />)
-    for (const c of ['Court 1', 'Court 2', 'Court 3', 'Court 4']) expect(container.textContent).toContain(c)
-    expect(container.querySelectorAll('.dash-cell')).toHaveLength(16)
-  })
-
-  it('includes a payment-proof card with Approve and Reject', () => {
-    const { container } = render(<TodayGrid />)
-    expect(container.textContent).toMatch(/proof/i)
-    const proof = container.querySelector('.dash-proof') as HTMLElement
-    expect(proof).not.toBeNull()
-    expect(proof.textContent).toMatch(/proof/i)
-    expect(proof.textContent).toContain('Approve')
-    expect(proof.textContent).toContain('Reject')
   })
 })
 
@@ -120,10 +92,6 @@ describe('Illustrations source (T2.3)', () => {
 })
 
 describe('FeatureIcon (artifact design 2026-11-02)', () => {
-  it('the three features name the icons calendar, receipt and move', () => {
-    expect(features.map((f) => f.icon)).toEqual(['calendar', 'receipt', 'move'])
-  })
-
   it.each(['calendar', 'receipt', 'move'])('draws an aria-hidden SVG with shapes for "%s"', (name) => {
     const { container } = render(<FeatureIcon name={name} />)
     const svg = container.querySelector('svg') as SVGElement
@@ -139,8 +107,7 @@ describe('FeatureIcon (artifact design 2026-11-02)', () => {
 })
 
 describe('layout styles (T2.3)', () => {
-  it('global.css styles the two different layouts, .side-split and .venue-split', () => {
-    expect(css).toMatch(/\.side-split\b[^{]*\{/)
+  it('global.css styles the "Your venue" layout, .venue-split', () => {
     expect(css).toMatch(/\.venue-split\b[^{]*\{/)
   })
 })

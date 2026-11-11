@@ -27,7 +27,7 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 | Hero | `Hero` | Promises, CTA and demo link, CSS phone mockup (`components/PhoneMockup.tsx`) |
 | The short version | `ShortVersion` | A two-column card: the cost in one line and a link to Pricing, beside what you get as ticked chips |
 | The player's side | `PlayerSide` | 4 drawn dark phone screens (`PlayerScreens.tsx`, the pay screen with a GCash QR), open play card |
-| Your side | `Features` | Three headline items and three chips, only shipped features |
+| Your side | `AdminTour` | Tabbed tour of the seven admin pages with real screenshots (`public/admin-tour/`, made in court-booking-system), callouts of shipped features only; under them `AdminDemo`, the silent demo video (click to play, self-hosted) |
 | Your venue, your way | `Highlights` | Four headline items (your look, own `<slug>.plotline.fit` address, payment accounts, every sport) and three "players also get" chips, beside a drawn booking-page frame (`Illustrations.tsx`) |
 | What it costs | `Costs` | One Pricing section: two tiles, never billed, worked example as a stacked bar, "Where the money goes" timeline, flat vs percentage table (`features/landing/pricing.ts`), CTA |
 | At a glance | `AtAGlance` | Right after Pricing: four key figures, then the offer as a fact sheet in three groups |
@@ -66,7 +66,7 @@ npm run verify    # typecheck + lint + unit tests + build
 
 ## Deploying
 
-Cloudflare Workers with static assets, on `plotline.fit` and `www.plotline.fit` (`wrangler.jsonc`). `src/worker.ts` sends `www` to the apex; everything else is `dist/` with single-page-app fallback, so `/terms` and `/privacy` deep links work.
+Cloudflare Workers with static assets, on `plotline.fit` and `www.plotline.fit` (`wrangler.jsonc`). `src/worker.ts` sends `www` to the apex and answers byte-range requests for video and audio with 206 (static assets alone reply 200 with the whole file, and Safari won't play a video that way); everything else is `dist/` with single-page-app fallback, so `/terms` and `/privacy` deep links work.
 
 1. Once: `npx wrangler login`. In the Cloudflare dashboard, make sure the DNS records for `plotline.fit` and `www` exist and are **proxied** (a proxied `AAAA` record to `100::` works for both), and that the `*` wildcard record stays pointed at court-booking-system.
 2. `npm run build` reads `.env.production` (committed: the production Supabase URL, the publishable key and the Turnstile site key are public values). Never put a secret in it.

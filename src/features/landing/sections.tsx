@@ -1,19 +1,18 @@
 // The static sections of the landing page, top to bottom. Their words come from config/site.ts.
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { PhoneMockup } from '../../components/PhoneMockup'
 import { Reveal } from '../../components/Reveal'
 import { SectionHead } from '../../components/SectionHead'
 import {
+  adminDemo,
+  adminTour,
+  adminTourHead,
   atAGlance,
   contactAnchor,
   costs,
   faqGroups,
   faqHead,
   finalBand,
-  features,
-  featuresAlso,
-  featuresAlsoLabel,
-  featuresHead,
   hero,
   highlights,
   highlightsAlso,
@@ -30,7 +29,7 @@ import {
   steps,
   stepsHead,
 } from '../../config/site'
-import { FeatureIcon, TodayGrid, VenueFrame } from './Illustrations'
+import { VenueFrame } from './Illustrations'
 import { PlayerScreen } from './PlayerScreens'
 import { feeComparison, workedExample } from './pricing'
 
@@ -155,30 +154,150 @@ function ChipList({ label, items }: { label: string; items: string[] }) {
   )
 }
 
-export function Features() {
+/** A tablist's keys (WAI-ARIA tabs): arrows wrap, Home and End jump. Null for any other key. */
+function nextTab(key: string, i: number, last: number): number | null {
+  if (key === 'ArrowRight') return i === last ? 0 : i + 1
+  if (key === 'ArrowLeft') return i === 0 ? last : i - 1
+  if (key === 'Home') return 0
+  if (key === 'End') return last
+  return null
+}
+
+/**
+ * "Watch the demo": the silent admin video, click to play. preload="none" and no autoplay, so nothing of the video
+ * loads until play; the poster waits until the block nears the viewport (straight away without IntersectionObserver),
+ * so the first load fetches nothing new. The captions track is off by default: they are burned into the picture.
+ */
+export function AdminDemo() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [near, setNear] = useState(() => typeof IntersectionObserver === 'undefined')
+
+  useEffect(() => {
+    const el = ref.current
+    if (near || !el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNear(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin: '400px 0px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [near])
+
+  return (
+    <div className="admin-demo" ref={ref}>
+      <h3>{adminDemo.title}</h3>
+      <p>{adminDemo.caption}</p>
+      <video
+        controls
+        preload="none"
+        playsInline
+        width={adminDemo.width}
+        height={adminDemo.height}
+        poster={near ? adminDemo.poster : undefined}
+      >
+        {adminDemo.sources.map((s) => (
+          <source key={s.src} src={s.src} type={s.type} />
+        ))}
+        <track kind="captions" src={adminDemo.captions.src} srcLang={adminDemo.captions.srclang} label={adminDemo.captions.label} />
+        {adminDemo.fallback}
+      </video>
+    </div>
+  )
+}
+
+/** "Your side": a tour of the admin pages, one tab each, with real screenshots. Hidden panels' images are lazy, so they load only when shown. */
+export function AdminTour() {
+  const [active, setActive] = useState(0)
+  const tabs = useRef<(HTMLButtonElement | null)[]>([])
+
+  const onKeyDown = (e: KeyboardEvent, i: number) => {
+    const next = nextTab(e.key, i, adminTour.length - 1)
+    if (next === null) return
+    e.preventDefault()
+    setActive(next)
+    tabs.current[next]?.focus()
+  }
+
   return (
     <section className="white" id="features">
       <div className="in">
-        <div className="side-split">
-          <div>
-            <SectionHead label={featuresHead.label} title={featuresHead.title} lead={featuresHead.lead} />
-            <div className="side-items">
-              {features.map((f, i) => (
-                <Reveal key={f.title} className="side-item" delay={i * 80}>
-                  <span className="ico" aria-hidden="true">
-                    <FeatureIcon name={f.icon} />
-                  </span>
-                  <div>
-                    <h3>{f.title}</h3>
-                    <p>{f.body}</p>
+        <SectionHead label={adminTourHead.label} title={adminTourHead.title} lead={adminTourHead.lead} />
+        <div className="admin-tabs" role="tablist" aria-label={adminTourHead.title}>
+          {adminTour.map((t, i) => (
+            <button
+              key={t.id}
+              ref={(el) => {
+                tabs.current[i] = el
+              }}
+              type="button"
+              role="tab"
+              id={`admin-tab-${t.id}`}
+              aria-selected={i === active}
+              aria-controls={`admin-panel-${t.id}`}
+              tabIndex={i === active ? 0 : -1}
+              onClick={() => setActive(i)}
+              onKeyDown={(e) => onKeyDown(e, i)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {adminTour.map((t, i) => (
+          <div
+            key={t.id}
+            className="admin-panel"
+            role="tabpanel"
+            id={`admin-panel-${t.id}`}
+            aria-labelledby={`admin-tab-${t.id}`}
+            hidden={i !== active}
+          >
+            <div className="admin-shots">
+              {t.shots.map((s, j) => (
+                <div key={s.src} className="admin-frame">
+                  <div className="browser-bar" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
                   </div>
-                </Reveal>
+                  <img
+                    src={s.src}
+                    alt={s.alt}
+                    width={s.width}
+                    height={s.height}
+                    loading={i === 0 && j === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                  />
+                </div>
               ))}
             </div>
-            <ChipList label={featuresAlsoLabel} items={featuresAlso} />
+            <div className="admin-text">
+              <h3>{t.title}</h3>
+              <ul>
+                {t.callouts.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+              {t.phone && (
+                <div className="admin-phone">
+                  <img
+                    src={t.phone.src}
+                    alt={t.phone.alt}
+                    width={t.phone.width}
+                    height={t.phone.height}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              )}
+            </div>
           </div>
-          <TodayGrid />
-        </div>
+        ))}
+        <AdminDemo />
       </div>
     </section>
   )
@@ -359,13 +478,7 @@ export function Faq() {
     tabs.current[i]?.focus()
   }
   const onKeyDown = (e: KeyboardEvent, i: number) => {
-    const last = faqGroups.length - 1
-    const next =
-      e.key === 'ArrowRight' ? (i === last ? 0 : i + 1)
-      : e.key === 'ArrowLeft' ? (i === 0 ? last : i - 1)
-      : e.key === 'Home' ? 0
-      : e.key === 'End' ? last
-      : null
+    const next = nextTab(e.key, i, faqGroups.length - 1)
     if (next === null) return
     e.preventDefault()
     select(next)

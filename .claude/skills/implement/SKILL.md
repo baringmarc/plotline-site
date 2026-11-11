@@ -95,6 +95,7 @@ For anything else, state your plan in two or three lines, naming what the tests 
   - Check `git status` and stage only the files this run created or changed, including its TASKS/SPEC/RESEARCH updates. Leave unrelated dirty files out.
   - Never stage `.env`, `supabase/functions/.env` or other secrets.
   - Commit on the current branch (never `master`) with a message like `feat(landing): T1.2 pricing config and hero` plus the attribution line.
+  - Run the full gate and `git commit` as **two separate Bash calls**. A chained `verify-gate.mjs --full && git commit` is always refused, because the guard checks the commit before the gate has run.
   - Don't push, amend or rewrite history.
   - If verify fails or the reviewer still says BLOCK, don't commit; report instead.
 
