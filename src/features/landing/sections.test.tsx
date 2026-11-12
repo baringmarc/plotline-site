@@ -443,7 +443,7 @@ describe('calls to action', () => {
     for (const a of ctas) expect(a).toHaveAttribute('href', contactAnchor)
   })
 
-  it('nav links each point at a section on the page', () => {
+  it('nav anchor links each point at a section on the page', () => {
     const { container } = render(
       <>
         {STATIC_SECTIONS.map(([name, Section]) => (
@@ -451,7 +451,13 @@ describe('calls to action', () => {
         ))}
       </>,
     )
-    for (const l of navLinks) expect(container.querySelector(l.href)).not.toBeNull()
+    // `/…` entries are pages (Paddle Stack, T5.6), not sections; the rest must be `#…` anchors that exist.
+    const anchors = navLinks.filter((l) => !l.href.startsWith('/'))
+    expect(anchors.length).toBeGreaterThanOrEqual(4)
+    for (const l of anchors) {
+      expect(l.href.startsWith('#')).toBe(true)
+      expect(container.querySelector(l.href)).not.toBeNull()
+    }
   })
 })
 

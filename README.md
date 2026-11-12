@@ -40,7 +40,7 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 
 All pricing reads `src/config/pricing.ts`, and every claim must match SPEC §3.1 ("Pricing claims", "Feature claims").
 
-Other routes: `/terms` and `/privacy`.
+Other routes: `/terms` and `/privacy`, and `/paddle-stack` (Paddle Stack, the free open-play queue for organizers: `features/stack/`, lazy-loaded, copy in `src/config/paddleStack.ts`; rules in SPEC §4). Linked from the top bar and the footer. The Worker gives `/paddle-stack` its own title and share tags (`src/config/pageMeta.ts`, `withPageMeta` in `src/worker.ts`). `public/sitemap.xml` lists the four pages.
 
 ## How the forms work
 
@@ -71,7 +71,7 @@ Cloudflare Workers with static assets, on `plotline.fit` and `www.plotline.fit` 
 1. Once: `npx wrangler login`. In the Cloudflare dashboard, make sure the DNS records for `plotline.fit` and `www` exist and are **proxied** (a proxied `AAAA` record to `100::` works for both), and that the `*` wildcard record stays pointed at court-booking-system.
 2. `npm run build` reads `.env.production` (committed: the production Supabase URL, the publishable key and the Turnstile site key are public values). Never put a secret in it.
 3. **Automatic:** Cloudflare Workers Builds deploys every push to `master` (the `plotline-site` Worker → Settings → Builds, connected to this repo; build `npm run build`, deploy `npx wrangler deploy`), the same way court-booking-system deploys. It doesn't run `npm run verify`, so run that before merging. **By hand:** `npm run cf:deploy` (it builds first). `npm run cf:dev` serves the build locally first.
-4. Check `https://plotline.fit/`, `https://plotline.fit/terms`, that `https://www.plotline.fit/terms` redirects to the apex, and send the contact form once (Turnstile, the lead in the console, the alert email).
+4. Check `https://plotline.fit/`, `https://plotline.fit/terms`, that `curl -s https://plotline.fit/paddle-stack | grep '<title>'` shows Paddle Stack's title (then re-scrape it in Facebook's Sharing Debugger), that `https://www.plotline.fit/terms` redirects to the apex, and send the contact form once (Turnstile, the lead in the console, the alert email).
 5. Delete `vercel.json` once nothing deploys there.
 - court-booking-system's `SITE_ORIGINS` already lists `https://plotline.fit` and `https://www.plotline.fit` on production (checked 2026-11-02).
 - Facebook's link scraper needs a 200 from the page (`public/robots.txt` allows it). If the Sharing Debugger still shows 403 after deploy, check Cloudflare Security → WAF and Bot settings for a rule blocking `facebookexternalhit`.

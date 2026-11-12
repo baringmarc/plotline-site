@@ -46,3 +46,17 @@ Rules:
   - No CSP or `_headers` file exists in this repo, so nothing blocks `<video>` or `<track>` from the same origin.
 - **Gotchas:** only cut ranges for `video/*` and `audio/*` replies, so HTML (the SPA fallback) and compressed text pass through untouched; skip `If-Range` and multi-range requests (send the whole file, which is allowed).
 - **Recommendation:** the Worker answers a single-range GET for media with 206 and `Content-Range` (416 when unsatisfiable). Checked on `wrangler dev`: `Range: bytes=0-1` → `206`, `Content-Range: bytes 0-1/1891157`, slices byte-identical to the file; Chromium plays and seeks to 50 s. Tests in `src/worker.range.test.ts`. The user played and seeked it in Safari (macOS), Safari (iPhone) and Chrome (Android) from `wrangler dev` on the LAN on 2026-11-11: all three work.
+
+## Milestone 5: Paddle Stack
+
+### Cookieless analytics on a Worker route
+- **Status:** Researched (2026-11-12)
+- **Question:** can Cloudflare Web Analytics count page views on `plotline.fit` without code, cookies or a new `VITE_*` var, and what else does turning it on touch?
+- **Findings:**
+  - Proxied (orange-cloud) sites can use the automatic setup: Cloudflare injects the beacon into HTML responses at the edge, and it reports to the site's own `/cdn-cgi/rum` ([Web Analytics: get started](https://developers.cloudflare.com/web-analytics/get-started/), [FAQ](https://developers.cloudflare.com/web-analytics/faq/)).
+  - Without Rules, the automatic setup injects on **all pages and sub-domains under the zone** (same FAQ). Here that includes every `<venue>.plotline.fit` and `app.plotline.fit`, which belong to court-booking-system.
+  - Injection is skipped for responses with `Cache-Control: no-transform` (FAQ). Our Worker passes asset responses through (`src/worker.ts`); whether the edge injects into a Worker's reply is not documented, so check it after the first deploy (`curl -s https://plotline.fit/ | grep -c cloudflareinsights`, or the dashboard's page views).
+  - No CSP exists in this repo, so the beacon and its `connect-src 'self'` report aren't blocked (RESEARCH "Demo video on Workers static assets").
+  - Ad blockers (Brave, uBlock and others) may block the beacon, so counts are a floor.
+- **Gotchas:** without a hostname rule, the venue sites get analytics their Privacy text doesn't mention. SPA route changes are counted only by the JS beacon (it follows the History API), not by edge logs.
+- **Recommendation:** the user enables Web Analytics for the zone with the automatic setup and adds a rule so only `plotline.fit` and `www.plotline.fit` are measured; then T5.1 rewrites the Privacy text and checks the counts after a deploy. If injection doesn't reach the Worker's replies, ask the user before adding the manual snippet.

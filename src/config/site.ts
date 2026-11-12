@@ -7,6 +7,8 @@ import { peso, pricing } from './pricing'
 
 /** The pricing model lives in ./pricing; re-exported so components import copy from one place. */
 export { peso, pricing }
+/** Paddle Stack's copy lives in ./paddleStack, so the landing page's first load doesn't carry it (only the lazy /paddle-stack chunk does). */
+export { paddleStack } from './paddleStack'
 /** The Terms and Privacy text live in ./legal (too long for this file). */
 export { legalDraftNotice, privacy, provider, terms, type LegalPage } from './legal'
 
@@ -33,13 +35,27 @@ export const messageLink = site.messengerUrl || `mailto:${site.supportEmail}`
 
 const fee = peso(pricing.bookingFee)
 
-/** Section anchors in the top bar. Each must match a section id on the landing page. */
+/** Paddle Stack's page (Milestone 5), linked from the top bar and the footer. */
+export const stackLink = { href: '/paddle-stack', label: 'Paddle Stack' }
+
+/**
+ * Links in the top bar: section anchors (`#…`, each must match a section id on the landing page) and
+ * pages (`/…`, a route).
+ */
 export const navLinks = [
   { href: '#players', label: 'For players' },
   { href: '#features', label: 'For venue owners' },
+  stackLink,
   { href: '#pricing', label: 'Pricing' },
   { href: '#faq', label: 'FAQ' },
 ]
+
+/** Shown while a lazy page (Paddle Stack) loads, or when its file can't be fetched (offline, or an old tab after a deploy). */
+export const routeStatus = {
+  loading: 'Loading…',
+  failed: 'This page didn’t load. Check your connection and try again.',
+  reload: 'Reload',
+}
 
 /** The contact form's anchor, the target of every call to action. */
 export const contactAnchor = '#contact'
@@ -568,3 +584,4 @@ export const contact = {
   thanksBody: 'We got your message and will contact you soon to set up a call.',
   bookCall: 'Or book a call now',
 }
+
