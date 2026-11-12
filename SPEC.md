@@ -14,10 +14,12 @@ reviews, and send a contact form; we then set their venue up with them.
 ### Goals
 - Convert venue owners: clear pitch, pricing, and a short contact form.
 - Show social proof: venues and approved reviews.
+- Bring open-play organizers to the site with Paddle Stack (`/paddle-stack`, Milestone 5), a free open-play queue that leads them to the venue pitch. Rules: §4 "Paddle Stack rules".
 - Keep abuse low: validation shared by browser and server, honeypot, timing check, CAPTCHA before launch.
 
 ### Non-goals (v1)
 - Booking itself (that is the court booking product), payments, an owner dashboard.
+- Live or multi-device Paddle Stacks, joining by QR, player accounts or records (Milestone 6, court-booking-system first).
 
 ## 2. Roles
 | Role | Can do |
@@ -89,6 +91,29 @@ Every async view handles loading, empty and error states. Mobile-first.
 ### Reviews
 The review form posts to the platform's `site-review` function, which stores the review with `approved = false`. Only approved reviews are public (read from `reviews`).
 
+### Paddle Stack rules (Milestone 5, T5.2)
+A free open-play queue for organizers (`/paddle-stack`). The engine (`src/features/stack/engine.ts`) is pure: every action takes a session and returns a new one, never mutating its input; an action that breaks a rule throws a `StackError` with a `code` and leaves nothing changed. It works on one device and stores nothing itself.
+
+**Session.** A format, 1–12 courts, players and games, in doubles (4 players per court). Each player has a status: *waiting* (in the line), *playing*, *out* (time out) or *removed*. Names are trimmed; an empty name or one already in the session (ignoring case) is skipped. Players added later join the back of the line.
+
+**Players.**
+- *Time out:* only a waiting player. They leave the line and keep their record. *Back in line* puts them at the back.
+- *Remove:* takes a player out of the line and the standings; their finished games stay. If they are on court, that game is cancelled with no score. The other three go back to the **front** of the line in their order (Fair rotation and Winners stay) or simply wait for the next round (Americano).
+
+**Filling courts** (`fillCourts`). Fair rotation and Winners stay fill each free court, lowest court first, while at least 4 players are waiting. Americano starts a new round only when no game is on any court.
+
+**Results.** A game ends with a score (whole numbers 0–99 per side, no tie) or is skipped (no winner, no score; it still counts as a turn played). Only scored games count in the standings.
+
+**Fair rotation.** The 4 waiting longest go on: line positions 1 & 3 against 2 & 4. When the game ends, all four go to the back of the line in the order they came on.
+
+**Winners stay, split up.** The first game on a court is taken like Fair rotation. After a scored game, the losers go to the back of the line, and the winners stay but split up: the first winner partners the first player in line, the second winner the second (winner 1 + next 1 against winner 2 + next 2). A player who has won 2 games in a row on that court goes off after that win: all four go to the back, losers first, and the court is refilled from the front of the line. After a skipped game, all four go to the back in the order they came on.
+
+**Americano.** Rounds: each round uses `min(courts, floor(available / 4))` courts, where available means waiting or playing (not out or removed). Who plays: fewest turns played first, then line order. Those who sit out keep their place. Pairing: for that round's players, use partners who haven't partnered before; a repeat partner is used only when no pairing of that round's players avoids it (searched exactly for up to 24 players a round, within a step limit so a phone never hangs; best effort above). Then teams are matched on courts to keep repeat opponents low. The round ends when every court has a result or a skip. Everyone keeps their own wins, losses and points.
+
+**Standings** (`standings`). Players not removed, ranked by wins, then win rate, then point difference, then points scored. Players equal on all four share a place. Each row shows wins, losses, games, points for and against.
+
+**Saving.** `serialize` turns a session into JSON with a `version` (1); `deserialize` returns `null` for anything malformed or with an unknown version, and never guesses.
+
 ## 5. Data model
 This repo has no database. The tables (`leads`, `reviews`) and their RLS live in court-booking-system (`docs/PLATFORM.md`); the site reads approved `reviews` and the `public_venues` view with the publishable key, and `src/lib/database.types.ts` is generated from the shared project.
 
@@ -122,6 +147,8 @@ This repo has no database. The tables (`leads`, `reviews`) and their RLS live in
 | 2026-11-10 | T4.1: "Your side" is the admin tour (`AdminTour` replaces `Features`; `adminTourHead` and `adminTour` replace `featuresHead`, `features`, `featuresAlso*`; the drawn `TodayGrid` and its CSS are gone). Reports is the app's fee statement, so the Earnings shot sits on the Dashboard tab, where earnings and CSV export are in the app. "Occupancy" became "booked hours" (the Earnings card's wording). Breaks in opening hours are not claimed (schedule v2 is not active on any venue) | The user's calls of 2026-11-10 (Milestone 4); the claims follow §3.1 "Feature claims" and what production runs today |
 | 2026-11-11 | T4.2: the demo video sits under the tour's panels (not in a tab), click to play, WebM listed first and MP4 second, captions track off by default, poster deferred until the block nears the viewport. `src/worker.ts` now answers a single-range GET for video and audio with 206 (416 when unsatisfiable): Workers static assets reply 200 with the whole file to a Range request (production and `wrangler dev`, 2026-11-11), and Safari and iOS need 206 to play a video. No CSP or extra headers exist, so none were needed | The user's calls of 2026-11-10 (Milestone 4); RESEARCH "Demo video on Workers static assets" |
 | 2026-11-11 | The user's calls during T4.2: the header nav link to `#features` reads "For venue owners" (the section's own label stays "Your side"); in dark mode the highlighter band under the short version's "Free" is a see-through rose (`--mark`), because the word turns rose in dark mode and the solid rose band hid its lower half | Clearer for an owner scanning the header; the word must stay readable in both themes |
+| 2026-11-12 | Milestone 5 proposed, Paddle Stack (the user's calls after studying Taradula's Paddle Stack; name, URL and English-only call-outs set by the user the same day): a free open-play queue at `/paddle-stack` for **open-play organizers**, phase 1 only (one device, no account, no backend, built here); a main-nav link as well as the footer; cookieless Cloudflare Web Analytics is allowed if it is easy to set up (the Privacy page changes with it). Live QR joining and venue-linked stacks are Milestone 6, court-booking-system first. Not a product claim: the landing page still says nothing about queues, waitlists or skill levels | More traffic from the people who run open play at venues, without a platform contract change until the tool proves itself |
+| 2026-11-12 | T5.2 rules (§4 "Paddle Stack rules"): doubles only; Fair rotation sends 1 & 3 against 2 & 4; Winners stay goes off after 2 wins in a row; Americano plays in rounds, sits out by fewest turns, and avoids repeat partners exactly up to 24 players a round; removing a player on court cancels the game and the other three go to the front; standings by wins, win rate, point difference, points scored | Simple rules an organizer can explain at the court; the task left the format details to the plan gate |
 
 ## 7. Open questions
 - Turnstile CAPTCHA before launch: the token goes to the platform's `site-contact` function (its secret lives in court-booking-system), not to `auth.signUp`.
