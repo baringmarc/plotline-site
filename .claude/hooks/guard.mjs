@@ -220,29 +220,111 @@ const HARNESS_SCRIPT = {
     !/(^|[^0-9&])>>?(?!&)|\btee\b/.test(seg.replace(/'[^']*'|"[^"]*"/g, '')),
 }
 
+/**
+ * Splits a command on &&, ||, ;, |, & and newlines **outside quotes**, so `grep -n "a\|b" f` stays one segment
+ * while `grep x f | tee g` is two (T1.12). A `&` that is part of a redirect (`2>&1`, `&>`) doesn't split.
+ */
 function segments(cmd) {
-  return cmd
-    .split(/&&|\|\||;|\||\n/)
-    .map((s) => s.trim())
-    .filter(Boolean)
+  const out = []
+  let cur = ''
+  let quote = null
+  for (let i = 0; i < cmd.length; i++) {
+    const c = cmd[i]
+    if (quote) {
+      cur += c
+      if (c === '\\' && quote === '"' && i + 1 < cmd.length) cur += cmd[++i]
+      else if (c === quote) quote = null
+      continue
+    }
+    if (c === '\\' && i + 1 < cmd.length) {
+      cur += c + cmd[++i]
+      continue
+    }
+    if (c === "'" || c === '"') {
+      quote = c
+      cur += c
+      continue
+    }
+    const redirectAmp = c === '&' && (cmd[i - 1] === '>' || cmd[i + 1] === '>')
+    if (c === '\n' || c === ';' || c === '|' || (c === '&' && !redirectAmp)) {
+      out.push(cur)
+      cur = ''
+      if ((c === '|' || c === '&') && cmd[i + 1] === c) i++
+      continue
+    }
+    cur += c
+  }
+  out.push(cur)
+  return out.map((s) => s.trim()).filter(Boolean)
 }
 
+/**
+ * The command with quoted text blanked, scanning left to right like `segments()` so a `'` inside `"…"` doesn't
+ * open a quote: `'…'` always, and `"…"` too unless `keepDouble` (where `$(…)` still runs).
+ */
+function unquoted(cmd, keepDouble = false) {
+  let out = ''
+  let quote = null
+  for (let i = 0; i < cmd.length; i++) {
+    const c = cmd[i]
+    if (quote) {
+      if (c === '\\' && quote === '"' && i + 1 < cmd.length) {
+        if (keepDouble) out += c + cmd[i + 1]
+        i++
+      } else if (c === quote) {
+        quote = null
+        out += c
+      } else if (quote === '"' && keepDouble) out += c
+      continue
+    }
+    if (c === '\\' && i + 1 < cmd.length) {
+      out += c + cmd[++i]
+      continue
+    }
+    if (c === "'" || c === '"') quote = c
+    out += c
+  }
+  return out
+}
+
+const GIT_READ = '(diff|status|log|show|blame|ls-files|rev-parse|cat-file|merge-base)'
+
 const REVIEWER_ALLOWED = [
-  /^git\s+(diff|status|log|show|blame|ls-files|rev-parse|cat-file|merge-base)\b/,
-  /^(ls|cat|grep|rg|head|tail|wc|nl|sort|uniq|cut|jq|echo|pwd|pgrep|file|stat|diff)\b/,
-  /^sed\s+-n\b/,
-  /^find\b(?!.*(-delete|-exec|-ok))/,
-  /^npm\s+run\s+(test|test:db|typecheck|lint)(\s|$)/,
-  /^npx\s+vitest\s+run\b/,
+  // read-only git, also as `git -C <path> …`; `--output` writes a file
+  new RegExp(`^git(\\s+-C\\s+\\S+)?\\s+${GIT_READ}\\b(?!.*--output)`),
+  /^(ls|cat|grep|head|tail|wc|nl|cut|jq|echo|pwd|pgrep|file|stat|diff|cmp|shasum)\b/,
+  /^rg\b(?!.*--pre\b)/,
+  // `uniq in out` writes `out`: at most one file argument
+  /^uniq(\s+-\S+)*(\s+[^\s-]\S*)?$/,
+  /^sort\b(?!.*(\s-[a-zA-Z]*o|--output))/,
+  // `sed -n` that prints only: no -i, and no `w` command or `e` in the script
+  /^sed\s+-n\b(?!.*(\s-[a-zA-Z]*i|--in-place|[0-9;{'"/$]\s*[we]\b))/,
+  // an awk program that can't run commands or write: no system(), getline, > or |
+  /^awk\b(?!.*(\bsystem\b|\bgetline\b|[>|]))/,
+  /^find\b(?!.*(-delete|-exec|-ok|-fprint|-fls))/,
+  /^npm(\s+--prefix\s+\S+)?\s+run\s+(test|test:db|typecheck|lint|check:drift)(\s|$)/,
+  /^npx\s+vitest\s+run\b(?!.*(\s-u\b|--update|--outputFile))/,
   /^cd\s/,
+  // loop scaffolding: the commands inside `do …` are checked on their own
+  /^for\s+\w+\s+in\b/,
+  /^done$/,
 ]
+
+/** A segment as the allow list sees it: a loop body's leading `do` is dropped. */
+const reviewerSegment = (seg) => seg.replace(/^do\s+/, '')
 
 function checkBash() {
   const cmd = String(args.command ?? '')
 
   if (agent === 'reviewer') {
-    const bad = segments(cmd).find((s) => !REVIEWER_ALLOWED.some((re) => re.test(s)))
-    if (bad || /(^|[^0-9&])>(?!&)/.test(cmd.replace(/2>\/dev\/null|2>&1/g, ''))) {
+    const bad = segments(cmd)
+      .map(reviewerSegment)
+      .find((s) => !REVIEWER_ALLOWED.some((re) => re.test(s)))
+    // Command substitution runs inside double quotes too, so only single-quoted text is ignored for it.
+    const substitution = /\$\(|`|[<>]\(/.test(unquoted(cmd, true))
+    // Any `>` that writes a file, including `2>err` and `&>out`; only `2>/dev/null`, `2>&1` and `>&2` are fine (`>&out` writes a file).
+    const redirect = /(^|[^&])>(?!&[0-9-])|&>/.test(unquoted(cmd).replace(/2>\/dev\/null|2>&1/g, ''))
+    if (bad || substitution || redirect) {
       deny('reviewer-readonly', `The reviewer is read-only; "${bad ?? cmd}" isn't on its allowed command list.`, { command: cmd.slice(0, 200) })
     }
   }
