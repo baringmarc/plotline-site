@@ -229,6 +229,7 @@ export function StackPage() {
           </button>
         </section>
       )}
+      <Guide />
       <aside className="stack-venue">
         <h2>{venueCta.title}</h2>
         <p>{venueCta.body}</p>
@@ -237,6 +238,44 @@ export function StackPage() {
         </a>
       </aside>
     </div>
+  )
+}
+
+/** How to run open play, and the organizers' FAQ (T5.6): under the tool, for people who arrive from search. */
+function Guide() {
+  const { guide, faq } = paddleStack
+  return (
+    <>
+      <section className="stack-guide" aria-labelledby="stack-guide-title">
+        <h2 id="stack-guide-title">{guide.title}</h2>
+        <div className="stack-guide-grid">
+          {guide.sections.map((g) => (
+            <div key={g.title}>
+              <h3>{g.title}</h3>
+              <p>{g.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="stack-faq" aria-labelledby="stack-faq-title">
+        <h2 id="stack-faq-title">{faq.title}</h2>
+        <div className="faq">
+          {faq.items.map((f) => (
+            <details key={f.q}>
+              <summary>
+                {f.q}
+                <span className="chev" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M5 9l7 7 7-7" />
+                  </svg>
+                </span>
+              </summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    </>
   )
 }
 

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { site } from '../config/site'
+import { site, stackLink } from '../config/site'
 
 export function Footer() {
   return (
@@ -9,6 +9,7 @@ export function Footer() {
           © {new Date().getFullYear()} {site.name} · {site.slogan}
         </span>
         <span>
+          <Link to={stackLink.href}>{stackLink.label}</Link>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>
           {site.facebookUrl && (

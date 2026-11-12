@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { contactAnchor, messageLink, nav, navLinks, site } from '../config/site'
 
+/** A page (`/paddle-stack`) rather than a landing-page anchor (`#faq`). */
+const isRoute = (href: string) => href.startsWith('/')
+
 /** Sticky top bar. On a phone the links fold into a menu button beside the contact button. */
 export function Nav() {
   const [open, setOpen] = useState(false)
@@ -25,11 +28,17 @@ export function Nav() {
           </span>
         </Link>
         <nav className="navlinks" aria-label="Main">
-          {navLinks.map((l) => (
-            <a key={l.href} className="l" href={`/${l.href}`}>
-              {l.label}
-            </a>
-          ))}
+          {navLinks.map((l) =>
+            isRoute(l.href) ? (
+              <Link key={l.href} className="l" to={l.href}>
+                {l.label}
+              </Link>
+            ) : (
+              <a key={l.href} className="l" href={`/${l.href}`}>
+                {l.label}
+              </a>
+            ),
+          )}
           <a className="btn main navcta" href={`/${contactAnchor}`}>
             {nav.cta}
           </a>
@@ -46,11 +55,17 @@ export function Nav() {
         </nav>
       </div>
       <div className="menupanel" id="menupanel">
-        {navLinks.map((l) => (
-          <a key={l.href} href={`/${l.href}`} onClick={() => setOpen(false)}>
-            {l.label}
-          </a>
-        ))}
+        {navLinks.map((l) =>
+          isRoute(l.href) ? (
+            <Link key={l.href} to={l.href} onClick={() => setOpen(false)}>
+              {l.label}
+            </Link>
+          ) : (
+            <a key={l.href} href={`/${l.href}`} onClick={() => setOpen(false)}>
+              {l.label}
+            </a>
+          ),
+        )}
         {/* a new tab only for Messenger; the email fallback opens the mail app */}
         <a
           href={messageLink}

@@ -662,6 +662,12 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-ended { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
 .paddle-stack .stack-venue { background: var(--panel); border-radius: var(--radius); padding: 22px; }
 .stack-venue p { margin: 0 0 14px; }
+/* the how-to and FAQ under the tool (T5.6) */
+.paddle-stack .stack-guide { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 32px; }
+.stack-guide-grid { display: grid; gap: 18px 32px; }
+@media (min-width: 760px) { .stack-guide-grid { grid-template-columns: 1fr 1fr; } }
+.stack-guide h3 { font-size: 17px; margin: 0 0 6px; }
+.stack-guide p { margin: 0; color: var(--text-soft); max-width: 62ch; }
 
 /* Paddle Stack tools above the board, and the TV board: a full-screen overlay sized for a screen across the court. */
 .stack-tools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }

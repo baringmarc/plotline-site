@@ -35,10 +35,17 @@ export const messageLink = site.messengerUrl || `mailto:${site.supportEmail}`
 
 const fee = peso(pricing.bookingFee)
 
-/** Section anchors in the top bar. Each must match a section id on the landing page. */
+/** Paddle Stack's page (Milestone 5), linked from the top bar and the footer. */
+export const stackLink = { href: '/paddle-stack', label: 'Paddle Stack' }
+
+/**
+ * Links in the top bar: section anchors (`#…`, each must match a section id on the landing page) and
+ * pages (`/…`, a route).
+ */
 export const navLinks = [
   { href: '#players', label: 'For players' },
   { href: '#features', label: 'For venue owners' },
+  stackLink,
   { href: '#pricing', label: 'Pricing' },
   { href: '#faq', label: 'FAQ' },
 ]

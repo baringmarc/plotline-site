@@ -122,4 +122,51 @@ export const paddleStack = {
     /** The landing page's contact form (`contactAnchor` in ./site; not imported, to keep this module out of the first load). */
     href: '/#contact',
   },
+  /** Under the tool (T5.6): how to run open play with it. Format titles match `formats[].label`. */
+  guide: {
+    title: 'How to run open play with Paddle Stack',
+    sections: [
+      {
+        title: 'Paste your list',
+        body: 'Copy the sign-up list from your Reclub or Messenger group and paste it into Players. Numbers like “1.” and repeated names are dropped. Pick how many courts you have and a format, then start the stack. Late arrivals go in with Add players.',
+      },
+      {
+        title: 'Fair rotation',
+        body: 'The next four in line take the open court, and when their game ends all four go to the back of the line. Everyone plays about the same number of games, whoever wins.',
+      },
+      {
+        title: 'Winners stay, split up',
+        body: 'The winners keep the court but play against each other, each with a new partner from the line. After two wins in a row they go off too, so nobody holds a court all night.',
+      },
+      {
+        title: 'Americano',
+        body: 'Games are played in rounds, with a new partner every game for as long as the numbers allow. Each player keeps their own wins, losses and points, so the standings show who did best on their own.',
+      },
+      {
+        title: 'Put the courts on a TV',
+        body: 'Connect a laptop or tablet to a TV facing the courts and use TV mode, or open the TV board in a new window and keep scoring in this one. Turn on call-outs and the device announces each court and its four names.',
+      },
+    ],
+  },
+  faq: {
+    title: 'Questions organizers ask',
+    items: [
+      {
+        q: 'Is it free? Do players need an account?',
+        a: 'It’s free, and nobody needs an account or an app. Only the organizer uses it; players just watch the board or listen for their names.',
+      },
+      {
+        q: 'Where is my session saved?',
+        a: 'In this browser on this device. A refresh or a closed tab picks up where you left off. Nothing is sent to us.',
+      },
+      {
+        q: 'Can I run it from more than one phone?',
+        a: 'Not yet. One device runs the session; a TV window on the same device follows it.',
+      },
+      {
+        q: 'What if someone takes a break or leaves early?',
+        a: 'Tap Time out and they skip their turns until you put them back in line. Remove takes them off the list and out of the standings.',
+      },
+    ],
+  },
 }

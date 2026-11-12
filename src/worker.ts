@@ -4,6 +4,8 @@
  * production and `wrangler dev`, and Safari and iOS won't play a video without 206 replies, so the
  * Worker cuts the range itself (T4.2, RESEARCH "Demo video").
  */
+import { paddleStackMeta, type PageMeta } from './config/pageMeta'
+
 type Env = { ASSETS: { fetch(request: Request): Promise<Response> } }
 
 const apex = 'plotline.fit'
@@ -60,12 +62,54 @@ async function withRange(request: Request, res: Response): Promise<Response> {
   return new Response(body.slice(range.start, range.end + 1), { status: 206, headers })
 }
 
+const escapeHtml = (v: string) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+/** Sets the `content` of one `<meta name|property="key">` tag in index.html. */
+function setMeta(html: string, attr: 'name' | 'property', key: string, value: string): string {
+  const re = new RegExp(`(<meta ${attr}="${key.replace(/[.:]/g, '\\$&')}" content=")[^"]*(")`)
+  return html.replace(re, (_m, a: string, b: string) => `${a}${escapeHtml(value)}${b}`)
+}
+
+/**
+ * Gives a page its own title, description, canonical and Open Graph tags (T5.6), so a link to it previews as
+ * that page rather than the landing page. A string rewrite of our own index.html (Cloudflare's HTMLRewriter
+ * can't run in the unit tests); `src/worker.meta.test.ts` runs it on the real file, so a renamed tag fails there.
+ */
+export function withPageMeta(html: string, meta: PageMeta): string {
+  let out = html.replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHtml(meta.title)}</title>`)
+  out = setMeta(out, 'name', 'description', meta.description)
+  out = setMeta(out, 'property', 'og:title', meta.title)
+  out = setMeta(out, 'property', 'og:description', meta.description)
+  out = setMeta(out, 'property', 'og:url', meta.url)
+  out = setMeta(out, 'property', 'og:image', meta.image)
+  out = setMeta(out, 'property', 'og:image:alt', meta.imageAlt)
+  return out.replace('</head>', () => `  <link rel="canonical" href="${escapeHtml(meta.url)}" />\n  </head>`)
+}
+
+/** Pages with their own head: the path, with or without a trailing slash. */
+const pageMetas: PageMeta[] = [paddleStackMeta]
+
+async function withHead(request: Request, res: Response): Promise<Response> {
+  if (request.method !== 'GET') return res
+  const path = new URL(request.url).pathname.replace(/\/$/, '') || '/'
+  const meta = pageMetas.find((m) => m.path === path)
+  if (!meta || !(res.headers.get('content-type') ?? '').startsWith('text/html')) return res
+  // A 304 (a reload or re-scrape revalidating its copy) and other bodiless replies pass through: they carry no
+  // page to rewrite, and a Response with a null-body status can't be given one.
+  if (res.body === null || [101, 204, 205, 304].includes(res.status)) return res
+  const headers = new Headers(res.headers)
+  headers.delete('content-length')
+  // The ETag belongs to index.html, not to this page: a change to the page's tags alone must not answer 304.
+  headers.delete('etag')
+  return new Response(withPageMeta(await res.text(), meta), { status: res.status, statusText: res.statusText, headers })
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
     if (url.hostname === `www.${apex}`) {
       return Response.redirect(`https://${apex}${url.pathname}${url.search}`, 301)
     }
-    return withRange(request, await env.ASSETS.fetch(request))
+    return withHead(request, await withRange(request, await env.ASSETS.fetch(request)))
   },
 }
