@@ -40,7 +40,7 @@ The live demo it links to is the product's demo venue: `https://claudex-courts.p
 
 All pricing reads `src/config/pricing.ts`, and every claim must match SPEC §3.1 ("Pricing claims", "Feature claims").
 
-Other routes: `/terms` and `/privacy`.
+Other routes: `/terms` and `/privacy`, and `/paddle-stack` (Paddle Stack, the free open-play queue for organizers: `features/stack/`, lazy-loaded, copy in `src/config/paddleStack.ts`; rules in SPEC §4).
 
 ## How the forms work
 

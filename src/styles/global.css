@@ -609,3 +609,56 @@ form.formcard > .btn { align-self: flex-start; }
   .grid2 > .card { border-top: 3px solid var(--sage); }
   .grid2 > .card:nth-child(even) { border-top-color: var(--rose); }
 }
+
+/* Paddle Stack (/paddle-stack): the organizer's queue on one device. Wider than the text pages for the courts. */
+.paddle-stack { max-width: 1040px; display: flex; flex-direction: column; gap: 24px; }
+.paddle-stack h1, .paddle-stack .lead { margin: 0; }
+.paddle-stack .lead { font-size: 18px; color: var(--text-soft); max-width: 640px; }
+.paddle-stack section, .paddle-stack aside { padding: 0; }
+.paddle-stack h2 { font-size: 22px; margin: 0 0 12px; }
+.stack-start { background: var(--surface); display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
+.stack-start > label, .stack-start legend, .stack-add label { font-weight: 700; font-size: 14px; }
+.stack-start select { max-width: 120px; }
+.stack-start fieldset { border: 0; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.stack-format { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer; }
+.stack-format:has(input:checked) { border-color: var(--text); }
+.stack-format input { width: 18px; height: 18px; margin-top: 3px; flex: 0 0 auto; accent-color: var(--text); }
+.stack-format span { display: flex; flex-direction: column; gap: 2px; }
+.stack-format small { color: var(--text-soft); font-size: 14px; }
+.stack-start .hint { margin: 0; }
+.stack-start > .btn { align-self: flex-start; margin-top: 6px; }
+
+.stack-courts { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+.paddle-stack .stack-court { background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.stack-court.empty { background: transparent; border-style: dashed; }
+.stack-court h3 { margin: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-soft); }
+.stack-court .hint { margin: 0; }
+.stack-teams { margin: 0; display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 18px; overflow-wrap: anywhere; }
+.stack-teams small { font-weight: 500; color: var(--text-soft); font-size: 14px; }
+.stack-court-actions, .stack-actions, .stack-confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.stack-court .btn, .stack-actions .btn { padding: 10px 18px; font-size: 15px; }
+.stack-score { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.stack-score input { width: 72px; text-align: center; }
+.stack-score .err { flex-basis: 100%; margin: 0; }
+.stack-confirm p { flex-basis: 100%; margin: 0; font-weight: 700; }
+
+.stack-line ol, .stack-out ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.stack-line li, .stack-out li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface); border-radius: 12px; counter-increment: line; }
+.stack-line ol { counter-reset: line; }
+.stack-line ol li::before { content: counter(line) '.'; color: var(--text-soft); font-variant-numeric: tabular-nums; min-width: 1.6em; }
+.stack-line li span, .stack-out li span { flex: 1 1 auto; font-weight: 700; overflow-wrap: anywhere; }
+.stack-out > p { margin: 0 0 6px; font-weight: 700; font-size: 14px; color: var(--text-soft); }
+.chipbtn { font: inherit; font-size: 14px; font-weight: 700; min-height: 40px; padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
+.chipbtn:hover { border-color: var(--text); }
+.stack-add { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; max-width: 480px; }
+.stack-add div { display: flex; gap: 8px; }
+.stack-add .btn { padding: 10px 18px; }
+
+.stack-table { overflow-x: auto; }
+.stack-table table { border-collapse: collapse; width: 100%; max-width: 560px; font-variant-numeric: tabular-nums; }
+.stack-table th, .stack-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.stack-table th { font-size: 13px; color: var(--text-soft); }
+.stack-table td:nth-child(2) { font-weight: 700; overflow-wrap: anywhere; }
+.stack-ended { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.paddle-stack .stack-venue { background: var(--panel); border-radius: var(--radius); padding: 22px; }
+.stack-venue p { margin: 0 0 14px; }

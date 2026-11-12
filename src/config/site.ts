@@ -7,6 +7,8 @@ import { peso, pricing } from './pricing'
 
 /** The pricing model lives in ./pricing; re-exported so components import copy from one place. */
 export { peso, pricing }
+/** Paddle Stack's copy lives in ./paddleStack, so the landing page's first load doesn't carry it (only the lazy /paddle-stack chunk does). */
+export { paddleStack } from './paddleStack'
 /** The Terms and Privacy text live in ./legal (too long for this file). */
 export { legalDraftNotice, privacy, provider, terms, type LegalPage } from './legal'
 
@@ -40,6 +42,13 @@ export const navLinks = [
   { href: '#pricing', label: 'Pricing' },
   { href: '#faq', label: 'FAQ' },
 ]
+
+/** Shown while a lazy page (Paddle Stack) loads, or when its file can't be fetched (offline, or an old tab after a deploy). */
+export const routeStatus = {
+  loading: 'Loading…',
+  failed: 'This page didn’t load. Check your connection and try again.',
+  reload: 'Reload',
+}
 
 /** The contact form's anchor, the target of every call to action. */
 export const contactAnchor = '#contact'
@@ -568,3 +577,4 @@ export const contact = {
   thanksBody: 'We got your message and will contact you soon to set up a call.',
   bookCall: 'Or book a call now',
 }
+
