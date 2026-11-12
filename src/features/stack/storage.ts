@@ -44,3 +44,22 @@ export function clearStack(): void {
     // Nothing to clear when storage is unavailable.
   }
 }
+
+/** Whether call-outs are on, per device. Off unless the organizer turned them on. */
+export const VOICE_PREF_KEY = 'plotline.paddle-stack.voice'
+
+export function loadVoicePref(): boolean {
+  try {
+    return localStorage.getItem(VOICE_PREF_KEY) === 'on'
+  } catch {
+    return false
+  }
+}
+
+export function saveVoicePref(on: boolean): void {
+  try {
+    localStorage.setItem(VOICE_PREF_KEY, on ? 'on' : 'off')
+  } catch {
+    // The switch still works for the visit.
+  }
+}

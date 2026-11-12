@@ -662,3 +662,31 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-ended { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
 .paddle-stack .stack-venue { background: var(--panel); border-radius: var(--radius); padding: 22px; }
 .stack-venue p { margin: 0 0 14px; }
+
+/* Paddle Stack tools above the board, and the TV board: a full-screen overlay sized for a screen across the court. */
+.stack-tools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.stack-tools .check { align-items: center; font-size: 15px; }
+.stack-tools .hint { flex-basis: 100%; margin: -4px 0 0; }
+.stack-tools .btn { padding: 10px 18px; font-size: 15px; }
+.stack-tv {
+  position: fixed; inset: 0; z-index: 100; overflow: auto; background: var(--bg); color: var(--text);
+  display: flex; flex-direction: column; gap: clamp(12px, 2vw, 28px); padding: clamp(16px, 3vw, 48px);
+}
+.stack-tv h2 { margin: 0; font-size: clamp(16px, 1.6vw, 26px); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-soft); }
+.stack-tv-banner {
+  margin: 0; align-self: center; background: var(--sage); color: var(--brown); font-weight: 800;
+  font-size: clamp(22px, 3.2vw, 56px); padding: 0.25em 0.9em; border-radius: 999px; animation: stack-banner 0.6s ease-out;
+}
+@keyframes stack-banner { from { transform: scale(0.85); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .stack-tv-banner { animation: none; } }
+.stack-tv-courts { display: grid; gap: clamp(12px, 2vw, 28px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.paddle-stack .stack-tv-court { background: var(--surface); border: 2px solid var(--line); border-radius: 24px; padding: clamp(16px, 2.4vw, 36px); display: flex; flex-direction: column; gap: 12px; }
+.stack-tv-court.empty { background: transparent; border-style: dashed; }
+.stack-tv-teams { margin: 0; display: flex; flex-direction: column; gap: 6px; font-family: var(--serif); font-weight: 700; font-size: clamp(22px, 2.8vw, 48px); line-height: 1.15; overflow-wrap: anywhere; }
+.stack-tv-teams small { font-family: var(--sans); font-weight: 500; font-size: 0.5em; color: var(--text-soft); }
+.stack-tv-waiting { margin: 0; color: var(--text-soft); font-size: clamp(18px, 2vw, 32px); }
+.stack-tv-next ol { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 14px; counter-reset: next; }
+.stack-tv-next li { counter-increment: next; background: var(--panel); border-radius: 999px; padding: 0.3em 0.9em; font-weight: 700; font-size: clamp(18px, 2vw, 34px); }
+.stack-tv-next li::before { content: counter(next) '. '; color: var(--text-soft); }
+.stack-tv-next p { margin: 10px 0 0; color: var(--text-soft); font-size: clamp(18px, 2vw, 30px); }
+.stack-tv-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--text-soft); font-size: clamp(13px, 1.2vw, 18px); }

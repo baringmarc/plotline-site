@@ -72,6 +72,32 @@ export const paddleStack = {
     title: 'Final standings',
     again: 'Start a new session',
   },
+  tv: {
+    open: 'TV mode',
+    exit: 'Exit TV mode',
+    /** Opens the TV board in its own window (`?tv=1`) that follows this one. */
+    openWindow: 'Open TV in a new window',
+    /** The `?tv=1` window's name, so a second click reuses it. */
+    windowName: 'paddle-stack-tv',
+    court: 'Court',
+    /** The banner when a court fills: "Next up on Court 2" (the user's call, 2026-11-12). */
+    nowOn: 'Next up on Court',
+    vs: 'vs',
+    waiting: 'Waiting for 4 players',
+    upNext: 'Up next',
+    lineEmpty: 'Nobody is waiting',
+    footer: 'Paddle Stack · free at plotline.fit/paddle-stack',
+  },
+  voice: {
+    label: 'Call out games',
+    hint: 'A chime, then the court and the four names, when a court fills.',
+    test: 'Test the voice',
+    unsupported: 'This browser can’t speak, so call-outs are off.',
+    /** What is said when a court fills (English only, the user's call 2026-11-12). */
+    callOut: (court: number, a: [string, string], b: [string, string]) =>
+      `Court ${court}: ${a[0]} and ${a[1]}, versus ${b[0]} and ${b[1]}.`,
+    sample: { court: 1, a: ['Andrew', 'Juan'] as [string, string], b: ['Maria', 'Jose'] as [string, string] },
+  },
   restart: 'Start over',
   restartConfirm: 'Start over? This clears the players and scores.',
   storageNote: 'This browser can’t save the session, so keep this tab open until you’re done.',

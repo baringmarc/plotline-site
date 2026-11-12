@@ -1,4 +1,5 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { paddleStack } from '../../config/paddleStack'
 import {
   addPlayers,
@@ -14,20 +15,120 @@ import {
   timeOut,
 } from './engine'
 import { parseNames } from './parseNames'
-import { clearStack, loadStack, saveStack, type StackState } from './storage'
+import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_STORAGE_KEY, type StackState } from './storage'
+import { TvBoard } from './TvBoard'
+import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
 import type { Format, Game, Session } from './types'
 
-const { start, formats, board, end, ended: endedCopy, venueCta } = paddleStack
+const { start, formats, board, end, ended: endedCopy, venueCta, voice, tv } = paddleStack
 
 /** `/paddle-stack`: a free open-play queue on one device (SPEC §4 "Paddle Stack rules"). */
 export function StackPage() {
   const [state, setState] = useState<StackState | null>(() => loadStack())
   const [storageFailed, setStorageFailed] = useState(false)
+  const [speakable] = useState(() => canSpeak())
+  const [voiceOn, setVoiceOn] = useState(() => speakable && loadVoicePref())
+  const [tvOpen, setTvOpen] = useState(false)
+  const [nowOn, setNowOn] = useState<number | null>(null)
+  const release = useRef<Promise<() => void> | null>(null)
+  const askedFullscreen = useRef(false)
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
+  /** The `?tv=1` window opened by "Open TV in a new window": the TV board alone, following the organizer's window. */
+  const tvWindow = params.get('tv') === '1'
+  /** The `?tv=1` window is showing the TV board (not the start screen or the final standings). */
+  const tvWindowBoard = tvWindow && !!state && !state.ended
+  const current = useRef(state)
+  useEffect(() => {
+    current.current = state
+  }, [state])
+
+  /** Games on court in `next` that weren't in `prev`. */
+  const newGames = (prev: StackState | null, next: StackState | null): Game[] => {
+    const before = new Set(prev?.session.games.map((g) => g.id) ?? [])
+    return next?.session.games.filter((g) => g.status === 'playing' && !before.has(g.id)) ?? []
+  }
 
   const commit = (next: StackState) => {
+    // Courts filled by this change: show the banner and, with voice on, call each one out once.
+    const filled = newGames(state, next)
+    if (filled.length) {
+      setNowOn(filled[filled.length - 1].court)
+      if (voiceOn && speakable) {
+        const nameOf = (id: string) => next.session.players.find((p) => p.id === id)?.name ?? ''
+        for (const g of filled) {
+          announce(callOutText(g.court, [nameOf(g.teamA[0]), nameOf(g.teamA[1])], [nameOf(g.teamB[0]), nameOf(g.teamB[1])]))
+        }
+      }
+    }
     setState(next)
     if (!saveStack(next)) setStorageFailed(true)
   }
+
+  const openTv = () => {
+    setTvOpen(true)
+    try {
+      const root = document.documentElement as HTMLElement & { requestFullscreen?: () => Promise<void> }
+      if (root.requestFullscreen) {
+        askedFullscreen.current = true
+        void root.requestFullscreen()?.catch?.(() => {})
+      }
+    } catch {
+      // Full screen is optional.
+    }
+    release.current = requestWakeLock()
+  }
+  const closeTv = () => {
+    askedFullscreen.current = false
+    setTvOpen(false)
+    void release.current?.then((done) => done())
+    release.current = null
+    try {
+      if (document.fullscreenElement) void document.exitFullscreen?.()?.catch?.(() => {})
+    } catch {
+      // Not in full screen.
+    }
+  }
+  // The browser drops the wake lock when the tab is hidden; ask again when it comes back while a TV board shows.
+  useEffect(() => {
+    if (!tvOpen && !tvWindowBoard) return
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      void release.current?.then((done) => done())
+      release.current = requestWakeLock()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [tvOpen, tvWindowBoard])
+  // Follow changes saved by another window on this device (the `?tv=1` window, or a second tab). Those changes
+  // were already called out where they were made, so here they only move the banner.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STACK_STORAGE_KEY) return
+      const loaded = loadStack()
+      const filled = newGames(current.current, loaded)
+      if (filled.length) setNowOn(filled[filled.length - 1].court)
+      setState(loaded)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+  // Leaving full screen (the browser's own Escape) closes TV mode, if TV mode asked for it.
+  useEffect(() => {
+    const onChange = () => {
+      if (askedFullscreen.current && !document.fullscreenElement) closeTv()
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  })
+  // The TV window keeps its screen on from the start; any page left while holding the lock lets it go.
+  useEffect(() => {
+    if (tvWindowBoard) release.current = requestWakeLock()
+    return () => {
+      void release.current?.then((done) => done())
+      release.current = null
+    }
+  }, [tvWindowBoard])
   /** Runs an engine action, then refills the courts. Refused actions leave the session as it was. */
   const act = (fn: (s: Session) => Session) => {
     if (!state) return
@@ -45,6 +146,22 @@ export function StackPage() {
     setState(null)
   }
 
+  /** Closes the `?tv=1` window. Browsers refuse to close a window the script didn't open (a bookmark, a typed URL), so then it goes back to the board. */
+  function exitTvWindow() {
+    window.close()
+    setTimeout(() => {
+      if (!window.closed) navigate('/paddle-stack', { replace: true })
+    }, 150)
+  }
+
+  if (tvWindowBoard && state) {
+    return (
+      <div className="page paddle-stack">
+        <TvBoard session={state.session} nowOn={nowOn} onExit={exitTvWindow} />
+      </div>
+    )
+  }
+
   return (
     <div className="page paddle-stack">
       <h1>{paddleStack.title}</h1>
@@ -55,7 +172,43 @@ export function StackPage() {
         </p>
       )}
       {!state && <StartForm onStart={(session) => commit({ session: fillCourts(session), ended: false })} />}
-      {state && !state.ended && (
+      {state && !state.ended && tvOpen && <TvBoard session={state.session} nowOn={nowOn} onExit={closeTv} />}
+      {state && !state.ended && !tvOpen && (
+        <div className="stack-tools">
+          <button type="button" className="btn dark" onClick={openTv}>
+            {tv.open}
+          </button>
+          <button type="button" className="btn ghost" onClick={() => window.open('/paddle-stack?tv=1', tv.windowName)}>
+            {tv.openWindow}
+          </button>
+          <label className="check">
+            <input
+              type="checkbox"
+              aria-describedby="stack-voice-hint"
+              checked={speakable && voiceOn}
+              disabled={!speakable}
+              onChange={(e) => {
+                setVoiceOn(e.target.checked)
+                saveVoicePref(e.target.checked)
+              }}
+            />
+            <b>{voice.label}</b>
+          </label>
+          <small className="hint" id="stack-voice-hint">
+            {voice.hint}
+          </small>
+          <button
+            type="button"
+            className="chipbtn"
+            disabled={!speakable}
+            onClick={() => announce(callOutText(voice.sample.court, voice.sample.a, voice.sample.b))}
+          >
+            {voice.test}
+          </button>
+          {!speakable && <p className="hint">{voice.unsupported}</p>}
+        </div>
+      )}
+      {state && !state.ended && !tvOpen && (
         <Board
           session={state.session}
           act={act}
