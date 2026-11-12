@@ -98,6 +98,20 @@ export const paddleStack = {
       `Court ${court}: ${a[0]} and ${a[1]}, versus ${b[0]} and ${b[1]}.`,
     sample: { court: 1, a: ['Andrew', 'Juan'] as [string, string], b: ['Maria', 'Jose'] as [string, string] },
   },
+  share: {
+    button: 'Share standings',
+    nameLabel: 'Session name (optional)',
+    namePlaceholder: 'e.g. Saturday open play',
+    /** The image's heading when no session name is given. */
+    defaultTitle: 'Open play standings',
+    record: 'W–L',
+    diff: '+/−',
+    /** "+3 more" under the list when not everyone fits. */
+    more: (n: number) => `+${n} more`,
+    footer: 'Paddle Stack · free at plotline.fit/paddle-stack',
+    fileName: 'paddle-stack-standings.png',
+    failed: 'Couldn’t make the image. Try again.',
+  },
   restart: 'Start over',
   restartConfirm: 'Start over? This clears the players and scores.',
   storageNote: 'This browser can’t save the session, so keep this tab open until you’re done.',

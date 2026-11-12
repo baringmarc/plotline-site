@@ -15,6 +15,7 @@ import {
   timeOut,
 } from './engine'
 import { parseNames } from './parseNames'
+import { drawStandingsImage, shareOrDownload, standingsImageData } from './shareImage'
 import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_STORAGE_KEY, type StackState } from './storage'
 import { TvBoard } from './TvBoard'
 import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
@@ -222,6 +223,7 @@ export function StackPage() {
         <section className="stack-ended" aria-labelledby="stack-final">
           <h2 id="stack-final">{endedCopy.title}</h2>
           <StandingsTable session={state.session} label={endedCopy.title} />
+          <ShareBox session={state.session} />
           <button type="button" className="btn main" onClick={reset}>
             {endedCopy.again}
           </button>
@@ -397,6 +399,7 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
       <section className="stack-standings" aria-labelledby="stack-standings">
         <h2 id="stack-standings">{paddleStack.standings.title}</h2>
         <StandingsTable session={session} label={paddleStack.standings.title} />
+        <ShareBox session={session} />
       </section>
 
       <div className="stack-actions">
@@ -554,6 +557,52 @@ function StandingsTable({ session, label }: { session: Session; label: string })
           })}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+/** "Share standings": draws the image and shares or downloads it (T5.5). Enabled once a game is scored. */
+function ShareBox({ session }: { session: Session }) {
+  const { share } = paddleStack
+  const [name, setName] = useState('')
+  const [failed, setFailed] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const id = useId()
+  const scored = session.games.some((g) => g.status === 'scored')
+
+  const onShare = async () => {
+    setFailed(false)
+    setBusy(true)
+    try {
+      let blob: Blob
+      try {
+        blob = await drawStandingsImage(standingsImageData(standings(session), { sessionName: name, date: new Date() }))
+      } catch {
+        setFailed(true)
+        return
+      }
+      await shareOrDownload(blob, share.fileName)
+    } catch {
+      setFailed(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="stack-share">
+      <label htmlFor={id}>{share.nameLabel}</label>
+      <div>
+        <input id={id} type="text" maxLength={40} value={name} placeholder={share.namePlaceholder} onChange={(e) => setName(e.target.value)} />
+        <button type="button" className="btn main" disabled={!scored || busy} onClick={() => void onShare()}>
+          {share.button}
+        </button>
+      </div>
+      {failed && (
+        <p className="err" role="alert">
+          {share.failed}
+        </p>
+      )}
     </div>
   )
 }
