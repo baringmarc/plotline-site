@@ -1,15 +1,25 @@
 /**
- * The standings image organizers post in FB groups (T5.5): a square PNG drawn on a canvas in the brand's fonts
- * and colours, carrying "plotline.fit/paddle-stack". Nothing is uploaded: it is shared as a file or downloaded.
+ * The standings image organizers post in FB groups (T5.5): a PNG drawn on a canvas in the brand's fonts and
+ * colours, carrying "plotline.fit/paddle-stack". Every player is on it: 1080 wide, square up to 10 rows and taller
+ * after that. Nothing is uploaded: it is shared as a file or downloaded.
  */
 import { paddleStack } from '../../config/paddleStack'
 import type { StandingRow } from './types'
 
 const { share } = paddleStack
 
-export const MAX_ROWS = 10
 export const MAX_NAME = 22
-const SIZE = 1080
+export const WIDTH = 1080
+/** The shortest the image gets: square. */
+export const MIN_HEIGHT = 1080
+const ROWS_TOP = 350
+const ROW_STEP = 56
+const FOOTER = 100
+
+/** The canvas height for `rowCount` rows: square until the rows need more room, then taller. */
+export function imageHeight(rowCount: number): number {
+  return Math.max(MIN_HEIGHT, ROWS_TOP + rowCount * ROW_STEP + 40 + FOOTER)
+}
 
 /** Brand palette (court-booking-system docs/BRAND.md; the light theme's values in global.css `:root`). */
 const C = { cream: '#f5efe6', brown: '#3b2f2a', brownSoft: '#5a4a42', sand: '#e6d9c6', terracotta: '#7a3f2c' }
@@ -20,7 +30,6 @@ export interface StandingsImageData {
   title: string
   date: string
   rows: { place: number; name: string; record: string; diff: string }[]
-  more: string | null
   footer: string
 }
 
@@ -38,13 +47,12 @@ export function standingsImageData(rows: StandingRow[], opts: { sessionName?: st
   return {
     title,
     date,
-    rows: rows.slice(0, MAX_ROWS).map((r) => ({
+    rows: rows.map((r) => ({
       place: r.place,
       name: cut(r.name),
       record: `${r.wins}–${r.losses}`,
       diff: signed(r.pointsFor - r.pointsAgainst),
     })),
-    more: rows.length > MAX_ROWS ? share.more(rows.length - MAX_ROWS) : null,
     footer: share.footer,
   }
 }
@@ -71,16 +79,17 @@ function fit(ctx: CanvasRenderingContext2D, text: string, weight: number, size: 
 
 export async function drawStandingsImage(data: StandingsImageData): Promise<Blob> {
   const canvas = document.createElement('canvas')
-  canvas.width = SIZE
-  canvas.height = SIZE
+  const height = imageHeight(data.rows.length)
+  canvas.width = WIDTH
+  canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('No 2D canvas')
   await loadFonts()
 
   const left = 80
-  const right = SIZE - 80
+  const right = WIDTH - 80
   ctx.fillStyle = C.cream
-  ctx.fillRect(0, 0, SIZE, SIZE)
+  ctx.fillRect(0, 0, WIDTH, height)
   ctx.textBaseline = 'alphabetic'
 
   ctx.fillStyle = C.brown
@@ -101,9 +110,9 @@ export async function drawStandingsImage(data: StandingsImageData): Promise<Blob
   ctx.fillStyle = C.sand
   ctx.fillRect(left, head + 18, right - left, 3)
 
-  const step = 56
+  const step = ROW_STEP
   data.rows.forEach((row, i) => {
-    const y = 350 + i * step
+    const y = ROWS_TOP + i * step
     if (i % 2 === 1) {
       ctx.fillStyle = 'rgba(230, 217, 198, 0.45)'
       ctx.fillRect(left - 16, y - 38, right - left + 32, step - 4)
@@ -120,19 +129,12 @@ export async function drawStandingsImage(data: StandingsImageData): Promise<Blob
     ctx.fillText(row.record, cols.record, y)
     ctx.fillText(row.diff, cols.diff, y)
   })
-  if (data.more) {
-    ctx.textAlign = 'left'
-    ctx.fillStyle = C.brownSoft
-    ctx.font = `500 26px ${SANS}`
-    ctx.fillText(data.more, cols.name, 350 + MAX_ROWS * step - 10)
-  }
-
   ctx.fillStyle = C.brown
-  ctx.fillRect(0, SIZE - 100, SIZE, 100)
+  ctx.fillRect(0, height - FOOTER, WIDTH, FOOTER)
   ctx.fillStyle = C.cream
   ctx.textAlign = 'left'
   ctx.font = `700 30px ${SANS}`
-  ctx.fillText(data.footer, left, SIZE - 40)
+  ctx.fillText(data.footer, left, height - 40)
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('No image'))), 'image/png')

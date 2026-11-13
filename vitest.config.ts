@@ -7,7 +7,8 @@ export default mergeConfig(
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
-      include: ['src/**/*.test.{ts,tsx}'],
+      // The guard's tests (.claude/hooks) run with the app's, so `npm run verify` covers the harness too.
+      include: ['src/**/*.test.{ts,tsx}', '.claude/hooks/**/*.test.ts'],
       // Vitest blanks stylesheets by default, including `?raw` imports; a test reads global.css as text.
       css: { include: [/global\.css/] },
       // Dummy values so modules importing lib/supabase.ts load. Tests must mock network calls.
