@@ -3,20 +3,22 @@
 // when sharing. Copy comes from `paddleStack.share` in src/config/site.ts.
 //
 // Contract the tests rely on (the plan's names):
-// - `MAX_ROWS = 10`, `MAX_NAME = 22` (characters, counted as code points, before a name is cut with "…");
+// - `MAX_NAME = 22` (characters, counted as code points, before a name is cut with "…");
 // - `standingsImageData(rows, { sessionName?, date })` → `{ title, date, rows: { place, name, record, diff }[],
-//   more, footer }`: `title` the trimmed session name or `share.defaultTitle`; `date` the en-PH short date of the
-//   organizer's day ("Thu, 12 Nov 2026"; Node's en-PH data may order it "Thu, Nov 12, 2026"); `record` "W–L"
-//   (en dash); `diff` signed with "+" and the minus sign "−" (U+2212), zero as "0"; `more` `share.more(n)` past
-//   MAX_ROWS, else null; `footer` `share.footer`;
-// - `drawStandingsImage(data)` draws on a 1080×1080 canvas from `document.createElement('canvas')` and resolves
-//   with the PNG from `canvas.toBlob(…, 'image/png')`; rejects without a 2D context or when toBlob gives null;
+//   footer }`: every player is a row (user, 2026-11-13: no top-10 cut, the image grows taller instead); `title`
+//   the trimmed session name or `share.defaultTitle`; `date` the en-PH short date of the organizer's day
+//   ("Thu, 12 Nov 2026"; Node's en-PH data may order it "Thu, Nov 12, 2026"); `record` "W–L" (en dash); `diff`
+//   signed with "+" and the minus sign "−" (U+2212), zero as "0"; `footer` `share.footer`;
+// - `imageHeight(n)`: `MIN_HEIGHT` (1080, square) up to 10 rows, then taller as rows are added;
+// - `drawStandingsImage(data)` draws on a `WIDTH` (1080) × `imageHeight(rows)` canvas from
+//   `document.createElement('canvas')` and resolves with the PNG from `canvas.toBlob(…, 'image/png')`; rejects
+//   without a 2D context or when toBlob gives null;
 // - `shareOrDownload(blob, fileName)` → 'shared' | 'downloaded' | 'cancelled' (Web Share with files when
 //   `navigator.canShare` allows it; AbortError is a cancel; anything else, or no file sharing, downloads through
 //   an `<a download>` and `URL.createObjectURL`, then revokes the URL).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { paddleStack } from '../../config/site'
-import { MAX_NAME, MAX_ROWS, drawStandingsImage, shareOrDownload, standingsImageData } from './shareImage'
+import { MAX_NAME, MIN_HEIGHT, WIDTH, drawStandingsImage, imageHeight, shareOrDownload, standingsImageData } from './shareImage'
 import type { StandingRow } from './types'
 
 const { share } = paddleStack
@@ -60,10 +62,24 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('MAX_ROWS and MAX_NAME', () => {
-  it('are 10 rows and 22 characters', () => {
-    expect(MAX_ROWS).toBe(10)
+describe('MAX_NAME and the image size', () => {
+  it('are 22 characters and a 1080-wide image at least 1080 tall', () => {
+    expect(MIN_HEIGHT).toBe(WIDTH)
     expect(MAX_NAME).toBe(22)
+    expect(WIDTH).toBe(1080)
+  })
+})
+
+describe('imageHeight (user, 2026-11-13)', () => {
+  it('stays square up to 10 rows', () => {
+    for (const n of [0, 1, 4, 10]) expect(imageHeight(n), `${n} rows`).toBe(1080)
+  })
+
+  it('grows with each row past that, by the same step', () => {
+    expect(imageHeight(11)).toBeGreaterThan(1080)
+    const step = imageHeight(21) - imageHeight(20)
+    expect(step).toBeGreaterThan(0)
+    expect(imageHeight(40) - imageHeight(30)).toBe(step * 10)
   })
 })
 
@@ -99,28 +115,28 @@ describe('standingsImageData: layout data (T5.5)', () => {
     expect(data.rows.map((r) => r.name)).toEqual(['Player 1', 'Player 2', 'Player 3'])
   })
 
-  it('shows every row and no "more" line when there are exactly MAX_ROWS players', () => {
+  it('shows every row for 10 players, with no "more" field', () => {
     const data = standingsImageData(rowsOf(10), { date: NOON_UTC })
     expect(data.rows).toHaveLength(10)
-    expect(data.more).toBeNull()
+    expect(data).not.toHaveProperty('more')
   })
 
-  it('shows the top MAX_ROWS and "+n more" when there are more players', () => {
+  it('includes every player, in order, when there are more than 10 (user, 2026-11-13)', () => {
     const data = standingsImageData(rowsOf(13), { date: NOON_UTC })
-    expect(data.rows).toHaveLength(MAX_ROWS)
-    expect(data.rows.map((r) => r.name)).toEqual(rowsOf(10).map((r) => r.name))
-    expect(data.more).toBe(share.more(3))
-    expect(data.more).toBe('+3 more')
+    expect(data.rows).toHaveLength(13)
+    expect(data.rows.map((r) => r.name)).toEqual(rowsOf(13).map((r) => r.name))
+    expect(data.rows[12].name).toBe('Player 13')
+    expect(data).not.toHaveProperty('more')
   })
 
-  it('shows "+1 more" for 11 players', () => {
-    expect(standingsImageData(rowsOf(11), { date: NOON_UTC }).more).toBe(share.more(1))
+  it('includes all 40 players of a big session', () => {
+    expect(standingsImageData(rowsOf(40), { date: NOON_UTC }).rows).toHaveLength(40)
   })
 
-  it('handles no rows: an empty list and no "more" line', () => {
+  it('handles no rows: an empty list', () => {
     const data = standingsImageData([], { date: NOON_UTC })
     expect(data.rows).toEqual([])
-    expect(data.more).toBeNull()
+    expect(data).not.toHaveProperty('more')
   })
 
   it('keeps a name of exactly MAX_NAME characters as typed', () => {
@@ -257,9 +273,9 @@ const sample = () =>
   )
 
 describe('drawStandingsImage (T5.5)', () => {
-  it('draws on a 1080×1080 canvas and resolves with its PNG', async () => {
+  it('draws on a 1080×1080 canvas for 10 players and resolves with its PNG', async () => {
     const fake = fakeCanvas()
-    const blob = await drawStandingsImage(sample())
+    const blob = await drawStandingsImage(standingsImageData(rowsOf(10), { date: NOON_UTC }))
     expect(fake.canvas.width).toBe(1080)
     expect(fake.canvas.height).toBe(1080)
     expect(fake.toBlob).toHaveBeenCalledTimes(1)
@@ -268,9 +284,18 @@ describe('drawStandingsImage (T5.5)', () => {
     expect(blob.type).toBe('image/png')
   })
 
-  it('draws the title, date, every row, the "more" line and the footer', async () => {
+  it('makes the canvas taller, not wider, for more than 10 players (user, 2026-11-13)', async () => {
+    const fake = fakeCanvas()
+    await drawStandingsImage(standingsImageData(rowsOf(25), { date: NOON_UTC }))
+    expect(fake.canvas.width).toBe(1080)
+    expect(fake.canvas.height).toBe(imageHeight(25))
+    expect(fake.canvas.height).toBeGreaterThan(1080)
+  })
+
+  it('draws the title, date, every row (all 12 players) and the footer, and no "more" line', async () => {
     const fake = fakeCanvas()
     const data = sample()
+    expect(data.rows).toHaveLength(12)
     await drawStandingsImage(data)
     const drawn = fake.texts.join('\n')
     expect(drawn).toContain(data.title)
@@ -280,7 +305,7 @@ describe('drawStandingsImage (T5.5)', () => {
       expect(drawn, `${r.name} record`).toContain(r.record)
       expect(drawn, `${r.name} diff`).toContain(r.diff)
     }
-    expect(drawn).toContain(data.more!)
+    expect(drawn).not.toMatch(/\+\d+ more/)
     expect(drawn).toContain(share.footer)
   })
 

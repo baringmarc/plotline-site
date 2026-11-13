@@ -106,8 +106,6 @@ export const paddleStack = {
     defaultTitle: 'Open play standings',
     record: 'W–L',
     diff: '+/−',
-    /** "+3 more" under the list when not everyone fits. */
-    more: (n: number) => `+${n} more`,
     footer: 'Paddle Stack · free at plotline.fit/paddle-stack',
     fileName: 'paddle-stack-standings.png',
     failed: 'Couldn’t make the image. Try again.',

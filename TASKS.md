@@ -269,6 +269,7 @@ One-liner: **Paddle Stack**, a free open-play queue at `plotline.fit/paddle-stac
   - Depends: T5.3
   - Files: `src/features/stack/shareImage.ts`, `src/features/stack/StackPage.tsx`, `src/config/site.ts`, tests next to them, `SPEC.md`, `TASKS.md`
   - By-eye check (user, 2026-11-13): the user looked at `standings.png` on a phone and in a Facebook post preview and said it looks good.
+  - Changed (user, 2026-11-13, after the commit): the image includes every player instead of the top 10 and "+N more"; it stays 1080 wide and grows taller past 10 rows (`imageHeight`). SPEC §6 row 2026-11-13.
   - Acceptance: tests cover the layout data (rows, long names cut, empty session name) and the share-or-download fallback; the image is checked by eye on a phone and in a FB post preview; no network request is made when sharing; `npm run verify` and the full gate pass; the reviewer reports no blocking issues.
 
 - [x] **T5.6 Make the stack findable**
