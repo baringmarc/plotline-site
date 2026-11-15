@@ -30,7 +30,7 @@ export const terms = (supportEmail: string): LegalPage => ({
       list: [
         `No setup fee, no subscription and no monthly fee: ${peso(0)}.`,
         `A booking fee of ${fee} per confirmed online booking, whatever its length or court. The player pays it: it is shown at checkout, on top of your court price.`,
-        'A booking counts as confirmed when PayMongo confirms the payment, or when you approve the player’s payment proof.',
+        'A booking counts as confirmed when you approve the player’s payment proof.',
         `Never billed: ${notBilled}.`,
         `Once a booking is confirmed, its ${fee} fee stays billed even if the player later cancels. If you cancel a booking, the player gets the fee back and it isn’t billed to you.`,
       ],
@@ -38,16 +38,8 @@ export const terms = (supportEmail: string): LegalPage => ({
     {
       title: 'Payments',
       paragraphs: [
-        'Players pay you directly: into your own GCash, Maya or bank account with a proof, or through your own PayMongo account. Plotline never holds your money. You collect the booking fee together with the court price.',
-        'PayMongo’s own fee is between you and PayMongo. It is a percentage of the whole amount the player pays, booking fee included, and it comes out of what you receive.',
-        'Refunds to players are between you and the player, with one exception: if a player pays through PayMongo after their booking’s hold has run out and the slot is gone, Plotline refunds that payment from your PayMongo account.',
-      ],
-    },
-    {
-      title: 'Your PayMongo account',
-      paragraphs: [
-        'If you connect your own PayMongo account, we use its key only to create checkouts for your bookings, to set up PayMongo’s payment notices to us, and to refund late payments as above.',
-        'We store the key encrypted, and it is read only by our server. It is never shown again, not even to you: your admin pages show its last 4 characters. If we think the key may have leaked, we disconnect it, tell you right away, and help you replace it with a new key from your PayMongo dashboard.',
+        'Players pay you directly: into your own GCash, Maya or bank account, by QR code or transfer, and send a proof that you approve. Plotline never holds your money. You collect the booking fee together with the court price.',
+        'Refunds to players are between you and the player.',
       ],
     },
     {
