@@ -629,8 +629,8 @@ const MAX_BODY_WORDS = 90
 /** Words of answers allowed per FAQ group (user decision 2026-11-02, when the groups grew to 5/4/5). */
 const MAX_FAQ_GROUP_WORDS = 120
 /** Questions per FAQ group, in config order (players, money, setup). */
-const FAQ_GROUP_SIZES = [5, 4, 5]
-const FAQ_TOTAL = 14
+const FAQ_GROUP_SIZES = [5, 3, 5]
+const FAQ_TOTAL = 13
 
 describe('body copy word cap (T2.1)', () => {
   it.each(PAGE_SECTIONS.filter(([name]) => name !== 'Faq'))(
@@ -711,7 +711,7 @@ describe('Highlights (T2.1)', () => {
 })
 
 describe('Faq groups (T2.1)', () => {
-  it('has three groups, Players, Money and Your setup, of 5, 4 and 5 questions (14 unique)', () => {
+  it('has three groups, Players, Money and Your setup, of 5, 3 and 5 questions (13 unique)', () => {
     expect(faqGroups.map((g) => g.id)).toEqual(['players', 'money', 'setup'])
     expect(faqGroups.map((g) => g.label)).toEqual(['Players', 'Money', 'Your setup'])
     expect(faqGroups.map((g) => g.items.length)).toEqual(FAQ_GROUP_SIZES)
@@ -749,9 +749,9 @@ describe('Faq groups (T2.1)', () => {
     }
   })
 
-  it('still says PayMongo’s own fee is between the venue and PayMongo, in the Money group (SPEC §3.1)', () => {
+  it('no longer mentions PayMongo anywhere in the Money group (T27.9)', () => {
     const money = faqGroups.find((g) => g.id === 'money')!
-    expect(money.items.some((i) => /PayMongo/.test(i.q + i.a) && /fee/i.test(i.a))).toBe(true)
+    expect(money.items.some((i) => /PayMongo/i.test(i.q + i.a))).toBe(false)
   })
 })
 
@@ -1018,7 +1018,7 @@ describe('Faq tabs (T2.5)', () => {
     expect(tabs[0]).toHaveFocus()
   })
 
-  it('makes all fourteen questions reachable: each one is shown once its group’s tab is selected', async () => {
+  it('makes all thirteen questions reachable: each one is shown once its group’s tab is selected', async () => {
     const user = userEvent.setup()
     const { getByRole, getByText } = render(<Faq />)
     const seen = new Set<string>()

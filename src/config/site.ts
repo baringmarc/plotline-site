@@ -75,7 +75,7 @@ export const hero = {
   promisesLabel: 'The deal',
   promises: [
     'Free for venues: no subscription and no setup fee',
-    'Players pay you directly, into your own GCash, Maya or bank',
+    'Players pay you directly, into your own GCash, Maya or bank, by QR code',
     `Players add a ${fee} booking fee to each online booking`,
   ],
   primaryCta: 'Get your venue online',
@@ -132,7 +132,7 @@ export type ScreenMock = 'pick' | 'pay' | 'confirmed' | 'link'
 /** The player's booking flow, step by step. All four screens are drawn. */
 export const playerSide = {
   label: 'The player’s side',
-  title: 'Booked in a minute, with no app to install',
+  title: 'Send a booking in a minute, with no app to install',
   lead: 'From your link to their booking.',
   stepLabel: (n: number, total: number) => `Step ${n} of ${total}`,
   steps: [
@@ -144,13 +144,13 @@ export const playerSide = {
     },
     {
       title: 'Pay you directly',
-      body: `Court price plus the ${fee} fee, into your GCash, Maya or bank, or through PayMongo.`,
+      body: `Court price plus the ${fee} fee, into your GCash, Maya or bank, by QR code or transfer.`,
       mock: 'pay',
-      alt: 'The payment screen: court price plus the booking fee, a choice of GCash, Maya, bank or PayMongo, the venue’s GCash QR code, and an upload button.',
+      alt: 'The payment screen: court price plus the booking fee, a choice of GCash, Maya, bank or QR code, the venue’s GCash QR code, and an upload button.',
     },
     {
       title: 'You confirm it',
-      body: 'A payment proof waits for your OK. PayMongo payments confirm on their own.',
+      body: 'A payment proof waits for your OK. You approve it, and the booking is confirmed.',
       mock: 'confirmed',
       alt: 'The confirmed booking with its reference and total.',
     },
@@ -190,7 +190,7 @@ export const playerSide = {
     court: (hours: number) => `Court, ${hours} hours`,
     fee: 'Booking fee',
     total: 'Total',
-    methods: ['GCash', 'Maya', 'Bank', 'PayMongo'],
+    methods: ['GCash', 'Maya', 'Bank', 'QR code'],
     payButton: 'Upload payment proof',
     confirmed: 'Confirmed',
     reference: 'Reference',
@@ -405,8 +405,8 @@ export const moneyFlow = {
   lead: 'Players pay you, not us. Plotline never holds your money.',
   steps: [
     { title: 'Player books', body: `Sees the court price and the ${fee} fee first.` },
-    { title: 'They pay you', body: 'Into your GCash, Maya, bank or PayMongo.' },
-    { title: 'Booking confirmed', body: 'When you approve the proof, or PayMongo confirms.' },
+    { title: 'They pay you', body: 'Into your GCash, Maya or bank, by QR code or transfer, with a proof.' },
+    { title: 'Booking confirmed', body: 'When you approve the proof.' },
     { title: 'One invoice a month', body: 'The fees from last month, every booking listed.' },
   ],
   neverBilled: 'Never billed',
@@ -476,11 +476,7 @@ export const faqGroups: FaqGroup[] = [
       },
       {
         q: 'Do I need a payment processor?',
-        a: 'No. Players pay you directly into your GCash, Maya or bank and send a proof, and you approve it. PayMongo is optional, on your own account, if you want online payments to confirm on their own.',
-      },
-      {
-        q: 'What does PayMongo cost?',
-        a: 'PayMongo charges its own fee on the whole online payment, between you and your PayMongo account. GCash, Maya and bank payments sent to you with a proof don’t go through it.',
+        a: 'No. Players pay you directly into your GCash, Maya or bank (by QR code or transfer) and send a proof, and you approve it.',
       },
       {
         q: 'Does open play cost anything?',
@@ -532,7 +528,7 @@ export const atAGlance = {
       rows: [
         { label: 'Booking fee', value: `${fee} per confirmed online booking, paid by the player` },
         { label: 'Not billed', value: pricing.notBilled.map((n, i) => (i ? n[0].toLowerCase() + n.slice(1) : n)).join(', ') },
-        { label: 'Payments', value: 'Players pay you directly: GCash, Maya, bank, or your own PayMongo account' },
+        { label: 'Payments', value: 'Players pay you directly: GCash, Maya or bank, by QR code or transfer, with a proof you approve' },
         { label: 'Billing', value: 'One invoice a month, with every booking listed' },
       ],
     },

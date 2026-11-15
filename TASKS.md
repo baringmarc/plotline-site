@@ -281,6 +281,12 @@ One-liner: **Paddle Stack**, a free open-play queue at `plotline.fit/paddle-stac
   - Files: `src/components/Nav.tsx`, the footer, `src/config/site.ts`, `src/worker.ts`, `public/sitemap.xml`, `public/robots.txt`, `public/og-paddle-stack.jpg`, tests next to them, `SPEC.md`, `README.md`, `TASKS.md`
   - Acceptance: tests cover the nav and footer links, and the Worker's rewritten head for `/paddle-stack` (and `/` untouched); at 360px the nav still folds into the menu without sideways scroll; `curl` of the deployed `/paddle-stack` shows Paddle Stack's title and description in the HTML and the FB Sharing Debugger shows the Paddle Stack card, both checked after the user merges `develop` into `master` (which deploys) and recorded here then, not needed for the commit (user, 2026-11-13); `npm run verify` and the full gate pass; the reviewer reports no blocking issues.
 
+## Milestone 7: Truthful payments copy (recorded from court-booking-system T27.9, 2026-11-15)
+
+- [x] **T7.1 Remove PayMongo from the site**
+  - Do: remove every PayMongo mention from `src/config/site.ts` and `src/config/legal.ts` (Terms "Your PayMongo account" section, payments paragraphs); "Booked in a minute" becomes "Send a booking in a minute". The promise is GCash, Maya and bank payments, by QR code or transfer (the user, 2026-11-15), with a proof the venue approves.
+  - Acceptance: `grep -ri paymongo src` finds nothing outside `database.types.ts`; tests updated; `npm run verify` passes. Legal paragraphs are shown to the user before the commit (approved by the user, 2026-11-15). Deploying (`npm run cf:deploy`) needs the user's approval.
+
 ## Milestone 6: Live stacks (later, court-booking-system first)
 
 One-liner: players join a stack by QR from their own phones and the board updates live for everyone; a Plotline venue's open play session gets "Run this as a stack" with the venue's logo, so the stack becomes a reason to choose Plotline. Needs new tables, realtime and anonymous RPCs with rate limits and clean-up, so it is a contract change (court-booking-system `docs/PLATFORM.md` §7): planned there first, after Milestone 5's numbers show organizers use the tool.

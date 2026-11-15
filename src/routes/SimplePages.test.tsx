@@ -45,21 +45,16 @@ describe('TermsPage', () => {
     expect(t).toContain('These terms follow the laws of the Philippines.')
   })
 
-  it('says how the PayMongo key is stored and what happens if it leaks', () => {
+  it('no longer mentions PayMongo, and says a booking is confirmed when the venue approves the proof (T27.9)', () => {
     render(
       <MemoryRouter>
         <TermsPage />
       </MemoryRouter>,
     )
-    const section = screen.getByRole('heading', { name: 'Your PayMongo account' }).closest('section')!
-    const t = section.textContent ?? ''
-    expect(t).toMatch(/encrypted/i)
-    expect(t).toMatch(/only (by )?our server/i)
-    expect(t).toMatch(/never shown again/i)
-    expect(t).toMatch(/last 4 characters/)
-    expect(t).toMatch(/leak/i)
-    expect(t).toMatch(/disconnect/i)
-    expect(t).toMatch(/replace/i)
+    const t = document.body.textContent ?? ''
+    expect(t).not.toMatch(/PayMongo/i)
+    expect(screen.queryByRole('heading', { name: 'Your PayMongo account' })).toBeNull()
+    expect(t).toContain('A booking counts as confirmed when you approve the player’s payment proof.')
   })
 
   it('says a suspension is lifted once the overdue invoice is paid, usually within one business day', () => {
