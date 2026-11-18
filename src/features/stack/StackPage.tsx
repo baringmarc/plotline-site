@@ -7,6 +7,7 @@ import {
   backInLine,
   createSession,
   fillCourts,
+  isRoundFormat,
   MAX_COURTS,
   MAX_TITLE,
   recordScore,
@@ -405,7 +406,7 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
   const nameOf = (id: string) => session.players.find((p) => p.id === id)?.name ?? ''
   const playing = session.games.filter((g) => g.status === 'playing')
   const out = session.players.filter((p) => p.status === 'out')
-  const roundOn = session.format === 'americano' && playing.length > 0
+  const roundOn = isRoundFormat(session.format) && playing.length > 0
 
   return (
     <>

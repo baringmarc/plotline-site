@@ -1,6 +1,6 @@
 /** Paddle Stack session types. Rules: SPEC §4 "Paddle Stack rules". */
 
-export type Format = 'fair' | 'winners-split' | 'americano'
+export type Format = 'fair' | 'winners-split' | 'americano' | 'round-robin' | 'mexicano' | 'skill-groups' | 'winners-losers'
 
 /** Singles: one player a side (2 per court). Doubles: two a side (4 per court). Set for the whole session. */
 export type Play = 'singles' | 'doubles'

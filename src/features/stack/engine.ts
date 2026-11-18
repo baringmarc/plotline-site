@@ -3,6 +3,7 @@
  * Every action returns a new session and never mutates its input. A broken rule throws a
  * `StackError` and changes nothing.
  */
+import { roundRobinOrder } from './schedule'
 import type { Format, Game, Level, Play, Player, Session, StandingRow, Team, Teams } from './types'
 
 export type StackErrorCode =
@@ -39,7 +40,15 @@ const EXACT_PAIRING_LIMIT = 24
 /** Step limit for the pairing search, so a phone never hangs. */
 const SEARCH_STEPS = 200_000
 
-const FORMATS: readonly Format[] = ['fair', 'winners-split', 'americano']
+const FORMATS: readonly Format[] = [
+  'fair',
+  'winners-split',
+  'americano',
+  'round-robin',
+  'mexicano',
+  'skill-groups',
+  'winners-losers',
+]
 const PLAYS: readonly Play[] = ['singles', 'doubles']
 const TEAMS: readonly Teams[] = ['open', 'fixed']
 const SESSION_VERSION = 2
@@ -108,6 +117,14 @@ const freeCourts = (s: Session): number[] => {
   const out: number[] = []
   for (let c = 1; c <= s.courts; c++) if (!busy.has(c)) out.push(c)
   return out
+}
+
+/** Puts two teams on a court and takes their players out of the line. */
+const startTeams = (s: Session, court: number, teamA: Team, teamB: Team) => {
+  const ids = [...teamA, ...teamB]
+  s.games.push({ id: nextGameId(s), court, teamA, teamB, status: 'playing' })
+  s.line = s.line.filter((id) => !ids.includes(id))
+  setStatus(s, ids, 'playing')
 }
 
 /**
@@ -182,7 +199,11 @@ const pushPlayer = (s: Session, entry: { name: string; level?: Level }): string 
 
 /** Combinations that aren't offered (SPEC §4 "Combinations"). */
 const comboOk = (format: Format, play: Play, teams: Teams) =>
-  !(play === 'singles' && (format === 'winners-split' || teams === 'fixed')) && !(format === 'americano' && teams === 'fixed')
+  !(play === 'singles' && (format === 'winners-split' || teams === 'fixed')) &&
+  !(teams === 'fixed' && (format === 'americano' || format === 'mexicano'))
+
+/** Round formats start a new round only when no game is on any court; the others fill courts as they free up. */
+export const isRoundFormat = (format: Format): boolean => format === 'americano' || format === 'mexicano'
 
 // ---------- session ----------
 
@@ -301,10 +322,24 @@ export function fillCourts(session: Session): Session {
     startAmericanoRound(s)
     return s
   }
+  if (s.format === 'mexicano') {
+    startMexicanoRound(s)
+    return s
+  }
   const n = perCourt(s)
   for (const court of freeCourts(s)) {
     if (s.line.length < n) break
-    startGame(s, court, s.line.slice(0, n))
+    if (s.format === 'round-robin') {
+      if (!startRoundRobin(s, court)) break
+      continue
+    }
+    const group =
+      s.format === 'skill-groups'
+        ? buildGroup(s, sideLevel(s))
+        : s.format === 'winners-losers'
+          ? buildGroup(s, sidePool(s))
+          : s.line.slice(0, n)
+    startGame(s, court, group)
   }
   return s
 }
@@ -369,16 +404,22 @@ function afterGame(s: Session, g: Game) {
 
 // ---------- Americano ----------
 
-function startAmericanoRound(s: Session) {
-  if (playingGames(s).length > 0) return
+/** Who plays in a round (Americano, Mexicano): fewest turns played first, then line order; [] when no round can start. */
+function roundPlayers(s: Session): string[] {
+  if (playingGames(s).length > 0) return []
   const n = perCourt(s)
   const courtsInUse = Math.min(s.courts, Math.floor(s.line.length / n))
-  if (courtsInUse === 0) return
+  if (courtsInUse === 0) return []
   const turns = turnsPlayed(s)
   const order = new Map(s.line.map((id, i) => [id, i]))
-  const chosen = [...s.line]
+  return [...s.line]
     .sort((a, b) => (turns.get(a) ?? 0) - (turns.get(b) ?? 0) || order.get(a)! - order.get(b)!)
     .slice(0, courtsInUse * n)
+}
+
+function startAmericanoRound(s: Session) {
+  const chosen = roundPlayers(s)
+  if (chosen.length === 0) return
 
   const partnered = new Map<string, number>()
   const opposed = new Map<string, number>()
@@ -482,6 +523,134 @@ export function pairPartners(players: string[], cost: (a: string, b: string) => 
   }
   search(0)
   return bestPairs
+}
+
+// ---------- Mexicano ----------
+
+/** Mexicano: the round's players ordered by level (first round) or standings, 1 & 4 against 2 & 3 (singles 1 against 2). */
+function startMexicanoRound(s: Session) {
+  const chosen = roundPlayers(s)
+  if (chosen.length === 0) return
+  const lineOrder = new Map(s.line.map((id, i) => [id, i]))
+  const byLine = (a: string, b: string) => lineOrder.get(a)! - lineOrder.get(b)!
+  let rank: (id: string) => number
+  if (s.games.some((g) => g.status === 'scored')) {
+    const place = new Map(standings(s).map((r) => [r.playerId, r.place]))
+    rank = (id) => place.get(id) ?? Number.MAX_SAFE_INTEGER
+  } else {
+    const level = new Map(s.players.map((p) => [p.id, p.level ?? 2]))
+    rank = (id) => -(level.get(id) ?? 2)
+  }
+  const ordered = [...chosen].sort((a, b) => rank(a) - rank(b) || byLine(a, b))
+  const courts = freeCourts(s)
+  const n = perCourt(s)
+  for (let k = 0; k * n < ordered.length; k++) {
+    const [a, b, c, d] = ordered.slice(k * n, k * n + n)
+    if (n === 2) startTeams(s, courts[k], [a], [b])
+    else startTeams(s, courts[k], [a, d], [b, c])
+  }
+}
+
+// ---------- Round Robin ----------
+
+/** Sides waiting or playing, in the order they joined: a player, or a fixed pair (partners in the order entered). */
+function presentSides(s: Session): string[][] {
+  const seen = new Set<string>()
+  const out: string[][] = []
+  for (const p of s.players) {
+    if (seen.has(p.id) || (p.status !== 'waiting' && p.status !== 'playing')) continue
+    const side = unitOf(s, p)
+    for (const id of side) seen.add(id)
+    out.push(side)
+  }
+  return out
+}
+
+/**
+ * Round Robin: puts the next scheduled pairing on a court (SPEC §4 "Round Robin"). Returns false when no
+ * pairing of the current cycle is waiting, so the court stays free.
+ */
+function startRoundRobin(s: Session, court: number): boolean {
+  const doublesOpen = s.play === 'doubles' && s.teams === 'open'
+  // Pairings: matches between sides (singles, fixed pairs) or partnerships between players (open doubles).
+  const pairings = roundRobinOrder(presentSides(s)).map(([x, y]) => [...x, ...y])
+  if (pairings.length === 0) return false
+  const key = (ids: string[]) => [...ids].sort().join('|')
+  const counts = new Map<string, number>()
+  for (const g of s.games) {
+    if (!isTurn(g)) continue
+    const keys = doublesOpen ? [key(g.teamA), key(g.teamB)] : [key(inGame(g))]
+    for (const k of keys) counts.set(k, (counts.get(k) ?? 0) + 1)
+  }
+  const count = (p: string[]) => counts.get(key(p)) ?? 0
+  const lowest = Math.min(...pairings.map(count))
+  const waiting = (p: string[]) => p.every((id) => s.players.find((x) => x.id === id)?.status === 'waiting')
+  const first = pairings.find((p) => count(p) === lowest && waiting(p))
+  if (!first) return false
+  if (!doublesOpen) {
+    const half = first.length / 2
+    startTeams(s, court, first.slice(0, half) as Team, first.slice(half) as Team)
+    return true
+  }
+  let second: string[] | undefined
+  for (const p of pairings) {
+    if (p.some((id) => first.includes(id)) || !waiting(p)) continue
+    if (!second || count(p) < count(second)) second = p
+  }
+  if (!second) return false
+  startTeams(s, court, first as Team, second as Team)
+  return true
+}
+
+// ---------- Skill groups, Winners vs Losers ----------
+
+type SideKey = (side: string[]) => number | string | undefined
+
+/** The line as sides, front first: one player, or a fixed pair (partners stand next to each other). */
+function lineSides(s: Session): string[][] {
+  if (s.teams !== 'fixed') return s.line.map((id) => [id])
+  const out: string[][] = []
+  for (let i = 0; i + 1 < s.line.length; i += 2) out.push([s.line[i], s.line[i + 1]])
+  return out
+}
+
+/**
+ * Builds a court's group from the side waiting longest: walking the line, it takes sides with the group's key
+ * or no key; if that can't fill the court, the front of the line plays (SPEC §4 "Skill groups").
+ */
+function buildGroup(s: Session, keyOf: SideKey): string[] {
+  const n = perCourt(s)
+  const taken: string[] = []
+  let group: number | string | undefined
+  for (const side of lineSides(s)) {
+    if (taken.length >= n) break
+    const k = keyOf(side)
+    if (k !== undefined && group !== undefined && k !== group) continue
+    if (taken.length + side.length > n) continue
+    taken.push(...side)
+    if (group === undefined) group = k
+  }
+  return taken.length === n ? taken : s.line.slice(0, n)
+}
+
+/** A side's level: the higher of its players' levels, none if none has one. */
+const sideLevel =
+  (s: Session): SideKey =>
+  (side) => {
+    const levels = side.map((id) => s.players.find((p) => p.id === id)?.level).filter((l): l is Level => l !== undefined)
+    return levels.length ? Math.max(...levels) : undefined
+  }
+
+/** A side's pool: the result of its last scored game, none before its first. */
+const sidePool = (s: Session): SideKey => {
+  const pool = new Map<string, 'winners' | 'losers'>()
+  for (const g of s.games) {
+    if (g.status !== 'scored') continue
+    const aWon = (g.scoreA ?? 0) > (g.scoreB ?? 0)
+    for (const id of g.teamA) pool.set(id, aWon ? 'winners' : 'losers')
+    for (const id of g.teamB) pool.set(id, aWon ? 'losers' : 'winners')
+  }
+  return (side) => pool.get(side[0])
 }
 
 // ---------- standings ----------
