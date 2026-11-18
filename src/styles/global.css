@@ -826,10 +826,34 @@ form.formcard > .btn { align-self: flex-start; }
   display: grid; gap: 14px; margin: auto 0; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 .stack-card-dialog h2 { margin: 0; font-size: 22px; }
-.stack-card-preview { display: flex; justify-content: center; align-items: center; height: min(46vh, 520px); } /* fixed, so the options don't move when the card appears */
-.stack-card-preview img { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; border-radius: 12px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
-.stack-card-preview.story img { aspect-ratio: 1080 / 1920; }
-.stack-card-preview.post img { aspect-ratio: 1080 / 1350; }
+.stack-card-preview { --ph: min(46vh, 520px); display: flex; justify-content: center; align-items: center; height: var(--ph); } /* fixed, so the options don't move when the card appears */
+/* The frame is exactly the card's box (as tall as the preview, or as wide as the dialog), so the overlay lines up with the image. */
+.stack-card-frame { position: relative; }
+.stack-card-preview.story .stack-card-frame { width: min(100%, calc(var(--ph) * 1080 / 1920)); aspect-ratio: 1080 / 1920; }
+.stack-card-preview.post .stack-card-frame { width: min(100%, calc(var(--ph) * 1080 / 1350)); aspect-ratio: 1080 / 1350; }
+.stack-card-preview img { display: block; width: 100%; height: 100%; border-radius: 12px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+/* T8.7b: the items over the preview; drag them with a mouse or a finger (no page scroll while dragging). */
+.stack-card-overlay { position: absolute; inset: 0; }
+.stack-card-item {
+  position: absolute; padding: 0; border: 1.5px dashed rgba(255, 255, 255, 0.45); border-radius: 8px; background: transparent;
+  cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent;
+}
+.stack-card-item:active { cursor: grabbing; }
+.stack-card-item[aria-pressed="true"] { border: 2px solid #fff; box-shadow: 0 0 0 2px var(--highlight); }
+.stack-card-item:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+.stack-card-remove {
+  position: absolute; transform: translate(-50%, -50%); width: 32px; height: 32px; padding: 0; border: 2px solid #fff; border-radius: 50%;
+  background: var(--brown); color: #fff; font-size: 15px; line-height: 1; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+} /* fixed colours: it sits on the card, not the page */
+.stack-card-arrange { display: grid; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.stack-card-arrange .hint { margin: 0; font-size: 13px; }
+.stack-card-range { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }
+.stack-card-range input { width: 100%; }
+.stack-chip-btn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; background: var(--field); color: inherit; white-space: nowrap;
+}
+.stack-chip-btn:hover { border-color: var(--highlight); }
 .stack-card-options { display: grid; gap: 12px; align-content: start; }
 .stack-card-choices { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .stack-card-label, .stack-card-photo label, .stack-card-darkness { font-weight: 700; font-size: 14px; }
@@ -851,5 +875,5 @@ form.formcard > .btn { align-self: flex-start; }
 @media (min-width: 820px) {
   .stack-card-dialog { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 24px; align-items: start; }
   .stack-card-dialog h2, .stack-card-dialog .err, .stack-card-inapp, .stack-card-actions { grid-column: 1 / -1; }
-  .stack-card-preview { height: min(72vh, 760px); }
+  .stack-card-preview { --ph: min(72vh, 760px); }
 }

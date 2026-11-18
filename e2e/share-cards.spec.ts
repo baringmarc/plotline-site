@@ -87,3 +87,45 @@ test('no network request while making and sharing a card, uploaded photo include
   page.off('request', onRequest)
   expect(requests).toEqual([])
 })
+
+// T8.7b: arranging the player card with a real pointer (mouse here; touch is the user's by-eye check), in every
+// project and both themes: drag the date, pick the List look, remove a part, and the layout comes back on reopening.
+// No network request throughout (TASKS.md T8.7b Acceptance).
+for (const theme of themes) {
+  test(`arrange the player card, ${theme}`, async ({ page }, testInfo) => {
+    await scoredBoard(page, theme)
+    const requests: string[] = []
+    page.on('request', (r: Request) => {
+      const url = r.url()
+      if (!url.startsWith('blob:') && !url.startsWith('data:')) requests.push(`${r.method()} ${url}`)
+    })
+    await page.getByRole('button', { name: /^Share card for / }).first().click()
+    const dialog = page.getByRole('dialog', { name: 'Share a card' })
+    await previewReady(page)
+
+    const date = dialog.getByRole('button', { name: 'Pick Date' })
+    const before = (await date.boundingBox())!
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2 + 60, { steps: 6 })
+    await page.mouse.up()
+    await expect(date).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(async () => (await date.boundingBox())!.y).toBeGreaterThan(before.y + 20)
+
+    await dialog.getByRole('button', { name: 'Pick Player card' }).click()
+    await dialog.getByRole('button', { name: 'Remove Best streak' }).click()
+    await dialog.getByRole('radio', { name: 'List' }).check()
+    await dialog.getByRole('slider', { name: 'Card background' }).fill('80')
+    await previewReady(page)
+    await checkPage(page, testInfo, { name: `stack-card-arranged-${theme}`, cards: dialogCards })
+
+    await dialog.getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('button', { name: /^Share card for / }).nth(1).click()
+    await previewReady(page)
+    await expect(dialog.getByRole('radio', { name: 'List' })).toBeChecked()
+    await expect(dialog.getByRole('group', { name: 'Removed' }).getByRole('button', { name: 'Add Best streak back' })).toBeVisible()
+    await dialog.getByRole('button', { name: 'Reset layout' }).click()
+    await expect(dialog.getByRole('radio', { name: 'Default' })).toBeChecked()
+    expect(requests).toEqual([])
+  })
+}

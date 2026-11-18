@@ -224,6 +224,21 @@ export const paddleStack = {
     placeOf: (place: number, of: number) => `${ordinal(place)} of ${of}`,
     /** Under the group card's rows when not everyone fits. */
     more: (n: number) => `+${n} more`,
+    /** Arranging the player card in the preview (T8.7b). */
+    layout: {
+      hint: 'Tap the player card, the title or the date to pick it, then drag it to move it.',
+      itemSize: 'Size of the picked item',
+      opacity: 'Card background',
+      lookLabel: 'Look',
+      looks: { default: 'Default', compact: 'Compact', list: 'List' },
+      items: { player: 'Player card', title: 'Title', date: 'Date' },
+      parts: { name: 'Name', place: 'Place', record: 'W–L', winRate: 'Win %', streak: 'Best streak', diff: '+/−' },
+      select: (label: string) => `Pick ${label}`,
+      remove: (label: string) => `Remove ${label}`,
+      restore: (label: string) => `Add ${label} back`,
+      removedLabel: 'Removed',
+      reset: 'Reset layout',
+    },
     groupFileName: 'paddle-stack-standings.png',
     /** A file name safe on every phone: lowercase letters, digits and dashes. */
     playerFileName: (name: string) => {

@@ -1,6 +1,7 @@
 /**
- * Draws the share cards (T8.7) on a canvas: the player card (Strava-style stats) and the group card (the leaderboard),
- * at story or post size, on a built-in background or the organizer's photo under a shade. Names and big numbers use
+ * Draws the share cards (T8.7) on a canvas: the player card (Strava-style stats, arranged by its layout, T8.7b) and the
+ * group card (the leaderboard), at story or post size, on a built-in background or the organizer's photo under a
+ * shade. Names and big numbers use
  * Paddle Stack's display face (T8.2), waited for before any text is drawn; the rest is DM Sans. No image is loaded:
  * the Plotline logo is drawn as shapes, so nothing is fetched while making a card.
  */
@@ -8,6 +9,7 @@ import { paddleStack } from '../../../config/paddleStack'
 import { loadStackFonts, STACK_DISPLAY } from '../fonts'
 import { overlayAlpha, type CardBackground } from './backgrounds'
 import { CARD_SIZES, type CardSize, type GroupCardData, type PlayerCardData } from './cardData'
+import { defaultLayout, fitLayout, itemRects, ITEM_WIDTH, PLAYER_METRICS, STAT_PARTS, statsShown, type CardLayout, type Rect } from './layout'
 
 const { share } = paddleStack
 
@@ -31,18 +33,38 @@ interface Theme {
   text: string
   soft: string
   accent: string
-  /** Behind the stat tiles and every other leaderboard row. */
+  /** Behind every other leaderboard row. */
   panel: string
+  /** The player card's panel (drawn at the layout's opacity): a colour the text reads on when solid. */
+  card: string
+  /** The stat tiles' outlines and the List look's dividers. */
+  line: string
 }
 
-const ON_DARK: Theme = { text: '#fffaf3', soft: 'rgba(255, 250, 243, 0.78)', accent: C.blush, panel: 'rgba(255, 250, 243, 0.12)' }
-const ON_LIGHT: Theme = { text: C.brown, soft: C.brownSoft, accent: C.terracotta, panel: 'rgba(59, 47, 42, 0.07)' }
+const ON_DARK: Theme = {
+  text: '#fffaf3',
+  soft: 'rgba(255, 250, 243, 0.78)',
+  accent: C.blush,
+  panel: 'rgba(255, 250, 243, 0.12)',
+  card: '#231b18',
+  line: 'rgba(255, 250, 243, 0.3)',
+}
+const ON_LIGHT: Theme = {
+  text: C.brown,
+  soft: C.brownSoft,
+  accent: C.terracotta,
+  panel: 'rgba(59, 47, 42, 0.07)',
+  card: '#fffaf3',
+  line: 'rgba(59, 47, 42, 0.2)',
+}
 
 export interface DrawOptions {
   size: CardSize
   background: CardBackground
   /** 0–100; only used over a photo. */
   darkness: number
+  /** The player card's arrangement (T8.7b); the default layout when left out. Not used by the group card. */
+  layout?: CardLayout
 }
 
 const LEFT = 80
@@ -245,71 +267,135 @@ function footer(ctx: CanvasRenderingContext2D, theme: Theme, text: string, W: nu
   ctx.fillText(text, LEFT, H - 84)
 }
 
-/** Shrinks a font until `text` fits in `width`. */
-function fitFont(ctx: CanvasRenderingContext2D, text: string, weight: number, size: number, family: string, width: number) {
+/** Shrinks a font until `text` fits in `width` (in steps of 2 px times `k`, down to 20 px times `k`). */
+function fitFont(ctx: CanvasRenderingContext2D, text: string, weight: number, size: number, family: string, width: number, k = 1) {
   let s = size
   ctx.font = `${weight} ${s}px ${family}`
-  while (s > 20 && ctx.measureText(text).width > width) {
-    s -= 2
+  while (s > 20 * k && ctx.measureText(text).width > width) {
+    s = px(s - 2 * k)
     ctx.font = `${weight} ${s}px ${family}`
   }
 }
 
 // ---------- the player card ----------
 
+/** A font size with one decimal, so a scaled item's text keeps its proportions. */
+const px = (n: number) => Math.round(n * 10) / 10
+
+/** The player card, title and date where the layout puts them (T8.7b); the header and footer never move. */
 export async function drawPlayerCard(data: PlayerCardData, opts: DrawOptions): Promise<Blob> {
   const { canvas, ctx, theme, width: W, height: H } = await start(opts)
-  const story = opts.size === 'story'
-  const inner = W - 2 * LEFT
+  const layout = fitLayout(opts.layout ?? defaultLayout(opts.size), opts.size)
+  const rects = itemRects(layout, opts.size, { hasTitle: data.title !== '' })
   header(ctx, theme)
 
   ctx.textAlign = 'left'
-  let y = 290
-  if (data.title) {
+  if (rects.title) {
+    const r = rects.title
+    const s = layout.items.title.scale
     ctx.fillStyle = theme.text
-    fitFont(ctx, data.title, 700, 44, DISPLAY, inner)
-    ctx.fillText(data.title, LEFT, y)
-    y += 54
+    fitFont(ctx, data.title, 700, px(44 * s), DISPLAY, r.w, s)
+    ctx.fillText(data.title, r.x, r.y + (opts.size === 'story' ? 46 : 44) * s)
   }
-  ctx.fillStyle = theme.soft
-  ctx.font = `500 32px ${SANS}`
-  ctx.fillText(data.date, LEFT, y)
-
-  const nameY = story ? 760 : 530
-  ctx.fillStyle = theme.text
-  fitFont(ctx, data.name, 800, story ? 124 : 108, DISPLAY, inner)
-  ctx.fillText(data.name, LEFT, nameY)
-  ctx.fillStyle = theme.accent
-  ctx.font = `800 ${story ? 60 : 52}px ${DISPLAY}`
-  ctx.fillText(share.placeOf(data.place, data.of), LEFT, nameY + (story ? 96 : 82))
-
-  const stats: [string, string][] = [
-    [share.record, data.record],
-    [share.winRateLabel, data.winRate === null ? '—' : `${data.winRate}%`],
-    [share.streakLabel, String(data.streak)],
-    [share.diff, data.diff],
-  ]
-  const gap = 24
-  const tileW = (inner - gap) / 2
-  const tileH = story ? 250 : 180
-  const top = nameY + (story ? 190 : 140)
-  stats.forEach(([label, value], i) => {
-    const x = LEFT + (i % 2) * (tileW + gap)
-    const ty = top + Math.floor(i / 2) * (tileH + gap)
-    ctx.fillStyle = theme.panel
-    roundedRect(ctx, x, ty, tileW, tileH, 28)
-    ctx.fill()
-    ctx.textAlign = 'left'
+  if (rects.date) {
+    const r = rects.date
+    const s = layout.items.date.scale
     ctx.fillStyle = theme.soft
-    ctx.font = `700 ${story ? 32 : 28}px ${SANS}`
-    ctx.fillText(label, x + 36, ty + (story ? 70 : 56))
-    ctx.fillStyle = theme.text
-    fitFont(ctx, value, 800, story ? 120 : 88, DISPLAY, tileW - 72)
-    ctx.fillText(value, x + 36, ty + tileH - (story ? 50 : 34))
-  })
+    fitFont(ctx, data.date, 500, px(32 * s), SANS, r.w, s)
+    ctx.fillText(data.date, r.x, r.y + 32 * s)
+  }
+  if (rects.player) playerItem(ctx, data, layout, opts.size, rects.player, theme)
 
   footer(ctx, theme, data.footer, W, H)
   return toPng(canvas)
+}
+
+function playerItem(ctx: CanvasRenderingContext2D, data: PlayerCardData, layout: CardLayout, size: CardSize, r: Rect, theme: Theme) {
+  const s = layout.items.player.scale
+  const m = PLAYER_METRICS[size]
+  const story = size === 'story'
+  const X = (lx: number) => r.x + lx * s
+  const Y = (ly: number) => r.y + ly * s
+  const cw = ITEM_WIDTH - 2 * m.pad
+
+  // The panel behind the card; only it fades, the text stays solid.
+  if (layout.opacity > 0) {
+    ctx.globalAlpha = layout.opacity / 100
+    ctx.fillStyle = theme.card
+    roundedRect(ctx, r.x, r.y, r.w, r.h, 36 * s)
+    ctx.fill()
+    ctx.globalAlpha = 1
+  }
+
+  ctx.textAlign = 'left'
+  let y = m.pad
+  if (!layout.removedParts.includes('name')) {
+    ctx.fillStyle = theme.text
+    fitFont(ctx, data.name, 800, px(m.nameFont * s), DISPLAY, cw * s, s)
+    ctx.fillText(data.name, X(m.pad), Y(y + m.nameFont * 0.85))
+    y += m.name
+  }
+  if (!layout.removedParts.includes('place')) {
+    ctx.fillStyle = theme.accent
+    ctx.font = `800 ${px(m.placeFont * s)}px ${DISPLAY}`
+    ctx.fillText(share.placeOf(data.place, data.of), X(m.pad), Y(y + m.placeFont * 0.95))
+    y += m.place
+  }
+
+  const values: Record<(typeof STAT_PARTS)[number], [string, string]> = {
+    record: [share.record, data.record],
+    winRate: [share.winRateLabel, data.winRate === null ? '—' : `${data.winRate}%`],
+    streak: [share.streakLabel, String(data.streak)],
+    diff: [share.diff, data.diff],
+  }
+  const stats = statsShown(layout).map((p) => values[p])
+  if (stats.length === 0) return
+  if (y > m.pad) y += m.gap
+
+  ctx.strokeStyle = theme.line
+  ctx.lineWidth = 2 * s
+  if (layout.look === 'list') {
+    stats.forEach(([label, value], i) => {
+      const ry = y + i * (m.row + m.rowGap)
+      const base = Y(ry + m.row * 0.62)
+      if (i > 0) {
+        ctx.beginPath()
+        ctx.moveTo(X(m.pad), Y(ry - m.rowGap / 2))
+        ctx.lineTo(X(m.pad + cw), Y(ry - m.rowGap / 2))
+        ctx.stroke()
+      }
+      ctx.textAlign = 'left'
+      ctx.fillStyle = theme.soft
+      fitFont(ctx, label, 700, px((story ? 34 : 28) * s), SANS, cw * 0.5 * s, s)
+      ctx.fillText(label, X(m.pad), base)
+      ctx.textAlign = 'right'
+      ctx.fillStyle = theme.text
+      fitFont(ctx, value, 800, px((story ? 72 : 56) * s), DISPLAY, cw * 0.45 * s, s)
+      ctx.fillText(value, X(m.pad + cw), base)
+    })
+    ctx.textAlign = 'left'
+    return
+  }
+
+  const compact = layout.look === 'compact'
+  const cols = compact ? stats.length : 2
+  const gap = compact ? 16 : m.tileGap
+  const tileW = (cw - (cols - 1) * gap) / cols
+  const tileH = compact ? m.compactTile : m.tile
+  const inset = compact ? 16 : 36
+  stats.forEach(([label, value], i) => {
+    const tx = m.pad + (i % cols) * (tileW + gap)
+    const ty = y + Math.floor(i / cols) * (tileH + m.tileGap)
+    roundedRect(ctx, X(tx), Y(ty), tileW * s, tileH * s, (compact ? 20 : 28) * s)
+    ctx.stroke()
+    ctx.textAlign = 'left'
+    ctx.fillStyle = theme.soft
+    fitFont(ctx, label, 700, px((compact ? (story ? 26 : 22) : story ? 32 : 28) * s), SANS, (tileW - 2 * inset) * s, s)
+    ctx.fillText(label, X(tx + inset), Y(ty + tileH * 0.3))
+    ctx.fillStyle = theme.text
+    fitFont(ctx, value, 800, px((compact ? (story ? 72 : 56) : story ? 120 : 88) * s), DISPLAY, (tileW - 2 * inset) * s, s)
+    ctx.fillText(value, X(tx + inset), Y(ty + tileH * 0.8))
+  })
 }
 
 // ---------- the group card ----------
