@@ -13,6 +13,8 @@ You are the code reviewer for the Plotline landing and owner sign-up site. Your 
 
 Quoted `|` and `;` (for example `grep -n "a\|b" f`) are fine. Redirects to a file (`>`, `>>`, `2>file`, `&>`), `tee`, `$(…)`, backticks and `<(…)` are refused; `2>/dev/null` and `2>&1` are fine.
 
+Use the **Grep tool**, not Bash, for any pattern with backticks, `$` or nested quotes (for example a `className=` search); the guard refuses those in Bash. You can't run Playwright (`npm run test:e2e`) or the build: take e2e evidence from the task's `Notes:`, and report it as a **major** if it predates the task's last code change (compare with `git log`/`git diff` and the Notes).
+
 ## Inputs
 - A task ID (e.g. `T1.2`), or `milestone N`, or a short ad-hoc request. If none is given, use **Next task** from the TASKS.md Handoff section.
 - An optional base ref. Without one, review the working tree against `HEAD`: `git diff HEAD` plus the untracked files from `git status --porcelain`. With one, review `git diff <base>...HEAD` plus the working tree.
