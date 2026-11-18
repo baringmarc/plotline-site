@@ -1,6 +1,7 @@
 // `/paddle-stack` in every device-matrix project, both themes (TASKS.md T8.1): the start screen, a started board,
 // TV mode (only in the `*-pc` projects, 1920×1080) and the `?tv=1` window; T8.3 adds a singles board and TV with a title;
-// T8.5 the full start screen (name chips with levels, fixed pairs, the format grid: one column below 820 px, two from 820).
+// T8.5 the full start screen (name chips with levels, fixed pairs, the format grid: one column below 820 px, two from 820);
+// T8.6 the TV's logo, court bands with a last result, and who's on a break.
 import { expect, test, type Page } from '@playwright/test'
 import { checkPage, setTheme, stubNetwork, watch } from './helpers.ts'
 import { themes, tvViewport } from './matrix.ts'
@@ -9,7 +10,7 @@ const NAMES = ['Ana', 'Ben', 'Carla', 'Dante', 'Ella', 'Felix', 'Gia', 'Hugo', '
 
 const startCards = '.formcard.stack-start, .stack-guide-grid > *, .stack-faq'
 const boardCards = '.stack-title, .stack-courts > *, .stack-line, .stack-standings, .stack-actions'
-const tvCards = '.stack-tv-title, .stack-tv-courts > *, .stack-tv-next, .stack-tv-banner'
+const tvCards = '.stack-tv-logo, .stack-tv-title, .stack-tv-banner, .stack-tv-courts > *, .stack-tv-bottom'
 const TITLE = 'Sunday Open Play (ALL LEVELS)'
 
 async function open(page: Page, theme: (typeof themes)[number], path = '/paddle-stack') {
@@ -80,6 +81,25 @@ for (const theme of themes) {
       await page.getByRole('button', { name: 'TV mode' }).click()
       await page.getByRole('button', { name: 'Exit TV mode' }).waitFor()
       await checkPage(page, testInfo, { name: `stack-tv-${theme}`, cards: tvCards })
+    })
+
+    test('TV mode with a last result and a break', async ({ page }, testInfo) => {
+      test.skip(!isTvProject(testInfo.project.name), 'the TV board runs only at 1920×1080')
+      await open(page, theme)
+      await startStack(page, { title: TITLE })
+      const court1 = page.getByRole('region', { name: 'Court 1' })
+      await court1.getByRole('button', { name: 'Enter score' }).click()
+      const boxes = court1.getByRole('textbox')
+      await boxes.nth(0).fill('11')
+      await boxes.nth(1).fill('7')
+      await court1.getByRole('button', { name: 'Save score' }).click()
+      const upNext = page.getByRole('region', { name: 'Up next' })
+      await upNext.getByRole('button', { name: /Time out/ }).first().click()
+      await page.getByRole('button', { name: 'TV mode' }).click()
+      await expect(page.locator('.stack-tv-logo img')).toBeVisible()
+      await expect(page.locator('.stack-tv-last').first()).toHaveText('Last game 11–7')
+      await expect(page.locator('.stack-tv-break')).toBeVisible()
+      await checkPage(page, testInfo, { name: `stack-tv-results-${theme}`, cards: tvCards })
     })
 
     test('the ?tv=1 window', async ({ page }, testInfo) => {

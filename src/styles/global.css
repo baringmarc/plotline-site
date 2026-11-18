@@ -51,6 +51,13 @@
   --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
   --radius: 18px;
+  /* Paddle Stack court tones (T8.6): brand-derived, the same in both themes, always with brown text. */
+  --court-1: #b7c4a8;
+  --court-2: #e8c4b8;
+  --court-3: #e3c178;
+  --court-4: #a9c1d4;
+  --court-5: #dba98f;
+  --court-6: #c9bcd6;
 }
 
 /* Dark theme: the guide's secondary logo, on warm brown. Highlights move to dusty rose so they stay readable. */
@@ -654,7 +661,24 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-courts { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
 .paddle-stack .stack-court { background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
 .stack-court.empty { background: transparent; border-style: dashed; }
-.stack-court h3 { margin: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-soft); }
+.tone-1 { --tone: var(--court-1); }
+.tone-2 { --tone: var(--court-2); }
+.tone-3 { --tone: var(--court-3); }
+.tone-4 { --tone: var(--court-4); }
+.tone-5 { --tone: var(--court-5); }
+.tone-6 { --tone: var(--court-6); }
+.paddle-stack .stack-court { border-color: var(--tone, var(--line)); overflow: hidden; }
+.paddle-stack .stack-court.empty { border-color: var(--line); }
+.stack-court h3 {
+  margin: -18px -18px 0; padding: 8px 18px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--tone, var(--line)); color: var(--brown);
+}
+.stack-court.empty h3 { background: var(--line); color: var(--text); }
+.stack-side { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.stack-court-streak {
+  font-family: var(--sans); font-size: 13px; font-weight: 700; white-space: nowrap;
+  background: var(--tone, var(--sage)); color: var(--brown); padding: 2px 10px; border-radius: 999px;
+}
 .stack-court .hint { margin: 0; }
 .stack-teams { margin: 0; display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 18px; overflow-wrap: anywhere; }
 .stack-teams small { font-weight: 500; color: var(--text-soft); font-size: 14px; }
@@ -707,29 +731,76 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-tools .check { align-items: center; font-size: 15px; }
 .stack-tools .hint { flex-basis: 100%; margin: -4px 0 0; }
 .stack-tools .btn { padding: 10px 18px; font-size: 15px; }
+/* TV board, design A "Court bands" (T8.6, the user's pick): logo and title on top, a coloured band per court,
+   Up next in a dark band along the bottom. Court tones carry brown text in both themes (AA: 6:1 or more). */
 .stack-tv {
   position: fixed; inset: 0; z-index: 100; overflow: auto; background: var(--bg); color: var(--text);
-  display: flex; flex-direction: column; gap: clamp(12px, 2vw, 28px); padding: clamp(16px, 3vw, 48px);
+  display: flex; flex-direction: column; gap: clamp(12px, 1.6vw, 26px); padding: clamp(16px, 2.6vw, 48px);
 }
 .stack-tv h2 { margin: 0; font-size: clamp(16px, 1.6vw, 26px); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-soft); }
-.stack-tv-banner {
-  margin: 0; align-self: center; background: var(--sage); color: var(--brown); font-weight: 800;
-  font-size: clamp(22px, 3.2vw, 56px); padding: 0.25em 0.9em; border-radius: 999px; animation: stack-banner 0.6s ease-out;
+.stack-tv-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1fr); align-items: center; gap: clamp(10px, 1.4vw, 24px); }
+.stack-tv-logo {
+  display: flex; align-items: center; gap: 0.4em; font-family: var(--serif); font-weight: 700;
+  font-size: clamp(20px, 1.9vw, 36px); text-transform: lowercase; color: var(--text);
 }
-.stack-tv-title { margin: 0; font-family: var(--stack-display); font-weight: 800; font-size: clamp(26px, 3.6vw, 64px); line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+.stack-tv-logo img { width: 1.8em; height: 1.8em; display: block; flex: none; }
+.stack-tv-banner-slot { display: flex; justify-content: flex-end; }
+.stack-tv-banner {
+  margin: 0; background: var(--sage); color: var(--brown); font-weight: 800; text-align: center;
+  font-size: clamp(16px, 1.6vw, 30px); padding: 0.4em 0.9em; border-radius: 999px; animation: stack-banner 0.6s ease-out;
+}
+.paddle-stack .stack-tv-title, .stack-tv-title {
+  margin: 0; font-family: var(--stack-display); font-weight: 800; font-size: clamp(24px, 3.2vw, 60px);
+  line-height: 1.05; text-align: center; overflow-wrap: anywhere;
+}
 @keyframes stack-banner { from { transform: scale(0.85); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .stack-tv-banner { animation: none; } }
-.stack-tv-courts { display: grid; gap: clamp(12px, 2vw, 28px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
-.paddle-stack .stack-tv-court { background: var(--surface); border: 2px solid var(--line); border-radius: 24px; padding: clamp(16px, 2.4vw, 36px); display: flex; flex-direction: column; gap: 12px; }
-.stack-tv-court.empty { background: transparent; border-style: dashed; }
-.stack-tv-teams { margin: 0; display: flex; flex-direction: column; gap: 6px; font-family: var(--serif); font-weight: 700; font-size: clamp(22px, 2.8vw, 48px); line-height: 1.15; overflow-wrap: anywhere; }
-.stack-tv-teams small { font-family: var(--sans); font-weight: 500; font-size: 0.5em; color: var(--text-soft); }
-.stack-tv-waiting { margin: 0; color: var(--text-soft); font-size: clamp(18px, 2vw, 32px); }
-.stack-tv-next ol { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 14px; counter-reset: next; }
-.stack-tv-next li { counter-increment: next; background: var(--panel); border-radius: 999px; padding: 0.3em 0.9em; font-weight: 700; font-size: clamp(18px, 2vw, 34px); }
-.stack-tv-next li::before { content: counter(next) '. '; color: var(--text-soft); }
-.stack-tv-next p { margin: 10px 0 0; color: var(--text-soft); font-size: clamp(18px, 2vw, 30px); }
-.stack-tv-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--text-soft); font-size: clamp(13px, 1.2vw, 18px); }
+.stack-tv-courts { flex: 1; display: grid; gap: clamp(12px, 1.4vw, 24px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.paddle-stack .stack-tv-court, .stack-tv-court {
+  background: var(--surface); border: 3px solid var(--tone, var(--line)); border-radius: 26px; overflow: hidden;
+  padding: 0; display: flex; flex-direction: column;
+}
+.paddle-stack .stack-tv-court.empty, .stack-tv-court.empty { background: transparent; border-style: dashed; border-color: var(--line); }
+.stack-tv-band {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0.5em 1.1em; background: var(--tone, var(--line)); color: var(--brown); font-size: clamp(14px, 1.3vw, 24px);
+}
+.stack-tv-court.empty .stack-tv-band { background: var(--line); color: var(--text); }
+.paddle-stack .stack-tv-band h2, .stack-tv-band h2 {
+  margin: 0; color: inherit; font-family: var(--stack-display); font-weight: 800; font-size: clamp(18px, 1.8vw, 34px); letter-spacing: 0.04em;
+}
+.stack-tv-last { font-weight: 700; white-space: nowrap; }
+.stack-tv-teams {
+  margin: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  padding: clamp(12px, 1.4vw, 24px) clamp(16px, 1.8vw, 32px);
+  font-family: var(--serif); font-weight: 700; font-size: clamp(22px, 2.8vw, 54px); line-height: 1.1; overflow-wrap: anywhere;
+}
+.stack-tv-side { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3em 0.5em; }
+.stack-tv-streak {
+  font-family: var(--sans); font-weight: 700; font-size: 0.42em; white-space: nowrap;
+  background: var(--tone, var(--sage)); color: var(--brown); padding: 0.25em 0.7em; border-radius: 999px;
+}
+.stack-tv-teams small { font-family: var(--sans); font-weight: 500; font-size: 0.48em; color: var(--text-soft); }
+.stack-tv-waiting { margin: 0; flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-soft); font-size: clamp(18px, 2vw, 34px); }
+.stack-tv-bottom {
+  display: flex; align-items: center; gap: clamp(16px, 2vw, 36px); background: var(--band); color: var(--on-band);
+  border-radius: 28px; padding: clamp(14px, 1.4vw, 26px) clamp(18px, 1.8vw, 32px);
+}
+.stack-tv-bottom-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: clamp(8px, 0.8vw, 14px); }
+.stack-tv-next { display: flex; flex-direction: column; gap: clamp(8px, 0.8vw, 14px); }
+.stack-tv-next h2 { color: var(--on-band-soft); }
+.stack-tv-next ol { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 14px; counter-reset: next; }
+.stack-tv-next li {
+  counter-increment: next; background: var(--sage); color: var(--brown); border-radius: 999px; padding: 0.2em 0.8em;
+  font-weight: 800; font-size: clamp(20px, 2.3vw, 44px);
+}
+.stack-tv-next li::before { content: counter(next) '. '; opacity: 0.75; }
+.stack-tv-bottom p { margin: 0; color: var(--on-band-soft); font-size: clamp(16px, 1.4vw, 26px); }
+.stack-tv-bottom .stack-tv-break { font-weight: 700; color: var(--on-band); }
+/* Kept empty for Milestone 6's join QR, so the layout doesn't move when it arrives. */
+.stack-tv-qr { width: clamp(80px, 7.8vw, 150px); aspect-ratio: 1; flex: none; }
+@media (max-width: 640px) { .stack-tv-qr { display: none; } .stack-tv-head { grid-template-columns: 1fr; justify-items: center; } .stack-tv-banner-slot { justify-content: center; } }
+.stack-tv-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; color: var(--text-soft); font-size: clamp(13px, 1.1vw, 20px); }
 
 /* Paddle Stack: "Share standings" under the standings table. */
 .stack-share { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; max-width: 560px; }

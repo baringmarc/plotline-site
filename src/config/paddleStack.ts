@@ -160,8 +160,17 @@ export const paddleStack = {
     nowOn: 'Next up on Court',
     vs: 'vs',
     waiting: 'Waiting for 4 players',
+    waitingSingles: 'Waiting for 2 players',
     upNext: 'Up next',
     lineEmpty: 'Nobody is waiting',
+    /** Players on a time out, under Up next (T8.6). */
+    onBreak: 'On a break:',
+    /** The wordmark beside the logo tile, lowercase like the site's (T8.6). */
+    brand: 'plotline',
+    /** A court's last scored game, winner's score first (T8.6). */
+    lastGame: (high: number, low: number) => `Last game ${high}–${low}`,
+    /** Beside a side that won its last games together (from 2; T8.6). Also on the board's court cards. */
+    streak: (n: number) => `${n} wins in a row`,
     footer: 'Paddle Stack · free at plotline.fit/paddle-stack',
   },
   voice: {

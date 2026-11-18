@@ -1,10 +1,14 @@
 import { useEffect } from 'react'
 import { paddleStack } from '../../config/paddleStack'
-import type { Session } from './types'
+import { courtTone, lastResult, teamStreak } from './tvInfo'
+import type { Session, Team } from './types'
 
 const { tv } = paddleStack
 
-/** The big-screen view for a TV or tablet facing the courts: no controls but Exit (or Escape). */
+/**
+ * The big-screen view for a TV or tablet facing the courts: no controls but Exit (or Escape).
+ * Design A "Court bands" (T8.6, the user's pick): logo and title on top, a coloured band per court, Up next along the bottom.
+ */
 export function TvBoard({ session, nowOn, onExit }: { session: Session; nowOn: number | null; onExit: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -16,52 +20,93 @@ export function TvBoard({ session, nowOn, onExit }: { session: Session; nowOn: n
 
   const nameOf = (id: string) => session.players.find((p) => p.id === id)?.name ?? ''
   const playing = session.games.filter((g) => g.status === 'playing')
-  const next = session.line.slice(0, session.play === 'singles' ? 2 : 4)
-  const team = (ids: readonly string[]) => ids.map(nameOf).join(' & ')
+  const singles = session.play === 'singles'
+  const next = session.line.slice(0, singles ? 2 : 4)
+  const onBreak = session.players.filter((p) => p.status === 'out')
+  const formatLabel = paddleStack.formats.find((f) => f.id === session.format)?.label ?? ''
+  const playLabel = paddleStack.start.plays.find((p) => p.id === session.play)?.label ?? ''
+
+  const side = (ids: Team) => {
+    const streak = teamStreak(session, ids)
+    return (
+      <span className="stack-tv-side">
+        <span>{ids.map(nameOf).join(' & ')}</span>
+        {streak >= 2 && <span className="stack-tv-streak">{tv.streak(streak)}</span>}
+      </span>
+    )
+  }
 
   return (
     <div className="stack-tv">
-      {session.title && <p className="stack-tv-title">{session.title}</p>}
-      {nowOn !== null && (
-        <p className="stack-tv-banner" key={`${nowOn}-${session.games.length}`}>
-          {tv.nowOn} {nowOn}
-        </p>
-      )}
+      <header className="stack-tv-head">
+        <div className="stack-tv-logo">
+          <img src="/logo.svg" alt="" />
+          <span>{tv.brand}</span>
+        </div>
+        {session.title ? <h1 className="stack-tv-title">{session.title}</h1> : <span />}
+        <div className="stack-tv-banner-slot">
+          {nowOn !== null && (
+            <p className="stack-tv-banner" key={`${nowOn}-${session.games.length}`}>
+              {tv.nowOn} {nowOn}
+            </p>
+          )}
+        </div>
+      </header>
       <div className="stack-tv-courts">
         {Array.from({ length: session.courts }, (_, i) => i + 1).map((n) => {
           const game = playing.find((g) => g.court === n)
+          const last = lastResult(session, n)
           return (
-            <section key={n} className={game ? 'stack-tv-court' : 'stack-tv-court empty'} aria-label={`${tv.court} ${n}`}>
-              <h2>
-                {tv.court} {n}
-              </h2>
+            <section
+              key={n}
+              className={`stack-tv-court tone-${courtTone(n)}${game ? '' : ' empty'}`}
+              aria-label={`${tv.court} ${n}`}
+            >
+              <div className="stack-tv-band">
+                <h2>
+                  {tv.court} {n}
+                </h2>
+                {last && <span className="stack-tv-last">{tv.lastGame(last.high, last.low)}</span>}
+              </div>
               {game ? (
                 <p className="stack-tv-teams">
-                  <span>{team(game.teamA)}</span>
+                  {side(game.teamA)}
                   <small className="stack-vs">{tv.vs}</small>
-                  <span>{team(game.teamB)}</span>
+                  {side(game.teamB)}
                 </p>
               ) : (
-                <p className="stack-tv-waiting">{tv.waiting}</p>
+                <p className="stack-tv-waiting">{singles ? tv.waitingSingles : tv.waiting}</p>
               )}
             </section>
           )
         })}
       </div>
-      <section className="stack-tv-next" aria-label={tv.upNext}>
-        <h2>{tv.upNext}</h2>
-        {next.length === 0 ? (
-          <p>{tv.lineEmpty}</p>
-        ) : (
-          <ol>
-            {next.map((id) => (
-              <li key={id}>{nameOf(id)}</li>
-            ))}
-          </ol>
-        )}
-      </section>
+      <div className="stack-tv-bottom">
+        <div className="stack-tv-bottom-main">
+          <section className="stack-tv-next" aria-label={tv.upNext}>
+            <h2>{tv.upNext}</h2>
+            {next.length === 0 ? (
+              <p>{tv.lineEmpty}</p>
+            ) : (
+              <ol>
+                {next.map((id) => (
+                  <li key={id}>{nameOf(id)}</li>
+                ))}
+              </ol>
+            )}
+          </section>
+          {onBreak.length > 0 && (
+            <p className="stack-tv-break">
+              {tv.onBreak} {onBreak.map((p) => p.name).join(', ')}
+            </p>
+          )}
+        </div>
+        {/* Kept for Milestone 6's join QR. */}
+        <div className="stack-tv-qr" aria-hidden="true" />
+      </div>
       <footer className="stack-tv-foot">
         <span>{tv.footer}</span>
+        <span className="stack-tv-meta">{[formatLabel, playLabel].filter(Boolean).join(' · ')}</span>
         <button type="button" className="chipbtn" onClick={onExit}>
           {tv.exit}
         </button>

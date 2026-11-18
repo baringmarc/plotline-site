@@ -21,7 +21,8 @@ import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_S
 import { StartForm } from './StartForm'
 import { TvBoard } from './TvBoard'
 import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
-import type { Game, Session } from './types'
+import { courtTone, teamStreak } from './tvInfo'
+import type { Game, Session, Team } from './types'
 
 const { board, end, ended: endedCopy, venueCta, voice, tv } = paddleStack
 
@@ -311,6 +312,7 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
             number={n}
             game={playing.find((g) => g.court === n)}
             nameOf={nameOf}
+            streakOf={(t) => teamStreak(session, t)}
             act={act}
           />
         ))}
@@ -410,18 +412,29 @@ interface CourtProps {
   number: number
   game: Game | undefined
   nameOf: (id: string) => string
+  /** Wins in a row for this side (T8.6); a chip shows from 2. */
+  streakOf: (team: Team) => number
   act: (fn: (s: Session) => Session) => void
 }
 
 const SCORE = /^\d{1,2}$/
 
-function Court({ number, game, nameOf, act }: CourtProps) {
+function Court({ number, game, nameOf, streakOf, act }: CourtProps) {
   const [editing, setEditing] = useState(false)
   const [a, setA] = useState('')
   const [b, setB] = useState('')
   const [error, setError] = useState('')
   const headingId = useId()
   const team = (ids: readonly string[]) => ids.map(nameOf).join(' & ')
+  const side = (ids: Team) => {
+    const streak = streakOf(ids)
+    return (
+      <span className="stack-side">
+        <span>{team(ids)}</span>
+        {streak >= 2 && <span className="stack-court-streak">{paddleStack.tv.streak(streak)}</span>}
+      </span>
+    )
+  }
   const close = () => {
     setEditing(false)
     setA('')
@@ -446,7 +459,7 @@ function Court({ number, game, nameOf, act }: CourtProps) {
   }
 
   return (
-    <section className={game ? 'stack-court' : 'stack-court empty'} aria-labelledby={headingId}>
+    <section className={`stack-court tone-${courtTone(number)}${game ? '' : ' empty'}`} aria-labelledby={headingId}>
       <h3 id={headingId}>
         {board.court} {number}
       </h3>
@@ -455,9 +468,9 @@ function Court({ number, game, nameOf, act }: CourtProps) {
       ) : (
         <>
           <p className="stack-teams">
-            <span>{team(game.teamA)}</span>
+            {side(game.teamA)}
             <small className="stack-vs">{board.vs}</small>
-            <span>{team(game.teamB)}</span>
+            {side(game.teamB)}
           </p>
           {editing ? (
             <form className="stack-score" onSubmit={save} noValidate>
