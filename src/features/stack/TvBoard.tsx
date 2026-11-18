@@ -38,7 +38,7 @@ export function TvBoard({ session, nowOn, onExit }: { session: Session; nowOn: n
                   <span>
                     {nameOf(game.teamA[0])} & {nameOf(game.teamA[1])}
                   </span>
-                  <small>{tv.vs}</small>
+                  <small className="stack-vs">{tv.vs}</small>
                   <span>
                     {nameOf(game.teamB[0])} & {nameOf(game.teamB[1])}
                   </span>

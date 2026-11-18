@@ -52,6 +52,8 @@ for (const theme of themes) {
       test.skip(!isTvProject(testInfo.project.name), 'the TV board runs only at 1920×1080')
       await open(page, theme)
       await startStack(page)
+      // Let the stack font finish first: navigating mid-download makes Firefox log the aborted woff2 as an error.
+      await page.evaluate(() => document.fonts.ready)
       // The window reads the stack this browser saved, like the one "Open TV in a new window" opens.
       await page.goto('/paddle-stack?tv=1')
       await page.locator('.stack-tv').waitFor()

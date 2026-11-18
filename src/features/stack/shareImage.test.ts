@@ -309,10 +309,11 @@ describe('drawStandingsImage (T5.5)', () => {
     expect(drawn).toContain(share.footer)
   })
 
-  it('uses the brand fonts, Fraunces and DM Sans', async () => {
+  // T8.2 (user, 2026-11-18): Paddle Stack's display face, Bricolage Grotesque, replaces Fraunces on the image.
+  it('uses the Paddle Stack fonts, Bricolage Grotesque and DM Sans', async () => {
     const fake = fakeCanvas()
     await drawStandingsImage(sample())
-    expect(fake.fonts.some((f) => f.includes('Fraunces'))).toBe(true)
+    expect(fake.fonts.some((f) => f.includes('Bricolage Grotesque'))).toBe(true)
     expect(fake.fonts.some((f) => f.includes('DM Sans'))).toBe(true)
   })
 

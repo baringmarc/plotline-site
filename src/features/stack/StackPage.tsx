@@ -14,6 +14,7 @@ import {
   standings,
   timeOut,
 } from './engine'
+import { loadStackFonts } from './fonts'
 import { parseNames } from './parseNames'
 import { drawStandingsImage, shareOrDownload, standingsImageData } from './shareImage'
 import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_STORAGE_KEY, type StackState } from './storage'
@@ -43,6 +44,10 @@ export function StackPage() {
   useEffect(() => {
     current.current = state
   }, [state])
+  // Paddle Stack's display face (T8.2), loaded only here so the landing page's first load doesn't grow.
+  useEffect(() => {
+    loadStackFonts()
+  }, [])
 
   /** Games on court in `next` that weren't in `prev`. */
   const newGames = (prev: StackState | null, next: StackState | null): Game[] => {
@@ -517,26 +522,37 @@ function Court({ number, game, nameOf, act }: CourtProps) {
         <>
           <p className="stack-teams">
             <span>{team(game.teamA)}</span>
-            <small>{board.vs}</small>
+            <small className="stack-vs">{board.vs}</small>
             <span>{team(game.teamB)}</span>
           </p>
           {editing ? (
             <form className="stack-score" onSubmit={save} noValidate>
-              <input
-                type="text"
-                inputMode="numeric"
-                aria-label={`${board.scoreFor} ${team(game.teamA)}`}
-                value={a}
-                onChange={(e) => setA(e.target.value)}
-              />
-              <span aria-hidden="true">–</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                aria-label={`${board.scoreFor} ${team(game.teamB)}`}
-                value={b}
-                onChange={(e) => setB(e.target.value)}
-              />
+              {/* Each box shows its team (T8.2, the user's call), so the two scores can't be swapped. */}
+              <div className="stack-score-teams">
+                <label className="stack-score-field">
+                  <span>{team(game.teamA)}</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    aria-label={`${board.scoreFor} ${team(game.teamA)}`}
+                    value={a}
+                    onChange={(e) => setA(e.target.value)}
+                  />
+                </label>
+                <span className="stack-score-dash" aria-hidden="true">
+                  –
+                </span>
+                <label className="stack-score-field">
+                  <span>{team(game.teamB)}</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    aria-label={`${board.scoreFor} ${team(game.teamB)}`}
+                    value={b}
+                    onChange={(e) => setB(e.target.value)}
+                  />
+                </label>
+              </div>
               {error && (
                 <p className="err" role="alert">
                   {error}
