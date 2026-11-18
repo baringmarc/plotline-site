@@ -4,8 +4,8 @@
  */
 import { paddleStack } from '../../config/paddleStack'
 
-/** "Court 2: Ana and Ben, versus Cora and Dan." English only (the user's call, 2026-11-12). */
-export function callOutText(court: number, teamA: [string, string], teamB: [string, string]): string {
+/** "Court 2: Ana and Ben, versus Cora and Dan." ("Court 1: Ana, versus Ben." in singles). English only (the user's call, 2026-11-12). */
+export function callOutText(court: number, teamA: string[], teamB: string[]): string {
   return paddleStack.voice.callOut(court, teamA, teamB)
 }
 

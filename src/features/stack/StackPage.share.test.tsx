@@ -1,13 +1,14 @@
 // T5.5 "Share standings" on the Stack page (TASKS.md T5.5; SPEC §3 `/paddle-stack` row). StackPage.test.tsx and
 // StackPage.tv.test.tsx stay as they are; these are the T5.5 additions. Copy from `paddleStack.share`.
+// T8.3: the share box's own session name is gone; the image's heading is the session title (`session.title`).
 //
 // Structure the tests rely on (the plan's names):
 // - in the board's standings (the region named `standings.title`) and in the final standings (the region named
-//   `ended.title`): a textbox labelled `share.nameLabel` and a button `share.button`;
+//   `ended.title`): a button `share.button` and no text box;
 // - the button is disabled until at least one game is scored (skipped games don't count);
-// - clicking it calls `drawStandingsImage(standingsImageData(standings(session), { sessionName, date: new Date() }))`,
+// - clicking it calls `drawStandingsImage(standingsImageData(standings(session), { title: session.title, date: new Date() }))`,
 //   then `shareOrDownload(blob, share.fileName)`; if drawing fails, `share.failed` shows.
-// `./shareImage` is mocked except `standingsImageData`, which stays real.
+// `./shareImage` is mocked except `standingsImageData`, which stays real (wrapped in a spy).
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -53,8 +54,8 @@ function renderPage() {
 }
 
 /** A started session saved before the page renders; `scored` games get 11–5 on court 1, `skipped` are skipped. */
-function seed(opts: { scored?: number; skipped?: number; ended?: boolean } = {}): Session {
-  let session = fillCourts(createSession({ format: 'fair', courts: 1, names: SIX }))
+function seed(opts: { scored?: number; skipped?: number; ended?: boolean; title?: string } = {}): Session {
+  let session = fillCourts(createSession({ format: 'fair', courts: 1, names: SIX, title: opts.title }))
   for (let i = 0; i < (opts.skipped ?? 0); i++) {
     const g = session.games.find((x) => x.status === 'playing')!
     session = fillCourts(skipGame(session, g.id))
@@ -70,7 +71,6 @@ function seed(opts: { scored?: number; skipped?: number; ended?: boolean } = {})
 const boardStandings = () => screen.getByRole('region', { name: standings.title })
 const finalStandings = () => screen.getByRole('region', { name: ended.title })
 const shareButton = (scope: HTMLElement) => within(scope).getByRole('button', { name: share.button })
-const nameBox = (scope: HTMLElement) => within(scope).getByRole('textbox', { name: share.nameLabel })
 
 class MemoryStorage {
   #items = new Map<string, string>()
@@ -107,12 +107,13 @@ afterEach(() => {
 })
 
 describe('Share standings on the board (T5.5)', () => {
-  it('shows the session name box (with its placeholder) and the share button in the standings', () => {
-    seed({ scored: 1 })
+  it('shows the share button in the standings, with no session name box (T8.3)', () => {
+    seed({ scored: 1, title: 'Saturday open play' })
     renderPage()
-    const box = nameBox(boardStandings())
-    expect(box).toHaveAttribute('placeholder', share.namePlaceholder)
     expect(shareButton(boardStandings())).toBeInTheDocument()
+    expect(within(boardStandings()).queryByRole('textbox')).not.toBeInTheDocument()
+    expect(share).not.toHaveProperty('nameLabel')
+    expect(share).not.toHaveProperty('namePlaceholder')
   })
 
   it('keeps the button disabled until a game is scored', () => {
@@ -133,11 +134,10 @@ describe('Share standings on the board (T5.5)', () => {
     expect(shareButton(boardStandings())).toBeEnabled()
   })
 
-  it('draws the standings with the typed session name and today’s date, then shares the PNG by file name', async () => {
+  it('draws the standings with the session title and today’s date, then shares the PNG by file name (T8.3)', async () => {
     const user = userEvent.setup()
-    const session = seed({ scored: 2 })
+    const session = seed({ scored: 2, title: 'Saturday open play' })
     renderPage()
-    await user.type(nameBox(boardStandings()), 'Saturday open play')
     const before = Date.now()
     await user.click(shareButton(boardStandings()))
 
@@ -145,7 +145,7 @@ describe('Share standings on the board (T5.5)', () => {
     expect(standingsImageData).toHaveBeenCalledTimes(1)
     const [rows, opts] = vi.mocked(standingsImageData).mock.calls[0]
     expect(rows).toEqual(standingsOf(session))
-    expect(opts.sessionName).toBe('Saturday open play')
+    expect(opts.title).toBe('Saturday open play')
     expect(opts.date).toBeInstanceOf(Date)
     expect(opts.date.getTime()).toBeGreaterThanOrEqual(before - 1000)
     expect(opts.date.getTime()).toBeLessThanOrEqual(Date.now() + 1000)
@@ -158,7 +158,7 @@ describe('Share standings on the board (T5.5)', () => {
     expect(shareOrDownload).toHaveBeenCalledWith(mocks.blob, share.fileName)
   })
 
-  it('uses the default title when the session name is left empty', async () => {
+  it('uses the default title when the session has no title', async () => {
     const user = userEvent.setup()
     seed({ scored: 1 })
     renderPage()
@@ -200,11 +200,11 @@ describe('Share standings on the board (T5.5)', () => {
 })
 
 describe('Share standings on the final standings (T5.5)', () => {
-  it('shows the name box and an enabled share button after the session ends with scores', () => {
+  it('shows an enabled share button and no name box after the session ends with scores', () => {
     seed({ scored: 2, ended: true })
     renderPage()
-    expect(nameBox(finalStandings())).toBeInTheDocument()
     expect(shareButton(finalStandings())).toBeEnabled()
+    expect(within(finalStandings()).queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   it('keeps the button disabled when the session ended with no scores', () => {
@@ -213,16 +213,15 @@ describe('Share standings on the final standings (T5.5)', () => {
     expect(shareButton(finalStandings())).toBeDisabled()
   })
 
-  it('draws the final standings with the session name and shares them', async () => {
+  it('draws the final standings with the session title and shares them', async () => {
     const user = userEvent.setup()
-    const session = seed({ scored: 3, ended: true })
+    const session = seed({ scored: 3, ended: true, title: '  Friday night  ' })
     renderPage()
-    await user.type(nameBox(finalStandings()), '  Friday night  ')
     await user.click(shareButton(finalStandings()))
     await waitFor(() => expect(shareOrDownload).toHaveBeenCalledWith(mocks.blob, share.fileName))
     const [rows, opts] = vi.mocked(standingsImageData).mock.calls[0]
     expect(rows).toEqual(standingsOf(session))
-    expect(opts.sessionName?.trim()).toBe('Friday night')
+    expect(opts.title?.trim()).toBe('Friday night')
     expect(vi.mocked(drawStandingsImage).mock.calls[0][0].title).toBe('Friday night')
   })
 })

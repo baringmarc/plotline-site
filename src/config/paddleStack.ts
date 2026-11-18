@@ -7,12 +7,20 @@ export const paddleStack = {
   title: 'Paddle Stack',
   lead: 'A free open-play queue. Paste your players, pick a format, and the courts rotate on their own. No sign-up, nothing to install.',
   start: {
+    titleLabel: 'Game title (optional)',
+    titlePlaceholder: 'e.g. Sunday Open Play (ALL LEVELS)',
+    playLabel: 'Play',
+    plays: [
+      { id: 'singles', label: 'Singles' },
+      { id: 'doubles', label: 'Doubles' },
+    ] as { id: 'singles' | 'doubles'; label: string }[],
     courtsLabel: 'Courts',
     formatLabel: 'Format',
     namesLabel: 'Players',
     namesHint: 'One per line, or separated by commas. A list copied from Reclub or Messenger works as is: numbers like “1.” are ignored, and so are repeated names.',
     namesPlaceholder: '1. Andrew\n2. Maria\n3. Juan\n4. Jose',
     needFour: 'Add at least 4 players to start.',
+    needTwo: 'Add at least 2 players to start.',
     submit: 'Start the stack',
   },
   formats: [
@@ -94,15 +102,12 @@ export const paddleStack = {
     test: 'Test the voice',
     unsupported: 'This browser can’t speak, so call-outs are off.',
     /** What is said when a court fills (English only, the user's call 2026-11-12). */
-    callOut: (court: number, a: [string, string], b: [string, string]) =>
-      `Court ${court}: ${a[0]} and ${a[1]}, versus ${b[0]} and ${b[1]}.`,
+    callOut: (court: number, a: string[], b: string[]) => `Court ${court}: ${a.join(' and ')}, versus ${b.join(' and ')}.`,
     sample: { court: 1, a: ['Andrew', 'Juan'] as [string, string], b: ['Maria', 'Jose'] as [string, string] },
   },
   share: {
     button: 'Share standings',
-    nameLabel: 'Session name (optional)',
-    namePlaceholder: 'e.g. Saturday open play',
-    /** The image's heading when no session name is given. */
+    /** The image's heading when the session has no title. */
     defaultTitle: 'Open play standings',
     record: 'W–L',
     diff: '+/−',

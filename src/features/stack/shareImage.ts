@@ -43,8 +43,9 @@ function cut(name: string): string {
 
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0')
 
-export function standingsImageData(rows: StandingRow[], opts: { sessionName?: string; date: Date }): StandingsImageData {
-  const title = opts.sessionName?.trim() || share.defaultTitle
+/** `title` is the session's title (T8.3); with none, the image says `share.defaultTitle`. */
+export function standingsImageData(rows: StandingRow[], opts: { title?: string; date: Date }): StandingsImageData {
+  const title = opts.title?.trim() || share.defaultTitle
   const date = new Intl.DateTimeFormat('en-PH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(opts.date)
   return {
     title,

@@ -2,11 +2,13 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { paddleStack } from '../../config/paddleStack'
 import {
+  addPairs,
   addPlayers,
   backInLine,
   createSession,
   fillCourts,
   MAX_COURTS,
+  MAX_TITLE,
   recordScore,
   removePlayer,
   skipGame,
@@ -20,7 +22,7 @@ import { drawStandingsImage, shareOrDownload, standingsImageData } from './share
 import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_STORAGE_KEY, type StackState } from './storage'
 import { TvBoard } from './TvBoard'
 import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
-import type { Format, Game, Session } from './types'
+import type { Format, Game, Play, Session } from './types'
 
 const { start, formats, board, end, ended: endedCopy, venueCta, voice, tv } = paddleStack
 
@@ -63,7 +65,7 @@ export function StackPage() {
       if (voiceOn && speakable) {
         const nameOf = (id: string) => next.session.players.find((p) => p.id === id)?.name ?? ''
         for (const g of filled) {
-          announce(callOutText(g.court, [nameOf(g.teamA[0]), nameOf(g.teamA[1])], [nameOf(g.teamB[0]), nameOf(g.teamB[1])]))
+          announce(callOutText(g.court, g.teamA.map(nameOf), g.teamB.map(nameOf)))
         }
       }
     }
@@ -284,25 +286,58 @@ function Guide() {
   )
 }
 
+/** Formats offered for a play: Winners stay & split is doubles only (SPEC §4 "Combinations"). */
+const offered = (play: Play) => formats.filter((f) => play === 'doubles' || f.id !== 'winners-split')
+
 function StartForm({ onStart }: { onStart: (s: Session) => void }) {
+  const [title, setTitle] = useState('')
+  const [play, setPlay] = useState<Play>('doubles')
   const [courts, setCourts] = useState(2)
   const [format, setFormat] = useState<Format>('fair')
   const [names, setNames] = useState('')
   const [tooFew, setTooFew] = useState(false)
-  const ids = { courts: useId(), names: useId(), hint: useId() }
+  const ids = { title: useId(), courts: useId(), names: useId(), hint: useId() }
+  const minPlayers = play === 'singles' ? 2 : 4
+
+  const choosePlay = (next: Play) => {
+    setPlay(next)
+    setTooFew(false)
+    // A format the new play doesn't offer resets to Fair rotation.
+    if (!offered(next).some((f) => f.id === format)) setFormat('fair')
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const list = parseNames(names)
-    if (list.length < 4) {
+    if (list.length < minPlayers) {
       setTooFew(true)
       return
     }
-    onStart(createSession({ format, courts, names: list }))
+    onStart(createSession({ title, play, format, courts, names: list }))
   }
 
   return (
     <form className="formcard stack-start" onSubmit={submit} noValidate>
+      <label htmlFor={ids.title}>{start.titleLabel}</label>
+      <input
+        id={ids.title}
+        type="text"
+        maxLength={MAX_TITLE}
+        value={title}
+        placeholder={start.titlePlaceholder}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <fieldset className="stack-play">
+        <legend>{start.playLabel}</legend>
+        {start.plays.map((p) => (
+          <label key={p.id} className="stack-format">
+            <input type="radio" name="stack-play" value={p.id} checked={play === p.id} onChange={() => choosePlay(p.id)} />
+            <span>
+              <b>{p.label}</b>
+            </span>
+          </label>
+        ))}
+      </fieldset>
       <label htmlFor={ids.courts}>{start.courtsLabel}</label>
       <select id={ids.courts} value={courts} onChange={(e) => setCourts(Number(e.target.value))}>
         {Array.from({ length: MAX_COURTS }, (_, i) => i + 1).map((n) => (
@@ -313,7 +348,7 @@ function StartForm({ onStart }: { onStart: (s: Session) => void }) {
       </select>
       <fieldset>
         <legend>{start.formatLabel}</legend>
-        {formats.map((f) => (
+        {offered(play).map((f) => (
           <label key={f.id} className="stack-format">
             <input
               type="radio"
@@ -346,7 +381,7 @@ function StartForm({ onStart }: { onStart: (s: Session) => void }) {
       </p>
       {tooFew && (
         <p className="err" role="alert">
-          {start.needFour}
+          {play === 'singles' ? start.needTwo : start.needFour}
         </p>
       )}
       <button type="submit" className="btn main">
@@ -374,6 +409,7 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
 
   return (
     <>
+      {session.title && <h2 className="stack-title">{session.title}</h2>}
       <div className="stack-courts">
         {Array.from({ length: session.courts }, (_, i) => i + 1).map((n) => (
           <Court
@@ -411,7 +447,11 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
           onSubmit={(e) => {
             e.preventDefault()
             const list = parseNames(adding)
-            if (list.length) act((s) => addPlayers(s, list))
+            // Fixed pairs (T8.5 adds pair entry): names are paired in the order given; a name left over is dropped.
+            if (session.teams === 'fixed') {
+              const pairs = Array.from({ length: Math.floor(list.length / 2) }, (_, i) => [list[i * 2], list[i * 2 + 1]] as [string, string])
+              if (pairs.length) act((s) => addPairs(s, pairs))
+            } else if (list.length) act((s) => addPlayers(s, list))
             setAdding('')
           }}
         >
@@ -487,7 +527,7 @@ function Court({ number, game, nameOf, act }: CourtProps) {
   const [b, setB] = useState('')
   const [error, setError] = useState('')
   const headingId = useId()
-  const team = (ids: [string, string]) => `${nameOf(ids[0])} & ${nameOf(ids[1])}`
+  const team = (ids: readonly string[]) => ids.map(nameOf).join(' & ')
   const close = () => {
     setEditing(false)
     setA('')
@@ -619,10 +659,8 @@ function StandingsTable({ session, label }: { session: Session; label: string })
 /** "Share standings": draws the image and shares or downloads it (T5.5). Enabled once a game is scored. */
 function ShareBox({ session }: { session: Session }) {
   const { share } = paddleStack
-  const [name, setName] = useState('')
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
-  const id = useId()
   const scored = session.games.some((g) => g.status === 'scored')
 
   const onShare = async () => {
@@ -631,7 +669,7 @@ function ShareBox({ session }: { session: Session }) {
     try {
       let blob: Blob
       try {
-        blob = await drawStandingsImage(standingsImageData(standings(session), { sessionName: name, date: new Date() }))
+        blob = await drawStandingsImage(standingsImageData(standings(session), { title: session.title, date: new Date() }))
       } catch {
         setFailed(true)
         return
@@ -646,9 +684,7 @@ function ShareBox({ session }: { session: Session }) {
 
   return (
     <div className="stack-share">
-      <label htmlFor={id}>{share.nameLabel}</label>
       <div>
-        <input id={id} type="text" maxLength={40} value={name} placeholder={share.namePlaceholder} onChange={(e) => setName(e.target.value)} />
         <button type="button" className="btn main" disabled={!scored || busy} onClick={() => void onShare()}>
           {share.button}
         </button>

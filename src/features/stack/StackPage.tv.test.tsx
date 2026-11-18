@@ -91,7 +91,7 @@ function expectedCallOut(n: number): string {
   const s = loadStack()!.session
   const g = s.games.find((x) => x.status === 'playing' && x.court === n)!
   const name = (id: string) => s.players.find((p) => p.id === id)!.name
-  return callOutText(n, [name(g.teamA[0]), name(g.teamA[1])], [name(g.teamB[0]), name(g.teamB[1])])
+  return callOutText(n, g.teamA.map(name), g.teamB.map(name))
 }
 
 const voiceBox = () => screen.getByRole('checkbox', { name: voice.label })

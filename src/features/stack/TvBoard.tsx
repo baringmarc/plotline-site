@@ -16,10 +16,12 @@ export function TvBoard({ session, nowOn, onExit }: { session: Session; nowOn: n
 
   const nameOf = (id: string) => session.players.find((p) => p.id === id)?.name ?? ''
   const playing = session.games.filter((g) => g.status === 'playing')
-  const next = session.line.slice(0, 4)
+  const next = session.line.slice(0, session.play === 'singles' ? 2 : 4)
+  const team = (ids: readonly string[]) => ids.map(nameOf).join(' & ')
 
   return (
     <div className="stack-tv">
+      {session.title && <p className="stack-tv-title">{session.title}</p>}
       {nowOn !== null && (
         <p className="stack-tv-banner" key={`${nowOn}-${session.games.length}`}>
           {tv.nowOn} {nowOn}
@@ -35,13 +37,9 @@ export function TvBoard({ session, nowOn, onExit }: { session: Session; nowOn: n
               </h2>
               {game ? (
                 <p className="stack-tv-teams">
-                  <span>
-                    {nameOf(game.teamA[0])} & {nameOf(game.teamA[1])}
-                  </span>
+                  <span>{team(game.teamA)}</span>
                   <small className="stack-vs">{tv.vs}</small>
-                  <span>
-                    {nameOf(game.teamB[0])} & {nameOf(game.teamB[1])}
-                  </span>
+                  <span>{team(game.teamB)}</span>
                 </p>
               ) : (
                 <p className="stack-tv-waiting">{tv.waiting}</p>

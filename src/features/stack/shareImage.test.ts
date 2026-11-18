@@ -1,12 +1,13 @@
 // T5.5 Standings image to share (TASKS.md T5.5; SPEC §3 `/paddle-stack` row). Acceptance: tests cover the layout
-// data (rows, long names cut, empty session name) and the share-or-download fallback; no network request is made
+// data (rows, long names cut, empty session title) and the share-or-download fallback; no network request is made
 // when sharing. Copy comes from `paddleStack.share` in src/config/site.ts.
 //
 // Contract the tests rely on (the plan's names):
 // - `MAX_NAME = 22` (characters, counted as code points, before a name is cut with "…");
-// - `standingsImageData(rows, { sessionName?, date })` → `{ title, date, rows: { place, name, record, diff }[],
+// - `standingsImageData(rows, { title?, date })` → `{ title, date, rows: { place, name, record, diff }[],
 //   footer }`: every player is a row (user, 2026-11-13: no top-10 cut, the image grows taller instead); `title`
-//   the trimmed session name or `share.defaultTitle`; `date` the en-PH short date of the organizer's day
+//   the trimmed session title (T8.3: the session's own title replaces the share box's session name) or
+//   `share.defaultTitle`; `date` the en-PH short date of the organizer's day
 //   ("Thu, 12 Nov 2026"; Node's en-PH data may order it "Thu, Nov 12, 2026"); `record` "W–L" (en dash); `diff`
 //   signed with "+" and the minus sign "−" (U+2212), zero as "0"; `footer` `share.footer`;
 // - `imageHeight(n)`: `MIN_HEIGHT` (1080, square) up to 10 rows, then taller as rows are added;
@@ -92,7 +93,7 @@ describe('standingsImageData: layout data (T5.5)', () => {
         row(3, { name: 'Juan', place: 2, wins: 2, losses: 2, pointsFor: 38, pointsAgainst: 38 }),
         row(4, { name: 'Jose', place: 4, wins: 0, losses: 4, pointsFor: 20, pointsAgainst: 22 }),
       ],
-      { sessionName: 'Saturday open play', date: NOON_UTC },
+      { title: 'Saturday open play', date: NOON_UTC },
     )
     expect(data.rows).toEqual([
       { place: 1, name: 'Andrew', record: `3${EN_DASH}1`, diff: '+4' },
@@ -174,15 +175,26 @@ describe('standingsImageData: layout data (T5.5)', () => {
     expect(standingsImageData([row(1, { name: short })], { date: NOON_UTC }).rows[0].name).toBe(short)
   })
 
-  it('uses the trimmed session name as the title', () => {
-    const data = standingsImageData(rowsOf(4), { sessionName: '  Saturday open play  ', date: NOON_UTC })
+  it('uses the trimmed session title as the image title (T8.3)', () => {
+    const data = standingsImageData(rowsOf(4), { title: '  Saturday open play  ', date: NOON_UTC })
     expect(data.title).toBe('Saturday open play')
   })
 
-  it('falls back to the default title for a missing, empty or blank session name', () => {
+  it('falls back to the default title for a missing, empty or blank session title', () => {
     expect(standingsImageData(rowsOf(4), { date: NOON_UTC }).title).toBe(share.defaultTitle)
-    expect(standingsImageData(rowsOf(4), { sessionName: '', date: NOON_UTC }).title).toBe(share.defaultTitle)
-    expect(standingsImageData(rowsOf(4), { sessionName: '   ', date: NOON_UTC }).title).toBe(share.defaultTitle)
+    expect(standingsImageData(rowsOf(4), { title: '', date: NOON_UTC }).title).toBe(share.defaultTitle)
+    expect(standingsImageData(rowsOf(4), { title: '   ', date: NOON_UTC }).title).toBe(share.defaultTitle)
+  })
+
+  it('keeps a full 60-character session title whole (T8.3: titles go up to 60)', () => {
+    const title = 'Sunday Open Play (ALL LEVELS) at Claudex Courts, Quezon City' // 60
+    expect(title).toHaveLength(60)
+    expect(standingsImageData(rowsOf(4), { title, date: NOON_UTC }).title).toBe(title)
+  })
+
+  it('ignores the old sessionName option (T8.3: replaced by title)', () => {
+    const opts = { sessionName: 'Old name', date: NOON_UTC } as unknown as Parameters<typeof standingsImageData>[1]
+    expect(standingsImageData(rowsOf(4), opts).title).toBe(share.defaultTitle)
   })
 
   it('formats the date for en-PH as weekday, day, month and year', () => {
@@ -269,7 +281,7 @@ const sample = () =>
       row(2, { name: 'Maria', place: 2, wins: 1, losses: 3, pointsFor: 30, pointsAgainst: 41 }),
       ...rowsOf(12).slice(2),
     ],
-    { sessionName: 'Saturday open play', date: NOON_UTC },
+    { title: 'Saturday open play', date: NOON_UTC },
   )
 
 describe('drawStandingsImage (T5.5)', () => {

@@ -65,7 +65,7 @@ function session(courts = 2): Session {
 function teamsOn(s: Session, n: number): [string, string] {
   const game = s.games.find((g) => g.court === n && g.status === 'playing')!
   const nameOf = (id: string) => s.players.find((p) => p.id === id)!.name
-  const team = (ids: [string, string]) => `${nameOf(ids[0])} & ${nameOf(ids[1])}`
+  const team = (ids: readonly string[]) => ids.map(nameOf).join(' & ')
   return [team(game.teamA), team(game.teamB)]
 }
 

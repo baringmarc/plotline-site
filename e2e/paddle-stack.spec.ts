@@ -1,5 +1,5 @@
 // `/paddle-stack` in every device-matrix project, both themes (TASKS.md T8.1): the start screen, a started board,
-// TV mode (only in the `*-pc` projects, 1920×1080) and the `?tv=1` window.
+// TV mode (only in the `*-pc` projects, 1920×1080) and the `?tv=1` window; T8.3 adds a singles board and TV with a title.
 import { test, type Page } from '@playwright/test'
 import { checkPage, setTheme, stubNetwork, watch } from './helpers.ts'
 import { themes, tvViewport } from './matrix.ts'
@@ -7,8 +7,9 @@ import { themes, tvViewport } from './matrix.ts'
 const NAMES = ['Ana', 'Ben', 'Carla', 'Dante', 'Ella', 'Felix', 'Gia', 'Hugo', 'Ines', 'Jun'].join('\n')
 
 const startCards = '.formcard.stack-start, .stack-guide-grid > *, .stack-faq'
-const boardCards = '.stack-courts > *, .stack-line, .stack-standings, .stack-actions'
-const tvCards = '.stack-tv-courts > *, .stack-tv-next, .stack-tv-banner'
+const boardCards = '.stack-title, .stack-courts > *, .stack-line, .stack-standings, .stack-actions'
+const tvCards = '.stack-tv-title, .stack-tv-courts > *, .stack-tv-next, .stack-tv-banner'
+const TITLE = 'Sunday Open Play (ALL LEVELS)'
 
 async function open(page: Page, theme: (typeof themes)[number], path = '/paddle-stack') {
   watch(page)
@@ -17,8 +18,10 @@ async function open(page: Page, theme: (typeof themes)[number], path = '/paddle-
   await page.goto(path)
 }
 
-async function startStack(page: Page) {
-  await page.getByRole('textbox').fill(NAMES)
+async function startStack(page: Page, opts: { singles?: boolean; title?: string } = {}) {
+  if (opts.title) await page.getByRole('textbox', { name: 'Game title (optional)' }).fill(opts.title)
+  if (opts.singles) await page.getByRole('radio', { name: 'Singles' }).check()
+  await page.getByRole('textbox', { name: 'Players' }).fill(NAMES)
   await page.getByRole('button', { name: 'Start the stack' }).click()
   await page.getByRole('button', { name: 'TV mode' }).waitFor()
 }
@@ -37,6 +40,22 @@ for (const theme of themes) {
       await open(page, theme)
       await startStack(page)
       await checkPage(page, testInfo, { name: `stack-board-${theme}`, cards: boardCards })
+    })
+
+    test('started singles board with a title', async ({ page }, testInfo) => {
+      await open(page, theme)
+      await startStack(page, { singles: true, title: TITLE })
+      await page.locator('.stack-title').waitFor()
+      await checkPage(page, testInfo, { name: `stack-board-singles-${theme}`, cards: boardCards })
+    })
+
+    test('singles TV mode with a title', async ({ page }, testInfo) => {
+      test.skip(!isTvProject(testInfo.project.name), 'the TV board runs only at 1920×1080')
+      await open(page, theme)
+      await startStack(page, { singles: true, title: TITLE })
+      await page.getByRole('button', { name: 'TV mode' }).click()
+      await page.locator('.stack-tv-title').waitFor()
+      await checkPage(page, testInfo, { name: `stack-tv-singles-${theme}`, cards: tvCards })
     })
 
     test('TV mode', async ({ page }, testInfo) => {
