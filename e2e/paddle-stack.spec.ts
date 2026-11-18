@@ -1,6 +1,7 @@
 // `/paddle-stack` in every device-matrix project, both themes (TASKS.md T8.1): the start screen, a started board,
-// TV mode (only in the `*-pc` projects, 1920×1080) and the `?tv=1` window; T8.3 adds a singles board and TV with a title.
-import { test, type Page } from '@playwright/test'
+// TV mode (only in the `*-pc` projects, 1920×1080) and the `?tv=1` window; T8.3 adds a singles board and TV with a title;
+// T8.5 the full start screen (name chips with levels, fixed pairs, the format grid: one column below 820 px, two from 820).
+import { expect, test, type Page } from '@playwright/test'
 import { checkPage, setTheme, stubNetwork, watch } from './helpers.ts'
 import { themes, tvViewport } from './matrix.ts'
 
@@ -34,6 +35,20 @@ for (const theme of themes) {
       await open(page, theme)
       await page.getByRole('button', { name: 'Start the stack' }).waitFor()
       await checkPage(page, testInfo, { name: `stack-start-${theme}`, cards: startCards })
+    })
+
+    test('start screen with players, levels and fixed pairs', async ({ page }, testInfo) => {
+      await open(page, theme)
+      await page.getByRole('textbox', { name: 'Players' }).fill(NAMES)
+      await page.getByRole('combobox', { name: 'Level for Ana' }).selectOption({ label: 'Advanced' })
+      await page.getByRole('radio', { name: 'Fixed pairs' }).check()
+      await page.getByRole('group', { name: 'Pair 5' }).waitFor()
+      const columns = await page
+        .locator('.stack-formats')
+        .evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length)
+      const width = page.viewportSize()?.width ?? 0
+      expect(columns).toBe(width >= 820 ? 2 : 1)
+      await checkPage(page, testInfo, { name: `stack-start-full-${theme}`, cards: '.stack-formats > *, .stack-pairs > li, .stack-format-details' })
     })
 
     test('started board', async ({ page }, testInfo) => {

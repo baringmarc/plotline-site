@@ -623,9 +623,22 @@ form.formcard > .btn { align-self: flex-start; }
 .paddle-stack .lead { font-size: 18px; color: var(--text-soft); max-width: 640px; }
 .paddle-stack section, .paddle-stack aside { padding: 0; }
 .paddle-stack h2 { font-size: 22px; margin: 0 0 12px; }
-.stack-start { background: var(--surface); display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
+.stack-start { background: var(--surface); display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: none; box-sizing: border-box; }
 .stack-start > label, .stack-start legend, .stack-add label { font-weight: 700; font-size: 14px; }
-.stack-start select { max-width: 120px; }
+.stack-start > select { width: auto; min-width: 96px; align-self: flex-start; }
+.stack-formats { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 820px) { .stack-formats { grid-template-columns: 1fr 1fr; align-items: start; } }
+.stack-formats-col { display: grid; gap: 8px; align-content: start; }
+.stack-format .stack-format-head { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.stack-format .stack-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--text); color: var(--surface); font-size: 12px; font-weight: 700; line-height: 1.5; }
+.stack-format-details { margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--bg); color: var(--text-soft); font-size: 14px; }
+.stack-chips, .stack-pairs > li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.stack-pairs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.stack-pairs > li { padding: 8px 10px; border: 1.5px dashed var(--line); border-radius: 12px; }
+.stack-pairs > li > small { flex: 0 0 100%; font-weight: 700; color: var(--text-soft); }
+.stack-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 4px 4px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); }
+.stack-chip b { font-family: var(--stack-display); overflow-wrap: anywhere; }
+.stack-chip select { width: auto; min-height: 36px; padding: 2px 10px; border-radius: 999px; font-size: 16px; }
 .stack-start fieldset { border: 0; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
 .stack-format { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer; }
 .stack-format:has(input:checked) { border-color: var(--text); }

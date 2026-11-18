@@ -127,9 +127,9 @@ describe('start form: Singles or Doubles (T8.3)', () => {
     expect(playRadio('singles')).not.toBeChecked()
   })
 
-  it('doubles offers all three formats', () => {
+  it('doubles offers every format (T8.5: all six in an open queue)', () => {
     renderPage()
-    for (const id of ['fair', 'winners-split', 'americano']) expect(formatRadio(id), id).toBeInTheDocument()
+    for (const { id } of paddleStack.formats) expect(formatRadio(id), id).toBeInTheDocument()
   })
 
   it('singles hides Winners stay & split and keeps Fair rotation and Americano', async () => {

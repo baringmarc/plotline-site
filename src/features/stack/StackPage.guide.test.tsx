@@ -86,7 +86,7 @@ describe('paddleStack guide and FAQ copy (T5.6)', () => {
     }
   })
 
-  it('the guide explains each of the three formats by name', () => {
+  it('the guide explains each format by name (T8.5: all six)', () => {
     const text = guide.sections.map((s) => `${s.title} ${s.body}`).join(' ')
     for (const f of paddleStack.formats) expect(text).toContain(f.label)
   })

@@ -5,11 +5,8 @@ import {
   addPairs,
   addPlayers,
   backInLine,
-  createSession,
   fillCourts,
   isRoundFormat,
-  MAX_COURTS,
-  MAX_TITLE,
   recordScore,
   removePlayer,
   skipGame,
@@ -21,11 +18,12 @@ import { loadStackFonts } from './fonts'
 import { parseNames } from './parseNames'
 import { drawStandingsImage, shareOrDownload, standingsImageData } from './shareImage'
 import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_STORAGE_KEY, type StackState } from './storage'
+import { StartForm } from './StartForm'
 import { TvBoard } from './TvBoard'
 import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
-import type { Format, Game, Play, Session } from './types'
+import type { Game, Session } from './types'
 
-const { start, formats, board, end, ended: endedCopy, venueCta, voice, tv } = paddleStack
+const { board, end, ended: endedCopy, venueCta, voice, tv } = paddleStack
 
 /** `/paddle-stack`: a free open-play queue on one device (SPEC §4 "Paddle Stack rules"). */
 export function StackPage() {
@@ -287,111 +285,6 @@ function Guide() {
   )
 }
 
-/** Formats offered for a play: Winners stay & split is doubles only (SPEC §4 "Combinations"). */
-const offered = (play: Play) => formats.filter((f) => play === 'doubles' || f.id !== 'winners-split')
-
-function StartForm({ onStart }: { onStart: (s: Session) => void }) {
-  const [title, setTitle] = useState('')
-  const [play, setPlay] = useState<Play>('doubles')
-  const [courts, setCourts] = useState(2)
-  const [format, setFormat] = useState<Format>('fair')
-  const [names, setNames] = useState('')
-  const [tooFew, setTooFew] = useState(false)
-  const ids = { title: useId(), courts: useId(), names: useId(), hint: useId() }
-  const minPlayers = play === 'singles' ? 2 : 4
-
-  const choosePlay = (next: Play) => {
-    setPlay(next)
-    setTooFew(false)
-    // A format the new play doesn't offer resets to Fair rotation.
-    if (!offered(next).some((f) => f.id === format)) setFormat('fair')
-  }
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    const list = parseNames(names)
-    if (list.length < minPlayers) {
-      setTooFew(true)
-      return
-    }
-    onStart(createSession({ title, play, format, courts, names: list }))
-  }
-
-  return (
-    <form className="formcard stack-start" onSubmit={submit} noValidate>
-      <label htmlFor={ids.title}>{start.titleLabel}</label>
-      <input
-        id={ids.title}
-        type="text"
-        maxLength={MAX_TITLE}
-        value={title}
-        placeholder={start.titlePlaceholder}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      <fieldset className="stack-play">
-        <legend>{start.playLabel}</legend>
-        {start.plays.map((p) => (
-          <label key={p.id} className="stack-format">
-            <input type="radio" name="stack-play" value={p.id} checked={play === p.id} onChange={() => choosePlay(p.id)} />
-            <span>
-              <b>{p.label}</b>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <label htmlFor={ids.courts}>{start.courtsLabel}</label>
-      <select id={ids.courts} value={courts} onChange={(e) => setCourts(Number(e.target.value))}>
-        {Array.from({ length: MAX_COURTS }, (_, i) => i + 1).map((n) => (
-          <option key={n} value={n}>
-            {n}
-          </option>
-        ))}
-      </select>
-      <fieldset>
-        <legend>{start.formatLabel}</legend>
-        {offered(play).map((f) => (
-          <label key={f.id} className="stack-format">
-            <input
-              type="radio"
-              name="stack-format"
-              value={f.id}
-              checked={format === f.id}
-              onChange={() => setFormat(f.id as Format)}
-            />
-            <span>
-              <b>{f.label}</b>
-              <small>{f.description}</small>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <label htmlFor={ids.names}>{start.namesLabel}</label>
-      <textarea
-        id={ids.names}
-        rows={8}
-        value={names}
-        placeholder={start.namesPlaceholder}
-        aria-describedby={ids.hint}
-        onChange={(e) => {
-          setNames(e.target.value)
-          setTooFew(false)
-        }}
-      />
-      <p className="hint" id={ids.hint}>
-        {start.namesHint}
-      </p>
-      {tooFew && (
-        <p className="err" role="alert">
-          {play === 'singles' ? start.needTwo : start.needFour}
-        </p>
-      )}
-      <button type="submit" className="btn main">
-        {start.submit}
-      </button>
-    </form>
-  )
-}
-
 interface BoardProps {
   session: Session
   act: (fn: (s: Session) => Session) => void
@@ -448,7 +341,7 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
           onSubmit={(e) => {
             e.preventDefault()
             const list = parseNames(adding)
-            // Fixed pairs (T8.5 adds pair entry): names are paired in the order given; a name left over is dropped.
+            // Fixed pairs: names are paired in the order given, as on the start screen; a name left over is dropped.
             if (session.teams === 'fixed') {
               const pairs = Array.from({ length: Math.floor(list.length / 2) }, (_, i) => [list[i * 2], list[i * 2 + 1]] as [string, string])
               if (pairs.length) act((s) => addPairs(s, pairs))
