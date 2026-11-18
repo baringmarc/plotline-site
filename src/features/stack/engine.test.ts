@@ -14,6 +14,8 @@ import {
   timeOut,
 } from './engine'
 import type { Format, Game, Session } from './types'
+// T8.3: these tests run on the default session (doubles, open queue, no title); `serialize` writes version 2.
+// Singles, fixed pairs, levels and the version 1 load are in engine.t83.test.ts.
 
 // ---------- helpers ----------
 
@@ -40,9 +42,11 @@ const onCourt = (s: Session, court: number) => {
   return gs[0]
 }
 const playersOf = (g: Game) => [...g.teamA, ...g.teamB]
+/** A team as a plain list (T8.3: `Team` is one or two players). */
+const side = (t: readonly string[]): string[] => [...t]
 /** The order the four came on in Fair rotation: line positions 1, 2, 3, 4. */
-const cameOn = (g: Game) => [g.teamA[0], g.teamB[0], g.teamA[1], g.teamB[1]]
-const pairKey = (a: string, b: string) => [a, b].sort().join('|')
+const cameOn = (g: Game) => [side(g.teamA)[0], side(g.teamB)[0], side(g.teamA)[1], side(g.teamB)[1]]
+const pairKey = (...xs: string[]) => [...xs].sort().join('|')
 const teamsKey = (g: Game) => [pairKey(...g.teamA), pairKey(...g.teamB)].sort()
 
 function expectCode(fn: () => unknown, code: StackError['code']) {
@@ -476,8 +480,8 @@ describe('Winners stay, split up', () => {
       const court = streaks.get(g.court) ?? new Map<string, number>()
       const line0 = [...s.line]
       const [a, b] = score(i)
-      const winners = a > b ? g.teamA : g.teamB
-      const losers = a > b ? g.teamB : g.teamA
+      const winners = side(a > b ? g.teamA : g.teamB)
+      const losers = side(a > b ? g.teamB : g.teamA)
       s = fillCourts(recordScore(s, g.id, a, b))
       note()
       const next = onCourt(s, g.court)
@@ -693,7 +697,7 @@ describe('serialize and deserialize', () => {
     s = fillCourts(s)
     s = skipGame(s, playing(s)[1].id)
     s = timeOut(s, s.line[0])
-    s = removePlayer(s, playing(s)[0].teamB[1])
+    s = removePlayer(s, side(playing(s)[0].teamB)[1])
     return fillCourts(s)
   }
 
@@ -704,8 +708,8 @@ describe('serialize and deserialize', () => {
     expect(deserialize(json)).toEqual(s)
   })
 
-  it('writes version 1', () => {
-    expect(JSON.parse(serialize(played())).version).toBe(1)
+  it('writes version 2 (T8.3)', () => {
+    expect(JSON.parse(serialize(played())).version).toBe(2)
   })
 
   it('a restored session carries on', () => {
@@ -717,7 +721,7 @@ describe('serialize and deserialize', () => {
     expect(nameOf(s, s.players[0].id)).toBe('Ana')
   })
 
-  it.each([2, 0, '1', null])('refuses version %s instead of guessing', (version) => {
+  it.each([3, 0, '2', null])('refuses version %s instead of guessing', (version) => {
     const obj = JSON.parse(serialize(played()))
     obj.version = version
     expect(deserialize(JSON.stringify(obj))).toBeNull()

@@ -1,34 +1,39 @@
-// T5.5 "Share standings" on the Stack page (TASKS.md T5.5; SPEC §3 `/paddle-stack` row). StackPage.test.tsx and
-// StackPage.tv.test.tsx stay as they are; these are the T5.5 additions. Copy from `paddleStack.share`.
+// Sharing from the Stack page. T5.5 added "Share standings"; T8.7 (TASKS.md T8.7; SPEC §6 "T8.7 plan gate",
+// 2026-11-18) turns it into share cards: "Per player from the standings ("Share card" on a row) and the group from the
+// standings and the final standings". The group card replaces the T5.5 standings image behind "Share standings"
+// (reverses the 2026-11-13 "every player" row for the shared image; the page's standings still list everyone).
+// T8.3: there's no session-name box; the card's heading is the session title.
 //
 // Structure the tests rely on (the plan's names):
 // - in the board's standings (the region named `standings.title`) and in the final standings (the region named
-//   `ended.title`): a textbox labelled `share.nameLabel` and a button `share.button`;
-// - the button is disabled until at least one game is scored (skipped games don't count);
-// - clicking it calls `drawStandingsImage(standingsImageData(standings(session), { sessionName, date: new Date() }))`,
-//   then `shareOrDownload(blob, share.fileName)`; if drawing fails, `share.failed` shows.
-// `./shareImage` is mocked except `standingsImageData`, which stays real.
+//   `ended.title`): a button `share.button`, disabled until a game is scored (skipped games don't count), and no text
+//   box; each standings row has a button whose name contains `share.cardButton`;
+// - "Share standings" opens `ShareCardDialog` for the group card (a dialog named `share.dialogTitle`), a row's button
+//   opens it for that player; nothing is shared until the dialog's `share.shareButton`; `share.close` closes it.
+// `./shareCards/drawCard` and `shareOrDownload` are mocked; the dialog and the card data are real.
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { paddleStack } from '../../config/site'
 import { createSession, fillCourts, recordScore, skipGame, standings as standingsOf } from './engine'
-import { drawStandingsImage, shareOrDownload, standingsImageData } from './shareImage'
+import { groupCardData, playerCardData } from './shareCards/cardData'
+import { drawGroupCard, drawPlayerCard } from './shareCards/drawCard'
+import { shareOrDownload } from './shareImage'
 import { StackPage } from './StackPage'
 import { saveStack } from './storage'
 import type { Session } from './types'
 
 const mocks = vi.hoisted(() => ({ blob: new Blob(['png'], { type: 'image/png' }) }))
 
+vi.mock('./shareCards/drawCard', () => ({
+  drawPlayerCard: vi.fn(() => Promise.resolve(mocks.blob)),
+  drawGroupCard: vi.fn(() => Promise.resolve(mocks.blob)),
+}))
+
 vi.mock('./shareImage', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./shareImage')>()
-  return {
-    ...actual,
-    standingsImageData: vi.fn(actual.standingsImageData),
-    drawStandingsImage: vi.fn(() => Promise.resolve(mocks.blob)),
-    shareOrDownload: vi.fn(() => Promise.resolve('downloaded' as const)),
-  }
+  return { ...actual, shareOrDownload: vi.fn(() => Promise.resolve('downloaded' as const)) }
 })
 
 vi.mock('./voice', async (importOriginal) => {
@@ -53,8 +58,8 @@ function renderPage() {
 }
 
 /** A started session saved before the page renders; `scored` games get 11–5 on court 1, `skipped` are skipped. */
-function seed(opts: { scored?: number; skipped?: number; ended?: boolean } = {}): Session {
-  let session = fillCourts(createSession({ format: 'fair', courts: 1, names: SIX }))
+function seed(opts: { scored?: number; skipped?: number; ended?: boolean; title?: string } = {}): Session {
+  let session = fillCourts(createSession({ format: 'fair', courts: 1, names: SIX, title: opts.title }))
   for (let i = 0; i < (opts.skipped ?? 0); i++) {
     const g = session.games.find((x) => x.status === 'playing')!
     session = fillCourts(skipGame(session, g.id))
@@ -70,7 +75,24 @@ function seed(opts: { scored?: number; skipped?: number; ended?: boolean } = {})
 const boardStandings = () => screen.getByRole('region', { name: standings.title })
 const finalStandings = () => screen.getByRole('region', { name: ended.title })
 const shareButton = (scope: HTMLElement) => within(scope).getByRole('button', { name: share.button })
-const nameBox = (scope: HTMLElement) => within(scope).getByRole('textbox', { name: share.nameLabel })
+const dialog = () => screen.getByRole('dialog', { name: share.dialogTitle })
+const hasCardName = (name: string) => name.includes(share.cardButton)
+
+/** The standings row for `name` (its row in the table, not the header). */
+function rowOf(scope: HTMLElement, name: string): HTMLElement {
+  const cells = (r: HTMLElement) => [...within(r).queryAllByRole('rowheader'), ...within(r).queryAllByRole('cell')]
+  const rows = within(scope).getAllByRole('row').filter((r) => within(r).queryAllByRole('cell').length > 0)
+  // A cell's own text, without any button in it (the Share card button may sit in the name cell).
+  const ownText = (c: HTMLElement) => {
+    const copy = c.cloneNode(true) as HTMLElement
+    copy.querySelectorAll('button').forEach((b) => b.remove())
+    return copy.textContent?.trim()
+  }
+  const row = rows.find((r) => cells(r).some((c) => ownText(c) === name))
+  expect(row, `standings row for ${name}`).toBeDefined()
+  return row!
+}
+const cardButton = (row: HTMLElement) => within(row).getByRole('button', { name: hasCardName })
 
 class MemoryStorage {
   #items = new Map<string, string>()
@@ -98,7 +120,10 @@ beforeEach(() => {
   const storage = new MemoryStorage()
   vi.stubGlobal('localStorage', storage)
   Object.defineProperty(window, 'localStorage', { value: storage, configurable: true })
-  vi.mocked(drawStandingsImage).mockImplementation(() => Promise.resolve(mocks.blob))
+  Object.defineProperty(URL, 'createObjectURL', { value: vi.fn(() => 'blob:http://localhost/card'), configurable: true, writable: true })
+  Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true, writable: true })
+  vi.mocked(drawPlayerCard).mockImplementation(() => Promise.resolve(mocks.blob))
+  vi.mocked(drawGroupCard).mockImplementation(() => Promise.resolve(mocks.blob))
   vi.mocked(shareOrDownload).mockImplementation(() => Promise.resolve('downloaded'))
 })
 afterEach(() => {
@@ -106,13 +131,14 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('Share standings on the board (T5.5)', () => {
-  it('shows the session name box (with its placeholder) and the share button in the standings', () => {
-    seed({ scored: 1 })
+describe('Share standings on the board (T5.5, T8.7)', () => {
+  it('shows the share button in the standings, with no session name box (T8.3)', () => {
+    seed({ scored: 1, title: 'Saturday open play' })
     renderPage()
-    const box = nameBox(boardStandings())
-    expect(box).toHaveAttribute('placeholder', share.namePlaceholder)
     expect(shareButton(boardStandings())).toBeInTheDocument()
+    expect(within(boardStandings()).queryByRole('textbox')).not.toBeInTheDocument()
+    expect(share).not.toHaveProperty('nameLabel')
+    expect(share).not.toHaveProperty('namePlaceholder')
   })
 
   it('keeps the button disabled until a game is scored', () => {
@@ -133,78 +159,132 @@ describe('Share standings on the board (T5.5)', () => {
     expect(shareButton(boardStandings())).toBeEnabled()
   })
 
-  it('draws the standings with the typed session name and today’s date, then shares the PNG by file name', async () => {
+  it('opens the share dialog with the group card instead of sharing straight away (T8.7)', async () => {
     const user = userEvent.setup()
-    const session = seed({ scored: 2 })
+    const session = seed({ scored: 2, title: 'Saturday open play' })
     renderPage()
-    await user.type(nameBox(boardStandings()), 'Saturday open play')
-    const before = Date.now()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     await user.click(shareButton(boardStandings()))
-
-    await waitFor(() => expect(shareOrDownload).toHaveBeenCalledTimes(1))
-    expect(standingsImageData).toHaveBeenCalledTimes(1)
-    const [rows, opts] = vi.mocked(standingsImageData).mock.calls[0]
-    expect(rows).toEqual(standingsOf(session))
-    expect(opts.sessionName).toBe('Saturday open play')
-    expect(opts.date).toBeInstanceOf(Date)
-    expect(opts.date.getTime()).toBeGreaterThanOrEqual(before - 1000)
-    expect(opts.date.getTime()).toBeLessThanOrEqual(Date.now() + 1000)
-
-    expect(drawStandingsImage).toHaveBeenCalledTimes(1)
-    const data = vi.mocked(drawStandingsImage).mock.calls[0][0]
+    expect(dialog()).toBeInTheDocument()
+    await waitFor(() => expect(drawGroupCard).toHaveBeenCalled())
+    expect(drawPlayerCard).not.toHaveBeenCalled()
+    expect(shareOrDownload).not.toHaveBeenCalled()
+    const [data, opts] = vi.mocked(drawGroupCard).mock.calls[0]
+    expect(data).toEqual(groupCardData(session, { date: new Date(), size: opts.size }))
     expect(data.title).toBe('Saturday open play')
-    expect(data.footer).toBe(share.footer)
-    expect(data.rows.map((r) => r.name)).toEqual(standingsOf(session).slice(0, 10).map((r) => r.name))
-    expect(shareOrDownload).toHaveBeenCalledWith(mocks.blob, share.fileName)
   })
 
-  it('uses the default title when the session name is left empty', async () => {
+  it('shares the group card from the dialog by the group file name', async () => {
+    const user = userEvent.setup()
+    seed({ scored: 2 })
+    renderPage()
+    await user.click(shareButton(boardStandings()))
+    await waitFor(() => expect(drawGroupCard).toHaveBeenCalled())
+    await user.click(within(dialog()).getByRole('button', { name: share.shareButton }))
+    await waitFor(() => expect(shareOrDownload).toHaveBeenCalledWith(mocks.blob, share.groupFileName))
+  })
+
+  it('uses the default heading on the group card when the session has no title', async () => {
     const user = userEvent.setup()
     seed({ scored: 1 })
     renderPage()
     await user.click(shareButton(boardStandings()))
-    await waitFor(() => expect(drawStandingsImage).toHaveBeenCalledTimes(1))
-    expect(vi.mocked(drawStandingsImage).mock.calls[0][0].title).toBe(share.defaultTitle)
+    await waitFor(() => expect(drawGroupCard).toHaveBeenCalled())
+    expect(vi.mocked(drawGroupCard).mock.calls[0][0].title).toBe(share.defaultTitle)
   })
 
-  it('shows the failure message when the image can’t be drawn, and does not share', async () => {
+  it('closes the dialog with Close', async () => {
     const user = userEvent.setup()
-    vi.mocked(drawStandingsImage).mockImplementation(() => Promise.reject(new Error('no 2d context')))
     seed({ scored: 1 })
     renderPage()
     await user.click(shareButton(boardStandings()))
-    expect(await screen.findByText(share.failed)).toBeInTheDocument()
+    await user.click(within(dialog()).getByRole('button', { name: share.close }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(shareOrDownload).not.toHaveBeenCalled()
   })
 
-  it('does not show the failure message when the user cancels the share sheet', async () => {
-    const user = userEvent.setup()
-    vi.mocked(shareOrDownload).mockImplementation(() => Promise.resolve('cancelled'))
-    seed({ scored: 1 })
+  it('still lists every player in the page’s standings (only the card cuts rows)', () => {
+    const session = seed({ scored: 2 })
     renderPage()
-    await user.click(shareButton(boardStandings()))
-    await waitFor(() => expect(shareOrDownload).toHaveBeenCalledTimes(1))
-    expect(screen.queryByText(share.failed)).not.toBeInTheDocument()
+    for (const r of standingsOf(session)) expect(rowOf(boardStandings(), r.name)).toBeInTheDocument()
+  })
+})
+
+describe('Share card on a standings row (T8.7)', () => {
+  it('puts a Share card button on every standings row', () => {
+    const session = seed({ scored: 2 })
+    renderPage()
+    for (const r of standingsOf(session)) expect(cardButton(rowOf(boardStandings(), r.name)), r.name).toBeInTheDocument()
   })
 
-  it('makes no network request when sharing', async () => {
+  it('gives each row’s button a name that says whose card it is', () => {
+    seed({ scored: 2 })
+    renderPage()
+    const maria = cardButton(rowOf(boardStandings(), 'Maria'))
+    const juan = cardButton(rowOf(boardStandings(), 'Juan'))
+    expect(maria).toHaveAccessibleName(expect.stringContaining('Maria'))
+    expect(juan).toHaveAccessibleName(expect.stringContaining('Juan'))
+  })
+
+  it('opens the dialog with that player’s card', async () => {
+    const user = userEvent.setup()
+    const session = seed({ scored: 2, title: 'Friday night' })
+    renderPage()
+    await user.click(cardButton(rowOf(boardStandings(), 'Maria')))
+    expect(dialog()).toBeInTheDocument()
+    await waitFor(() => expect(drawPlayerCard).toHaveBeenCalled())
+    expect(drawGroupCard).not.toHaveBeenCalled()
+    const [data] = vi.mocked(drawPlayerCard).mock.calls[0]
+    const id = session.players.find((p) => p.name === 'Maria')!.id
+    expect(data).toEqual(playerCardData(session, id, { date: new Date() }))
+    expect(data.name).toBe('Maria')
+    expect(data.title).toBe('Friday night')
+    expect(shareOrDownload).not.toHaveBeenCalled()
+  })
+
+  it('shares that player’s card by the player’s file name', async () => {
+    const user = userEvent.setup()
+    seed({ scored: 2 })
+    renderPage()
+    await user.click(cardButton(rowOf(boardStandings(), 'Juan')))
+    await waitFor(() => expect(drawPlayerCard).toHaveBeenCalled())
+    await user.click(within(dialog()).getByRole('button', { name: share.shareButton }))
+    await waitFor(() => expect(shareOrDownload).toHaveBeenCalledWith(mocks.blob, share.playerFileName('Juan')))
+  })
+
+  it('makes a card for a player with no scored games yet', async () => {
+    const user = userEvent.setup()
+    const session = seed({ scored: 1 }) // 4 played, Ana and Ben waited
+    renderPage()
+    const waited = standingsOf(session).find((r) => r.games === 0)!
+    await user.click(cardButton(rowOf(boardStandings(), waited.name)))
+    await waitFor(() => expect(drawPlayerCard).toHaveBeenCalled())
+    const [data] = vi.mocked(drawPlayerCard).mock.calls[0]
+    expect(data.name).toBe(waited.name)
+    expect(data.games).toBe(0)
+    expect(data.winRate).toBeNull()
+  })
+
+  it('makes no network request when making and sharing a card', async () => {
     const user = userEvent.setup()
     const fetchSpy = vi.fn(() => Promise.reject(new Error('no network in tests')))
     vi.stubGlobal('fetch', fetchSpy)
     seed({ scored: 1 })
     renderPage()
-    await user.click(shareButton(boardStandings()))
+    await user.click(cardButton(rowOf(boardStandings(), 'Andrew')))
+    await waitFor(() => expect(drawPlayerCard).toHaveBeenCalled())
+    await user.click(within(dialog()).getByRole('button', { name: share.shareButton }))
     await waitFor(() => expect(shareOrDownload).toHaveBeenCalledTimes(1))
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 })
 
-describe('Share standings on the final standings (T5.5)', () => {
-  it('shows the name box and an enabled share button after the session ends with scores', () => {
+describe('Sharing from the final standings (T5.5, T8.7)', () => {
+  it('shows an enabled share button and no name box after the session ends with scores', () => {
     seed({ scored: 2, ended: true })
     renderPage()
-    expect(nameBox(finalStandings())).toBeInTheDocument()
     expect(shareButton(finalStandings())).toBeEnabled()
+    expect(within(finalStandings()).queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   it('keeps the button disabled when the session ended with no scores', () => {
@@ -213,16 +293,26 @@ describe('Share standings on the final standings (T5.5)', () => {
     expect(shareButton(finalStandings())).toBeDisabled()
   })
 
-  it('draws the final standings with the session name and shares them', async () => {
+  it('opens the group card for the final standings, with the session title', async () => {
+    const user = userEvent.setup()
+    const session = seed({ scored: 3, ended: true, title: '  Friday night  ' })
+    renderPage()
+    await user.click(shareButton(finalStandings()))
+    await waitFor(() => expect(drawGroupCard).toHaveBeenCalled())
+    const [data, opts] = vi.mocked(drawGroupCard).mock.calls[0]
+    expect(data).toEqual(groupCardData(session, { date: new Date(), size: opts.size }))
+    expect(data.title).toBe('Friday night')
+    await user.click(within(dialog()).getByRole('button', { name: share.shareButton }))
+    await waitFor(() => expect(shareOrDownload).toHaveBeenCalledWith(mocks.blob, share.groupFileName))
+  })
+
+  it('puts a Share card button on each final standings row that opens that player’s card', async () => {
     const user = userEvent.setup()
     const session = seed({ scored: 3, ended: true })
     renderPage()
-    await user.type(nameBox(finalStandings()), '  Friday night  ')
-    await user.click(shareButton(finalStandings()))
-    await waitFor(() => expect(shareOrDownload).toHaveBeenCalledWith(mocks.blob, share.fileName))
-    const [rows, opts] = vi.mocked(standingsImageData).mock.calls[0]
-    expect(rows).toEqual(standingsOf(session))
-    expect(opts.sessionName?.trim()).toBe('Friday night')
-    expect(vi.mocked(drawStandingsImage).mock.calls[0][0].title).toBe('Friday night')
+    for (const r of standingsOf(session)) expect(cardButton(rowOf(finalStandings(), r.name)), r.name).toBeInTheDocument()
+    await user.click(cardButton(rowOf(finalStandings(), 'Jose')))
+    await waitFor(() => expect(drawPlayerCard).toHaveBeenCalled())
+    expect(vi.mocked(drawPlayerCard).mock.calls[0][0].name).toBe('Jose')
   })
 })

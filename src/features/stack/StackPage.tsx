@@ -1,12 +1,12 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { paddleStack } from '../../config/paddleStack'
 import {
+  addPairs,
   addPlayers,
   backInLine,
-  createSession,
   fillCourts,
-  MAX_COURTS,
+  isRoundFormat,
   recordScore,
   removePlayer,
   skipGame,
@@ -14,14 +14,17 @@ import {
   standings,
   timeOut,
 } from './engine'
+import { loadStackFonts } from './fonts'
 import { parseNames } from './parseNames'
-import { drawStandingsImage, shareOrDownload, standingsImageData } from './shareImage'
+import { ShareCardDialog } from './shareCards/ShareCardDialog'
 import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_STORAGE_KEY, type StackState } from './storage'
+import { StartForm } from './StartForm'
 import { TvBoard } from './TvBoard'
 import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
-import type { Format, Game, Session } from './types'
+import { courtTone, teamStreak } from './tvInfo'
+import type { Game, Session, Team } from './types'
 
-const { start, formats, board, end, ended: endedCopy, venueCta, voice, tv } = paddleStack
+const { board, end, ended: endedCopy, venueCta, voice, tv } = paddleStack
 
 /** `/paddle-stack`: a free open-play queue on one device (SPEC §4 "Paddle Stack rules"). */
 export function StackPage() {
@@ -43,6 +46,10 @@ export function StackPage() {
   useEffect(() => {
     current.current = state
   }, [state])
+  // Paddle Stack's display face (T8.2), loaded only here so the landing page's first load doesn't grow.
+  useEffect(() => {
+    loadStackFonts()
+  }, [])
 
   /** Games on court in `next` that weren't in `prev`. */
   const newGames = (prev: StackState | null, next: StackState | null): Game[] => {
@@ -58,7 +65,7 @@ export function StackPage() {
       if (voiceOn && speakable) {
         const nameOf = (id: string) => next.session.players.find((p) => p.id === id)?.name ?? ''
         for (const g of filled) {
-          announce(callOutText(g.court, [nameOf(g.teamA[0]), nameOf(g.teamA[1])], [nameOf(g.teamB[0]), nameOf(g.teamB[1])]))
+          announce(callOutText(g.court, g.teamA.map(nameOf), g.teamB.map(nameOf)))
         }
       }
     }
@@ -222,8 +229,7 @@ export function StackPage() {
       {state?.ended && (
         <section className="stack-ended" aria-labelledby="stack-final">
           <h2 id="stack-final">{endedCopy.title}</h2>
-          <StandingsTable session={state.session} label={endedCopy.title} />
-          <ShareBox session={state.session} />
+          <ShareableStandings session={state.session} label={endedCopy.title} />
           <button type="button" className="btn main" onClick={reset}>
             {endedCopy.again}
           </button>
@@ -279,78 +285,6 @@ function Guide() {
   )
 }
 
-function StartForm({ onStart }: { onStart: (s: Session) => void }) {
-  const [courts, setCourts] = useState(2)
-  const [format, setFormat] = useState<Format>('fair')
-  const [names, setNames] = useState('')
-  const [tooFew, setTooFew] = useState(false)
-  const ids = { courts: useId(), names: useId(), hint: useId() }
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    const list = parseNames(names)
-    if (list.length < 4) {
-      setTooFew(true)
-      return
-    }
-    onStart(createSession({ format, courts, names: list }))
-  }
-
-  return (
-    <form className="formcard stack-start" onSubmit={submit} noValidate>
-      <label htmlFor={ids.courts}>{start.courtsLabel}</label>
-      <select id={ids.courts} value={courts} onChange={(e) => setCourts(Number(e.target.value))}>
-        {Array.from({ length: MAX_COURTS }, (_, i) => i + 1).map((n) => (
-          <option key={n} value={n}>
-            {n}
-          </option>
-        ))}
-      </select>
-      <fieldset>
-        <legend>{start.formatLabel}</legend>
-        {formats.map((f) => (
-          <label key={f.id} className="stack-format">
-            <input
-              type="radio"
-              name="stack-format"
-              value={f.id}
-              checked={format === f.id}
-              onChange={() => setFormat(f.id as Format)}
-            />
-            <span>
-              <b>{f.label}</b>
-              <small>{f.description}</small>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <label htmlFor={ids.names}>{start.namesLabel}</label>
-      <textarea
-        id={ids.names}
-        rows={8}
-        value={names}
-        placeholder={start.namesPlaceholder}
-        aria-describedby={ids.hint}
-        onChange={(e) => {
-          setNames(e.target.value)
-          setTooFew(false)
-        }}
-      />
-      <p className="hint" id={ids.hint}>
-        {start.namesHint}
-      </p>
-      {tooFew && (
-        <p className="err" role="alert">
-          {start.needFour}
-        </p>
-      )}
-      <button type="submit" className="btn main">
-        {start.submit}
-      </button>
-    </form>
-  )
-}
-
 interface BoardProps {
   session: Session
   act: (fn: (s: Session) => Session) => void
@@ -365,10 +299,11 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
   const nameOf = (id: string) => session.players.find((p) => p.id === id)?.name ?? ''
   const playing = session.games.filter((g) => g.status === 'playing')
   const out = session.players.filter((p) => p.status === 'out')
-  const roundOn = session.format === 'americano' && playing.length > 0
+  const roundOn = isRoundFormat(session.format) && playing.length > 0
 
   return (
     <>
+      {session.title && <h2 className="stack-title">{session.title}</h2>}
       <div className="stack-courts">
         {Array.from({ length: session.courts }, (_, i) => i + 1).map((n) => (
           <Court
@@ -376,6 +311,7 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
             number={n}
             game={playing.find((g) => g.court === n)}
             nameOf={nameOf}
+            streakOf={(t) => teamStreak(session, t)}
             act={act}
           />
         ))}
@@ -406,7 +342,11 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
           onSubmit={(e) => {
             e.preventDefault()
             const list = parseNames(adding)
-            if (list.length) act((s) => addPlayers(s, list))
+            // Fixed pairs: names are paired in the order given, as on the start screen; a name left over is dropped.
+            if (session.teams === 'fixed') {
+              const pairs = Array.from({ length: Math.floor(list.length / 2) }, (_, i) => [list[i * 2], list[i * 2 + 1]] as [string, string])
+              if (pairs.length) act((s) => addPairs(s, pairs))
+            } else if (list.length) act((s) => addPlayers(s, list))
             setAdding('')
           }}
         >
@@ -437,8 +377,7 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
 
       <section className="stack-standings" aria-labelledby="stack-standings">
         <h2 id="stack-standings">{paddleStack.standings.title}</h2>
-        <StandingsTable session={session} label={paddleStack.standings.title} />
-        <ShareBox session={session} />
+        <ShareableStandings session={session} label={paddleStack.standings.title} />
       </section>
 
       <div className="stack-actions">
@@ -471,18 +410,29 @@ interface CourtProps {
   number: number
   game: Game | undefined
   nameOf: (id: string) => string
+  /** Wins in a row for this side (T8.6); a chip shows from 2. */
+  streakOf: (team: Team) => number
   act: (fn: (s: Session) => Session) => void
 }
 
 const SCORE = /^\d{1,2}$/
 
-function Court({ number, game, nameOf, act }: CourtProps) {
+function Court({ number, game, nameOf, streakOf, act }: CourtProps) {
   const [editing, setEditing] = useState(false)
   const [a, setA] = useState('')
   const [b, setB] = useState('')
   const [error, setError] = useState('')
   const headingId = useId()
-  const team = (ids: [string, string]) => `${nameOf(ids[0])} & ${nameOf(ids[1])}`
+  const team = (ids: readonly string[]) => ids.map(nameOf).join(' & ')
+  const side = (ids: Team) => {
+    const streak = streakOf(ids)
+    return (
+      <span className="stack-side">
+        <span>{team(ids)}</span>
+        {streak >= 2 && <span className="stack-court-streak">{paddleStack.tv.streak(streak)}</span>}
+      </span>
+    )
+  }
   const close = () => {
     setEditing(false)
     setA('')
@@ -507,7 +457,7 @@ function Court({ number, game, nameOf, act }: CourtProps) {
   }
 
   return (
-    <section className={game ? 'stack-court' : 'stack-court empty'} aria-labelledby={headingId}>
+    <section className={`stack-court tone-${courtTone(number)}${game ? '' : ' empty'}`} aria-labelledby={headingId}>
       <h3 id={headingId}>
         {board.court} {number}
       </h3>
@@ -516,27 +466,38 @@ function Court({ number, game, nameOf, act }: CourtProps) {
       ) : (
         <>
           <p className="stack-teams">
-            <span>{team(game.teamA)}</span>
-            <small>{board.vs}</small>
-            <span>{team(game.teamB)}</span>
+            {side(game.teamA)}
+            <small className="stack-vs">{board.vs}</small>
+            {side(game.teamB)}
           </p>
           {editing ? (
             <form className="stack-score" onSubmit={save} noValidate>
-              <input
-                type="text"
-                inputMode="numeric"
-                aria-label={`${board.scoreFor} ${team(game.teamA)}`}
-                value={a}
-                onChange={(e) => setA(e.target.value)}
-              />
-              <span aria-hidden="true">–</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                aria-label={`${board.scoreFor} ${team(game.teamB)}`}
-                value={b}
-                onChange={(e) => setB(e.target.value)}
-              />
+              {/* Each box shows its team (T8.2, the user's call), so the two scores can't be swapped. */}
+              <div className="stack-score-teams">
+                <label className="stack-score-field">
+                  <span>{team(game.teamA)}</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    aria-label={`${board.scoreFor} ${team(game.teamA)}`}
+                    value={a}
+                    onChange={(e) => setA(e.target.value)}
+                  />
+                </label>
+                <span className="stack-score-dash" aria-hidden="true">
+                  –
+                </span>
+                <label className="stack-score-field">
+                  <span>{team(game.teamB)}</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    aria-label={`${board.scoreFor} ${team(game.teamB)}`}
+                    value={b}
+                    onChange={(e) => setB(e.target.value)}
+                  />
+                </label>
+              </div>
               {error && (
                 <p className="err" role="alert">
                   {error}
@@ -565,7 +526,21 @@ function Court({ number, game, nameOf, act }: CourtProps) {
   )
 }
 
-function StandingsTable({ session, label }: { session: Session; label: string }) {
+/** The standings with "Share card" on each row and "Share standings" under them; both open the card preview (T8.7). */
+function ShareableStandings({ session, label }: { session: Session; label: string }) {
+  // undefined: closed; null: the group card; a player id: that player's card.
+  const [card, setCard] = useState<string | null | undefined>(undefined)
+  const close = useCallback(() => setCard(undefined), [])
+  return (
+    <>
+      <StandingsTable session={session} label={label} onCard={setCard} />
+      <ShareBox session={session} onOpen={() => setCard(null)} />
+      {card !== undefined && <ShareCardDialog session={session} playerId={card ?? undefined} onClose={close} />}
+    </>
+  )
+}
+
+function StandingsTable({ session, label, onCard }: { session: Session; label: string; onCard: (playerId: string) => void }) {
   const rows = standings(session)
   const s = paddleStack.standings
   if (rows.every((r) => r.games === 0)) return <p className="hint">{s.empty}</p>
@@ -579,6 +554,9 @@ function StandingsTable({ session, label }: { session: Session; label: string })
             <th scope="col">{s.wins}</th>
             <th scope="col">{s.losses}</th>
             <th scope="col">{s.diff}</th>
+            <th scope="col">
+              <span className="sr-only">{paddleStack.share.cardButton}</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -591,6 +569,16 @@ function StandingsTable({ session, label }: { session: Session; label: string })
                 <td>{r.wins}</td>
                 <td>{r.losses}</td>
                 <td>{diff > 0 ? `+${diff}` : diff}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="stack-card-btn"
+                    aria-label={paddleStack.share.cardButtonFor(r.name)}
+                    onClick={() => onCard(r.playerId)}
+                  >
+                    {paddleStack.share.cardButton}
+                  </button>
+                </td>
               </tr>
             )
           })}
@@ -600,48 +588,16 @@ function StandingsTable({ session, label }: { session: Session; label: string })
   )
 }
 
-/** "Share standings": draws the image and shares or downloads it (T5.5). Enabled once a game is scored. */
-function ShareBox({ session }: { session: Session }) {
-  const { share } = paddleStack
-  const [name, setName] = useState('')
-  const [failed, setFailed] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const id = useId()
+/** "Share standings": opens the group card's preview (T5.5, T8.7). Enabled once a game is scored. */
+function ShareBox({ session, onOpen }: { session: Session; onOpen: () => void }) {
   const scored = session.games.some((g) => g.status === 'scored')
-
-  const onShare = async () => {
-    setFailed(false)
-    setBusy(true)
-    try {
-      let blob: Blob
-      try {
-        blob = await drawStandingsImage(standingsImageData(standings(session), { sessionName: name, date: new Date() }))
-      } catch {
-        setFailed(true)
-        return
-      }
-      await shareOrDownload(blob, share.fileName)
-    } catch {
-      setFailed(true)
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
     <div className="stack-share">
-      <label htmlFor={id}>{share.nameLabel}</label>
       <div>
-        <input id={id} type="text" maxLength={40} value={name} placeholder={share.namePlaceholder} onChange={(e) => setName(e.target.value)} />
-        <button type="button" className="btn main" disabled={!scored || busy} onClick={() => void onShare()}>
-          {share.button}
+        <button type="button" className="btn main" disabled={!scored} onClick={onOpen}>
+          {paddleStack.share.button}
         </button>
       </div>
-      {failed && (
-        <p className="err" role="alert">
-          {share.failed}
-        </p>
-      )}
     </div>
   )
 }

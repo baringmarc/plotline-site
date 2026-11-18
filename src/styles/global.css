@@ -51,6 +51,13 @@
   --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
   --radius: 18px;
+  /* Paddle Stack court tones (T8.6): brand-derived, the same in both themes, always with brown text. */
+  --court-1: #b7c4a8;
+  --court-2: #e8c4b8;
+  --court-3: #e3c178;
+  --court-4: #a9c1d4;
+  --court-5: #dba98f;
+  --court-6: #c9bcd6;
 }
 
 /* Dark theme: the guide's secondary logo, on warm brown. Highlights move to dusty rose so they stay readable. */
@@ -612,26 +619,66 @@ form.formcard > .btn { align-self: flex-start; }
 
 /* Paddle Stack (/paddle-stack): the organizer's queue on one device. Wider than the text pages for the courts. */
 .paddle-stack { max-width: 1040px; display: flex; flex-direction: column; gap: 24px; }
+/* Paddle Stack's own display face (T8.2, the user's pick): loaded by features/stack/fonts.ts on this page only.
+   Keep this list the same as STACK_DISPLAY there. Body text stays DM Sans; the rest of the site keeps Fraunces. */
+.paddle-stack { --stack-display: 'Bricolage Grotesque', 'DM Sans', -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.paddle-stack h1, .paddle-stack h2, .paddle-stack h3 { font-family: var(--stack-display); font-weight: 800; letter-spacing: -0.01em; }
+.paddle-stack .stack-teams, .paddle-stack .stack-line li span, .paddle-stack .stack-table td:nth-child(2),
+.paddle-stack .stack-tv-teams, .paddle-stack .stack-tv-banner, .paddle-stack .stack-tv-next li { font-family: var(--stack-display); }
+.paddle-stack .stack-tv-teams { font-weight: 800; }
 .paddle-stack h1, .paddle-stack .lead { margin: 0; }
 .paddle-stack .lead { font-size: 18px; color: var(--text-soft); max-width: 640px; }
 .paddle-stack section, .paddle-stack aside { padding: 0; }
 .paddle-stack h2 { font-size: 22px; margin: 0 0 12px; }
-.stack-start { background: var(--surface); display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
+.stack-start { background: var(--surface); display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: none; box-sizing: border-box; }
 .stack-start > label, .stack-start legend, .stack-add label { font-weight: 700; font-size: 14px; }
-.stack-start select { max-width: 120px; }
+.stack-start > select { width: auto; min-width: 96px; align-self: flex-start; }
+.stack-formats { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 820px) { .stack-formats { grid-template-columns: 1fr 1fr; align-items: start; } }
+.stack-formats-col { display: grid; gap: 8px; align-content: start; }
+.stack-format .stack-format-head { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.stack-format .stack-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--text); color: var(--surface); font-size: 12px; font-weight: 700; line-height: 1.5; }
+.stack-format-details { margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--bg); color: var(--text-soft); font-size: 14px; }
+.stack-chips, .stack-pairs > li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.stack-pairs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.stack-pairs > li { padding: 8px 10px; border: 1.5px dashed var(--line); border-radius: 12px; }
+.stack-pairs > li > small { flex: 0 0 100%; font-weight: 700; color: var(--text-soft); }
+.stack-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 4px 4px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); }
+.stack-chip b { font-family: var(--stack-display); overflow-wrap: anywhere; }
+.stack-chip select { width: auto; min-height: 36px; padding: 2px 10px; border-radius: 999px; font-size: 16px; }
 .stack-start fieldset { border: 0; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
 .stack-format { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer; }
 .stack-format:has(input:checked) { border-color: var(--text); }
 .stack-format input { width: 18px; height: 18px; margin-top: 3px; flex: 0 0 auto; accent-color: var(--text); }
 .stack-format span { display: flex; flex-direction: column; gap: 2px; }
 .stack-format small { color: var(--text-soft); font-size: 14px; }
+.stack-start fieldset.stack-play { grid-template-columns: 1fr 1fr; }
+.stack-start fieldset.stack-play legend { margin-bottom: 8px; }
 .stack-start .hint { margin: 0; }
 .stack-start > .btn { align-self: flex-start; margin-top: 6px; }
 
+.paddle-stack h2.stack-title { font-size: clamp(24px, 4vw, 32px); margin: 8px 0 14px; overflow-wrap: anywhere; }
 .stack-courts { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
 .paddle-stack .stack-court { background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
 .stack-court.empty { background: transparent; border-style: dashed; }
-.stack-court h3 { margin: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-soft); }
+.tone-1 { --tone: var(--court-1); }
+.tone-2 { --tone: var(--court-2); }
+.tone-3 { --tone: var(--court-3); }
+.tone-4 { --tone: var(--court-4); }
+.tone-5 { --tone: var(--court-5); }
+.tone-6 { --tone: var(--court-6); }
+.paddle-stack .stack-court { border-color: var(--tone, var(--line)); overflow: hidden; }
+.paddle-stack .stack-court.empty { border-color: var(--line); }
+.stack-court h3 {
+  margin: -18px -18px 0; padding: 8px 18px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--tone, var(--line)); color: var(--brown);
+}
+.stack-court.empty h3 { background: var(--line); color: var(--text); }
+.stack-side { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.stack-court-streak {
+  font-family: var(--sans); font-size: 13px; font-weight: 700; white-space: nowrap;
+  background: var(--tone, var(--sage)); color: var(--brown); padding: 2px 10px; border-radius: 999px;
+}
 .stack-court .hint { margin: 0; }
 .stack-teams { margin: 0; display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 18px; overflow-wrap: anywhere; }
 .stack-teams small { font-weight: 500; color: var(--text-soft); font-size: 14px; }
@@ -639,6 +686,16 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-court .btn, .stack-actions .btn { padding: 10px 18px; font-size: 15px; }
 .stack-score { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .stack-score input { width: 72px; text-align: center; }
+/* T8.2: each score box under its team's names; A on the left, B on the right. */
+.stack-score-teams { flex-basis: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: end; }
+.stack-score-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stack-score-field span { font-weight: 700; font-size: 14px; color: var(--text-soft); overflow-wrap: anywhere; }
+.stack-score-field input { width: 100%; max-width: 120px; }
+.stack-score-teams > .stack-score-field:last-child { align-items: flex-end; text-align: right; }
+.stack-score-dash { padding-bottom: 10px; color: var(--text-soft); }
+/* T8.2: "vs" centred between two lines across the court card (board and TV). */
+.paddle-stack .stack-vs { display: flex; align-items: center; gap: 0.75em; color: var(--text-soft); text-transform: lowercase; }
+.stack-vs::before, .stack-vs::after { content: ''; flex: 1; border-top: 1.5px solid var(--line); }
 .stack-score .err { flex-basis: 100%; margin: 0; }
 .stack-confirm p { flex-basis: 100%; margin: 0; font-weight: 700; }
 
@@ -674,28 +731,76 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-tools .check { align-items: center; font-size: 15px; }
 .stack-tools .hint { flex-basis: 100%; margin: -4px 0 0; }
 .stack-tools .btn { padding: 10px 18px; font-size: 15px; }
+/* TV board, design A "Court bands" (T8.6, the user's pick): logo and title on top, a coloured band per court,
+   Up next in a dark band along the bottom. Court tones carry brown text in both themes (AA: 6:1 or more). */
 .stack-tv {
   position: fixed; inset: 0; z-index: 100; overflow: auto; background: var(--bg); color: var(--text);
-  display: flex; flex-direction: column; gap: clamp(12px, 2vw, 28px); padding: clamp(16px, 3vw, 48px);
+  display: flex; flex-direction: column; gap: clamp(12px, 1.6vw, 26px); padding: clamp(16px, 2.6vw, 48px);
 }
 .stack-tv h2 { margin: 0; font-size: clamp(16px, 1.6vw, 26px); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-soft); }
+.stack-tv-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1fr); align-items: center; gap: clamp(10px, 1.4vw, 24px); }
+.stack-tv-logo {
+  display: flex; align-items: center; gap: 0.4em; font-family: var(--serif); font-weight: 700;
+  font-size: clamp(20px, 1.9vw, 36px); text-transform: lowercase; color: var(--text);
+}
+.stack-tv-logo img { width: 1.8em; height: 1.8em; display: block; flex: none; }
+.stack-tv-banner-slot { display: flex; justify-content: flex-end; }
 .stack-tv-banner {
-  margin: 0; align-self: center; background: var(--sage); color: var(--brown); font-weight: 800;
-  font-size: clamp(22px, 3.2vw, 56px); padding: 0.25em 0.9em; border-radius: 999px; animation: stack-banner 0.6s ease-out;
+  margin: 0; background: var(--sage); color: var(--brown); font-weight: 800; text-align: center;
+  font-size: clamp(16px, 1.6vw, 30px); padding: 0.4em 0.9em; border-radius: 999px; animation: stack-banner 0.6s ease-out;
+}
+.paddle-stack .stack-tv-title, .stack-tv-title {
+  margin: 0; font-family: var(--stack-display); font-weight: 800; font-size: clamp(24px, 3.2vw, 60px);
+  line-height: 1.05; text-align: center; overflow-wrap: anywhere;
 }
 @keyframes stack-banner { from { transform: scale(0.85); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .stack-tv-banner { animation: none; } }
-.stack-tv-courts { display: grid; gap: clamp(12px, 2vw, 28px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
-.paddle-stack .stack-tv-court { background: var(--surface); border: 2px solid var(--line); border-radius: 24px; padding: clamp(16px, 2.4vw, 36px); display: flex; flex-direction: column; gap: 12px; }
-.stack-tv-court.empty { background: transparent; border-style: dashed; }
-.stack-tv-teams { margin: 0; display: flex; flex-direction: column; gap: 6px; font-family: var(--serif); font-weight: 700; font-size: clamp(22px, 2.8vw, 48px); line-height: 1.15; overflow-wrap: anywhere; }
-.stack-tv-teams small { font-family: var(--sans); font-weight: 500; font-size: 0.5em; color: var(--text-soft); }
-.stack-tv-waiting { margin: 0; color: var(--text-soft); font-size: clamp(18px, 2vw, 32px); }
-.stack-tv-next ol { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 14px; counter-reset: next; }
-.stack-tv-next li { counter-increment: next; background: var(--panel); border-radius: 999px; padding: 0.3em 0.9em; font-weight: 700; font-size: clamp(18px, 2vw, 34px); }
-.stack-tv-next li::before { content: counter(next) '. '; color: var(--text-soft); }
-.stack-tv-next p { margin: 10px 0 0; color: var(--text-soft); font-size: clamp(18px, 2vw, 30px); }
-.stack-tv-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--text-soft); font-size: clamp(13px, 1.2vw, 18px); }
+.stack-tv-courts { flex: 1; display: grid; gap: clamp(12px, 1.4vw, 24px); grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.paddle-stack .stack-tv-court, .stack-tv-court {
+  background: var(--surface); border: 3px solid var(--tone, var(--line)); border-radius: 26px; overflow: hidden;
+  padding: 0; display: flex; flex-direction: column;
+}
+.paddle-stack .stack-tv-court.empty, .stack-tv-court.empty { background: transparent; border-style: dashed; border-color: var(--line); }
+.stack-tv-band {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0.5em 1.1em; background: var(--tone, var(--line)); color: var(--brown); font-size: clamp(14px, 1.3vw, 24px);
+}
+.stack-tv-court.empty .stack-tv-band { background: var(--line); color: var(--text); }
+.paddle-stack .stack-tv-band h2, .stack-tv-band h2 {
+  margin: 0; color: inherit; font-family: var(--stack-display); font-weight: 800; font-size: clamp(18px, 1.8vw, 34px); letter-spacing: 0.04em;
+}
+.stack-tv-last { font-weight: 700; white-space: nowrap; }
+.stack-tv-teams {
+  margin: 0; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  padding: clamp(12px, 1.4vw, 24px) clamp(16px, 1.8vw, 32px);
+  font-family: var(--serif); font-weight: 700; font-size: clamp(22px, 2.8vw, 54px); line-height: 1.1; overflow-wrap: anywhere;
+}
+.stack-tv-side { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3em 0.5em; }
+.stack-tv-streak {
+  font-family: var(--sans); font-weight: 700; font-size: 0.42em; white-space: nowrap;
+  background: var(--tone, var(--sage)); color: var(--brown); padding: 0.25em 0.7em; border-radius: 999px;
+}
+.stack-tv-teams small { font-family: var(--sans); font-weight: 500; font-size: 0.48em; color: var(--text-soft); }
+.stack-tv-waiting { margin: 0; flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-soft); font-size: clamp(18px, 2vw, 34px); }
+.stack-tv-bottom {
+  display: flex; align-items: center; gap: clamp(16px, 2vw, 36px); background: var(--band); color: var(--on-band);
+  border-radius: 28px; padding: clamp(14px, 1.4vw, 26px) clamp(18px, 1.8vw, 32px);
+}
+.stack-tv-bottom-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: clamp(8px, 0.8vw, 14px); }
+.stack-tv-next { display: flex; flex-direction: column; gap: clamp(8px, 0.8vw, 14px); }
+.stack-tv-next h2 { color: var(--on-band-soft); }
+.stack-tv-next ol { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 14px; counter-reset: next; }
+.stack-tv-next li {
+  counter-increment: next; background: var(--sage); color: var(--brown); border-radius: 999px; padding: 0.2em 0.8em;
+  font-weight: 800; font-size: clamp(20px, 2.3vw, 44px);
+}
+.stack-tv-next li::before { content: counter(next) '. '; opacity: 0.75; }
+.stack-tv-bottom p { margin: 0; color: var(--on-band-soft); font-size: clamp(16px, 1.4vw, 26px); }
+.stack-tv-bottom .stack-tv-break { font-weight: 700; color: var(--on-band); }
+/* Kept empty for Milestone 6's join QR, so the layout doesn't move when it arrives. */
+.stack-tv-qr { width: clamp(80px, 7.8vw, 150px); aspect-ratio: 1; flex: none; }
+@media (max-width: 640px) { .stack-tv-qr { display: none; } .stack-tv-head { grid-template-columns: 1fr; justify-items: center; } .stack-tv-banner-slot { justify-content: center; } }
+.stack-tv-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; color: var(--text-soft); font-size: clamp(13px, 1.1vw, 20px); }
 
 /* Paddle Stack: "Share standings" under the standings table. */
 .stack-share { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; max-width: 560px; }
@@ -704,3 +809,71 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-share input { flex: 1 1 200px; }
 .stack-share .btn { padding: 10px 18px; }
 .stack-share .err { margin: 0; }
+
+/* Paddle Stack: share cards (T8.7). "Share card" on each standings row, and the preview dialog. */
+.stack-table td:last-child { text-align: right; padding-right: 0; }
+.stack-card-btn {
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--highlight); background: none;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap;
+}
+.stack-card-btn:hover { border-color: var(--highlight); }
+.stack-card-backdrop {
+  position: fixed; inset: 0; z-index: 60; background: rgba(20, 14, 12, 0.6);
+  display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 16px;
+}
+.stack-card-dialog {
+  background: var(--surface); color: var(--text); border-radius: 18px; padding: 18px 16px; width: 100%; max-width: 880px;
+  display: grid; gap: 14px; margin: auto 0; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+.stack-card-dialog h2 { margin: 0; font-size: 22px; }
+.stack-card-preview { --ph: min(46vh, 520px); display: flex; justify-content: center; align-items: center; height: var(--ph); } /* fixed, so the options don't move when the card appears */
+/* The frame is exactly the card's box (as tall as the preview, or as wide as the dialog), so the overlay lines up with the image. */
+.stack-card-frame { position: relative; }
+.stack-card-preview.story .stack-card-frame { width: min(100%, calc(var(--ph) * 1080 / 1920)); aspect-ratio: 1080 / 1920; }
+.stack-card-preview.post .stack-card-frame { width: min(100%, calc(var(--ph) * 1080 / 1350)); aspect-ratio: 1080 / 1350; }
+.stack-card-preview img { display: block; width: 100%; height: 100%; border-radius: 12px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18); }
+/* T8.7b: the items over the preview; drag them with a mouse or a finger (no page scroll while dragging). */
+.stack-card-overlay { position: absolute; inset: 0; }
+.stack-card-item {
+  position: absolute; padding: 0; border: 1.5px dashed rgba(255, 255, 255, 0.45); border-radius: 8px; background: transparent;
+  cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent;
+}
+.stack-card-item:active { cursor: grabbing; }
+.stack-card-item[aria-pressed="true"] { border: 2px solid #fff; box-shadow: 0 0 0 2px var(--highlight); }
+.stack-card-item:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
+.stack-card-remove {
+  position: absolute; transform: translate(-50%, -50%); width: 32px; height: 32px; padding: 0; border: 2px solid #fff; border-radius: 50%;
+  background: var(--brown); color: #fff; font-size: 15px; line-height: 1; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+} /* fixed colours: it sits on the card, not the page */
+.stack-card-arrange { display: grid; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.stack-card-arrange .hint { margin: 0; font-size: 13px; }
+.stack-card-range { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }
+.stack-card-range input { width: 100%; }
+.stack-chip-btn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; background: var(--field); color: inherit; white-space: nowrap;
+}
+.stack-chip-btn:hover { border-color: var(--highlight); }
+.stack-card-options { display: grid; gap: 12px; align-content: start; }
+.stack-card-choices { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.stack-card-label, .stack-card-photo label, .stack-card-darkness { font-weight: 700; font-size: 14px; }
+.stack-card-label { flex-basis: 100%; }
+.stack-chip-radio {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 12px; font-size: 14px; cursor: pointer; background: var(--field); white-space: nowrap;
+}
+.stack-chip-radio:has(input:checked) { border-color: var(--highlight); box-shadow: inset 0 0 0 1px var(--highlight); }
+.stack-card-photo label, .stack-card-darkness { display: grid; gap: 6px; }
+.stack-card-photo input { font: inherit; font-size: 14px; font-weight: 400; max-width: 100%; }
+.stack-card-photo .hint { margin: 4px 0 0; font-size: 13px; }
+.stack-card-darkness input { width: 100%; }
+.stack-card-dialog .err { margin: 0; }
+.stack-card-hint { margin: -6px 0 0; font-size: 13px; text-align: center; }
+.stack-card-inapp { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--rose-soft); color: var(--brown); font-size: 14px; } /* fixed colours: readable in both themes */
+.stack-card-actions { display: flex; flex-wrap: wrap; gap: 8px; position: sticky; bottom: -18px; background: var(--surface); padding: 10px 0 18px; margin-bottom: -18px; } /* Share stays in reach on a phone while the options scroll */
+.stack-card-actions .btn { padding: 10px 18px; }
+@media (min-width: 820px) {
+  .stack-card-dialog { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 24px; align-items: start; }
+  .stack-card-dialog h2, .stack-card-dialog .err, .stack-card-inapp, .stack-card-actions { grid-column: 1 / -1; }
+  .stack-card-preview { --ph: min(72vh, 760px); }
+}

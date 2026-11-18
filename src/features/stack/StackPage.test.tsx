@@ -152,7 +152,7 @@ afterEach(() => {
 })
 
 describe('StackPage start screen (T5.3)', () => {
-  it('shows the title, lead, courts, the three formats and the paste box from config', () => {
+  it('shows the title, lead, courts, every format and the paste box from config', () => {
     renderPage()
     expect(screen.getByRole('heading', { level: 1, name: paddleStack.title })).toBeInTheDocument()
     expect(screen.getByText(paddleStack.lead)).toBeInTheDocument()

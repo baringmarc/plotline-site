@@ -1,47 +1,19 @@
-// T5.5 Standings image to share (TASKS.md T5.5; SPEC §3 `/paddle-stack` row). Acceptance: tests cover the layout
-// data (rows, long names cut, empty session name) and the share-or-download fallback; no network request is made
-// when sharing. Copy comes from `paddleStack.share` in src/config/site.ts.
+// Share or download (T5.5, kept for T8.7). T8.7 (SPEC §6 "T8.7 plan gate", 2026-11-18) replaces the T5.5 standings
+// image with the group card (src/features/stack/shareCards/), so its layout and drawing tests moved to
+// shareCards/cardData.test.ts and shareCards/drawCard.test.ts. Acceptance (T8.7): "tests cover … the share-or-download
+// fallback; no network request when making or sharing a card".
 //
-// Contract the tests rely on (the plan's names):
-// - `MAX_NAME = 22` (characters, counted as code points, before a name is cut with "…");
-// - `standingsImageData(rows, { sessionName?, date })` → `{ title, date, rows: { place, name, record, diff }[],
-//   footer }`: every player is a row (user, 2026-11-13: no top-10 cut, the image grows taller instead); `title`
-//   the trimmed session name or `share.defaultTitle`; `date` the en-PH short date of the organizer's day
-//   ("Thu, 12 Nov 2026"; Node's en-PH data may order it "Thu, Nov 12, 2026"); `record` "W–L" (en dash); `diff`
-//   signed with "+" and the minus sign "−" (U+2212), zero as "0"; `footer` `share.footer`;
-// - `imageHeight(n)`: `MIN_HEIGHT` (1080, square) up to 10 rows, then taller as rows are added;
-// - `drawStandingsImage(data)` draws on a `WIDTH` (1080) × `imageHeight(rows)` canvas from
-//   `document.createElement('canvas')` and resolves with the PNG from `canvas.toBlob(…, 'image/png')`; rejects
-//   without a 2D context or when toBlob gives null;
-// - `shareOrDownload(blob, fileName)` → 'shared' | 'downloaded' | 'cancelled' (Web Share with files when
-//   `navigator.canShare` allows it; AbortError is a cancel; anything else, or no file sharing, downloads through
-//   an `<a download>` and `URL.createObjectURL`, then revokes the URL).
+// Contract: `shareOrDownload(blob, fileName)` → 'shared' | 'downloaded' | 'cancelled' (Web Share with files when
+// `navigator.canShare` allows it; AbortError is a cancel; anything else, or no file sharing, downloads through an
+// `<a download>` and `URL.createObjectURL`, then revokes the URL after `DOWNLOAD_URL_LIFETIME_MS`, at least 60 s, so
+// iOS Safari's "Download?" prompt can still read it: test dispute 2026-11-18). The standings image's own functions
+// are gone.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { paddleStack } from '../../config/site'
-import { MAX_NAME, MIN_HEIGHT, WIDTH, drawStandingsImage, imageHeight, shareOrDownload, standingsImageData } from './shareImage'
-import type { StandingRow } from './types'
+import * as shareImage from './shareImage'
 
 const { share } = paddleStack
-const MINUS = '−'
-const EN_DASH = '–'
-const NOON_UTC = new Date('2026-11-12T12:00:00Z') // Thu 12 Nov 2026 from UTC−12 to UTC+11
-const THU_12_NOV = /^Thu, (12 Nov|Nov 12,) 2026$/
-
-function row(i: number, over: Partial<StandingRow> = {}): StandingRow {
-  return {
-    playerId: `p${i}`,
-    name: `Player ${i}`,
-    place: i,
-    wins: 3,
-    losses: 1,
-    games: 4,
-    pointsFor: 40,
-    pointsAgainst: 36,
-    ...over,
-  }
-}
-
-const rowsOf = (n: number) => Array.from({ length: n }, (_, i) => row(i + 1))
+const { shareOrDownload } = shareImage
 
 /** Catches any network use: fetch, XHR and beacons. */
 function watchNetwork() {
@@ -62,275 +34,16 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('MAX_NAME and the image size', () => {
-  it('are 22 characters and a 1080-wide image at least 1080 tall', () => {
-    expect(MIN_HEIGHT).toBe(WIDTH)
-    expect(MAX_NAME).toBe(22)
-    expect(WIDTH).toBe(1080)
-  })
-})
-
-describe('imageHeight (user, 2026-11-13)', () => {
-  it('stays square up to 10 rows', () => {
-    for (const n of [0, 1, 4, 10]) expect(imageHeight(n), `${n} rows`).toBe(1080)
+describe('the T5.5 standings image is replaced by the group card (T8.7)', () => {
+  it('no longer exports the standings image functions', () => {
+    expect(shareImage).not.toHaveProperty('drawStandingsImage')
+    expect(shareImage).not.toHaveProperty('standingsImageData')
+    expect(shareImage).not.toHaveProperty('imageHeight')
   })
 
-  it('grows with each row past that, by the same step', () => {
-    expect(imageHeight(11)).toBeGreaterThan(1080)
-    const step = imageHeight(21) - imageHeight(20)
-    expect(step).toBeGreaterThan(0)
-    expect(imageHeight(40) - imageHeight(30)).toBe(step * 10)
-  })
-})
-
-describe('standingsImageData: layout data (T5.5)', () => {
-  it('maps each standings row to place, name, W–L record and signed point difference', () => {
-    const data = standingsImageData(
-      [
-        row(1, { name: 'Andrew', place: 1, wins: 3, losses: 1, pointsFor: 44, pointsAgainst: 40 }),
-        row(2, { name: 'Maria', place: 2, wins: 2, losses: 2, pointsFor: 38, pointsAgainst: 38 }),
-        row(3, { name: 'Juan', place: 2, wins: 2, losses: 2, pointsFor: 38, pointsAgainst: 38 }),
-        row(4, { name: 'Jose', place: 4, wins: 0, losses: 4, pointsFor: 20, pointsAgainst: 22 }),
-      ],
-      { sessionName: 'Saturday open play', date: NOON_UTC },
-    )
-    expect(data.rows).toEqual([
-      { place: 1, name: 'Andrew', record: `3${EN_DASH}1`, diff: '+4' },
-      { place: 2, name: 'Maria', record: `2${EN_DASH}2`, diff: '0' },
-      { place: 2, name: 'Juan', record: `2${EN_DASH}2`, diff: '0' },
-      { place: 4, name: 'Jose', record: `0${EN_DASH}4`, diff: `${MINUS}2` },
-    ])
-  })
-
-  it('uses the minus sign (U+2212), not a hyphen, for a negative difference', () => {
-    const data = standingsImageData([row(1, { pointsFor: 10, pointsAgainst: 21 })], { date: NOON_UTC })
-    expect(data.rows[0].diff).toBe(`${MINUS}11`)
-    expect(data.rows[0].diff).not.toContain('-')
-  })
-
-  it('keeps the standings order and places as given (ties share a place)', () => {
-    const input = [row(1, { place: 1 }), row(2, { place: 1 }), row(3, { place: 3 })]
-    const data = standingsImageData(input, { date: NOON_UTC })
-    expect(data.rows.map((r) => r.place)).toEqual([1, 1, 3])
-    expect(data.rows.map((r) => r.name)).toEqual(['Player 1', 'Player 2', 'Player 3'])
-  })
-
-  it('shows every row for 10 players, with no "more" field', () => {
-    const data = standingsImageData(rowsOf(10), { date: NOON_UTC })
-    expect(data.rows).toHaveLength(10)
-    expect(data).not.toHaveProperty('more')
-  })
-
-  it('includes every player, in order, when there are more than 10 (user, 2026-11-13)', () => {
-    const data = standingsImageData(rowsOf(13), { date: NOON_UTC })
-    expect(data.rows).toHaveLength(13)
-    expect(data.rows.map((r) => r.name)).toEqual(rowsOf(13).map((r) => r.name))
-    expect(data.rows[12].name).toBe('Player 13')
-    expect(data).not.toHaveProperty('more')
-  })
-
-  it('includes all 40 players of a big session', () => {
-    expect(standingsImageData(rowsOf(40), { date: NOON_UTC }).rows).toHaveLength(40)
-  })
-
-  it('handles no rows: an empty list', () => {
-    const data = standingsImageData([], { date: NOON_UTC })
-    expect(data.rows).toEqual([])
-    expect(data).not.toHaveProperty('more')
-  })
-
-  it('keeps a name of exactly MAX_NAME characters as typed', () => {
-    const name = 'Abcdefghij Klmnopqrstu' // 22
-    expect(name).toHaveLength(MAX_NAME)
-    expect(standingsImageData([row(1, { name })], { date: NOON_UTC }).rows[0].name).toBe(name)
-  })
-
-  it('cuts a long name with "…" and keeps its start as typed', () => {
-    const name = 'Maria Clara de los Santos Villanueva' // 36
-    const cut = standingsImageData([row(1, { name })], { date: NOON_UTC }).rows[0].name
-    expect(cut.endsWith('…')).toBe(true)
-    const kept = cut.slice(0, -1)
-    expect(name.startsWith(kept)).toBe(true)
-    expect(Array.from(kept).length).toBeGreaterThanOrEqual(MAX_NAME - 1)
-    expect(Array.from(cut).length).toBeLessThanOrEqual(MAX_NAME + 1)
-  })
-
-  it('cuts a 23-character name (one over the limit)', () => {
-    const name = 'Abcdefghij Klmnopqrstuv' // 23
-    const cut = standingsImageData([row(1, { name })], { date: NOON_UTC }).rows[0].name
-    expect(cut).not.toBe(name)
-    expect(cut.endsWith('…')).toBe(true)
-  })
-
-  it('counts characters, not UTF-16 units, so an emoji or ñ is never split', () => {
-    const name = 'Señor 🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓🏓' // 26 characters, 46 UTF-16 units
-    const cut = standingsImageData([row(1, { name })], { date: NOON_UTC }).rows[0].name
-    expect(cut.endsWith('…')).toBe(true)
-    // No lone surrogate left behind by the cut.
-    expect(cut).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/)
-    expect(Array.from(cut.slice(0, -1)).length).toBeGreaterThanOrEqual(MAX_NAME - 1)
-    // A name that is short in characters but long in UTF-16 units stays whole.
-    const short = '🏓'.repeat(MAX_NAME) // 22 characters, 44 units
-    expect(standingsImageData([row(1, { name: short })], { date: NOON_UTC }).rows[0].name).toBe(short)
-  })
-
-  it('uses the trimmed session name as the title', () => {
-    const data = standingsImageData(rowsOf(4), { sessionName: '  Saturday open play  ', date: NOON_UTC })
-    expect(data.title).toBe('Saturday open play')
-  })
-
-  it('falls back to the default title for a missing, empty or blank session name', () => {
-    expect(standingsImageData(rowsOf(4), { date: NOON_UTC }).title).toBe(share.defaultTitle)
-    expect(standingsImageData(rowsOf(4), { sessionName: '', date: NOON_UTC }).title).toBe(share.defaultTitle)
-    expect(standingsImageData(rowsOf(4), { sessionName: '   ', date: NOON_UTC }).title).toBe(share.defaultTitle)
-  })
-
-  it('formats the date for en-PH as weekday, day, month and year', () => {
-    expect(standingsImageData(rowsOf(4), { date: NOON_UTC }).date).toMatch(THU_12_NOV)
-  })
-
-  it('carries the footer from config', () => {
-    expect(standingsImageData(rowsOf(4), { date: NOON_UTC }).footer).toBe(share.footer)
-  })
-
-  describe('in Manila (UTC+8)', () => {
-    let savedTz: string | undefined
-    beforeEach(() => {
-      savedTz = process.env.TZ
-      process.env.TZ = 'Asia/Manila'
-    })
-    afterEach(() => {
-      if (savedTz === undefined) delete process.env.TZ
-      else process.env.TZ = savedTz
-    })
-
-    it('dates a 7:30 AM session to that day, though it is still the day before in UTC', () => {
-      const morning = new Date('2026-11-11T23:30:00Z') // Thu 12 Nov, 7:30 AM in Manila
-      expect(standingsImageData(rowsOf(4), { date: morning }).date).toMatch(THU_12_NOV)
-    })
-
-    it('dates an 11:30 PM session to that day, not the next', () => {
-      const night = new Date('2026-11-12T15:30:00Z') // Thu 12 Nov, 11:30 PM in Manila
-      expect(standingsImageData(rowsOf(4), { date: night }).date).toMatch(THU_12_NOV)
-    })
-  })
-})
-
-// ---------- drawing ----------
-
-interface FakeCanvas {
-  canvas: HTMLCanvasElement
-  texts: string[]
-  fonts: string[]
-  toBlob: ReturnType<typeof vi.fn>
-}
-
-/** A 2D context that records the text drawn and the fonts set, and a canvas whose toBlob hands back `blob`. */
-function fakeCanvas(opts: { context?: boolean; blob?: Blob | null } = {}): FakeCanvas {
-  const realCreate = document.createElement.bind(document)
-  const canvas = realCreate('canvas') as HTMLCanvasElement
-  const texts: string[] = []
-  const fonts: string[] = []
-  const gradient = { addColorStop: vi.fn() }
-  const state: Record<string | symbol, unknown> = { canvas }
-  const ctx = new Proxy(state, {
-    get(target, prop) {
-      if (prop in target) return target[prop]
-      if (prop === 'fillText' || prop === 'strokeText') return (t: string) => texts.push(String(t))
-      if (prop === 'measureText') return (t: string) => ({ width: String(t).length * 20, actualBoundingBoxAscent: 20, actualBoundingBoxDescent: 5 })
-      if (prop === 'createLinearGradient' || prop === 'createRadialGradient') return () => gradient
-      if (prop === 'getImageData' || prop === 'createImageData') return () => ({ data: new Uint8ClampedArray(4) })
-      if (prop === 'getTransform') return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })
-      if (prop === 'isPointInPath') return () => false
-      if (typeof prop === 'symbol' || prop === 'then') return undefined
-      return vi.fn()
-    },
-    set(target, prop, value) {
-      if (prop === 'font') fonts.push(String(value))
-      target[prop] = value
-      return true
-    },
-  })
-  const blob = opts.blob === undefined ? new Blob(['png'], { type: 'image/png' }) : opts.blob
-  Object.defineProperty(canvas, 'getContext', {
-    value: vi.fn((kind: string) => (opts.context === false || kind !== '2d' ? null : ctx)),
-  })
-  const toBlob = vi.fn((cb: BlobCallback) => setTimeout(() => cb(blob), 0))
-  Object.defineProperty(canvas, 'toBlob', { value: toBlob })
-  vi.spyOn(document, 'createElement').mockImplementation(((tag: string, o?: ElementCreationOptions) =>
-    tag.toLowerCase() === 'canvas' ? canvas : realCreate(tag, o)) as typeof document.createElement)
-  return { canvas, texts, fonts, toBlob }
-}
-
-const sample = () =>
-  standingsImageData(
-    [
-      row(1, { name: 'Andrew', wins: 3, losses: 1, pointsFor: 44, pointsAgainst: 40 }),
-      row(2, { name: 'Maria', place: 2, wins: 1, losses: 3, pointsFor: 30, pointsAgainst: 41 }),
-      ...rowsOf(12).slice(2),
-    ],
-    { sessionName: 'Saturday open play', date: NOON_UTC },
-  )
-
-describe('drawStandingsImage (T5.5)', () => {
-  it('draws on a 1080×1080 canvas for 10 players and resolves with its PNG', async () => {
-    const fake = fakeCanvas()
-    const blob = await drawStandingsImage(standingsImageData(rowsOf(10), { date: NOON_UTC }))
-    expect(fake.canvas.width).toBe(1080)
-    expect(fake.canvas.height).toBe(1080)
-    expect(fake.toBlob).toHaveBeenCalledTimes(1)
-    expect(fake.toBlob.mock.calls[0][1]).toBe('image/png')
-    expect(blob).toBeInstanceOf(Blob)
-    expect(blob.type).toBe('image/png')
-  })
-
-  it('makes the canvas taller, not wider, for more than 10 players (user, 2026-11-13)', async () => {
-    const fake = fakeCanvas()
-    await drawStandingsImage(standingsImageData(rowsOf(25), { date: NOON_UTC }))
-    expect(fake.canvas.width).toBe(1080)
-    expect(fake.canvas.height).toBe(imageHeight(25))
-    expect(fake.canvas.height).toBeGreaterThan(1080)
-  })
-
-  it('draws the title, date, every row (all 12 players) and the footer, and no "more" line', async () => {
-    const fake = fakeCanvas()
-    const data = sample()
-    expect(data.rows).toHaveLength(12)
-    await drawStandingsImage(data)
-    const drawn = fake.texts.join('\n')
-    expect(drawn).toContain(data.title)
-    expect(drawn).toContain(data.date)
-    for (const r of data.rows) {
-      expect(drawn, r.name).toContain(r.name)
-      expect(drawn, `${r.name} record`).toContain(r.record)
-      expect(drawn, `${r.name} diff`).toContain(r.diff)
-    }
-    expect(drawn).not.toMatch(/\+\d+ more/)
-    expect(drawn).toContain(share.footer)
-  })
-
-  it('uses the brand fonts, Fraunces and DM Sans', async () => {
-    const fake = fakeCanvas()
-    await drawStandingsImage(sample())
-    expect(fake.fonts.some((f) => f.includes('Fraunces'))).toBe(true)
-    expect(fake.fonts.some((f) => f.includes('DM Sans'))).toBe(true)
-  })
-
-  it('rejects when the browser gives no 2D context', async () => {
-    fakeCanvas({ context: false })
-    await expect(drawStandingsImage(sample())).rejects.toBeDefined()
-  })
-
-  it('rejects when toBlob gives null', async () => {
-    fakeCanvas({ blob: null })
-    await expect(drawStandingsImage(sample())).rejects.toBeDefined()
-  })
-
-  it('makes no network request', async () => {
-    const check = watchNetwork()
-    fakeCanvas()
-    await drawStandingsImage(sample())
-    check()
+  it('drops the old single file name for the per-player and group names', () => {
+    expect(share).not.toHaveProperty('fileName')
+    expect(typeof share.groupFileName).toBe('string')
   })
 })
 
@@ -355,10 +68,10 @@ function stubDownload() {
   return { url, createObjectURL, revokeObjectURL, clicked }
 }
 
-const FILE_NAME = share.fileName
+const FILE_NAME = share.groupFileName
 const png = () => new Blob(['png'], { type: 'image/png' })
 
-describe('shareOrDownload (T5.5)', () => {
+describe('shareOrDownload (T5.5; T8.7 shares the cards through it)', () => {
   let saved: { canShare: unknown; share: unknown; create: unknown; revoke: unknown }
   beforeEach(() => {
     saved = { canShare: nav.canShare, share: nav.share, create: URL.createObjectURL, revoke: URL.revokeObjectURL }
@@ -424,15 +137,53 @@ describe('shareOrDownload (T5.5)', () => {
   })
 
   it('downloads through <a download> and an object URL, then revokes it, when there is no Web Share', async () => {
-    const dl = stubDownload()
-    setNav('canShare', undefined)
-    setNav('share', undefined)
-    const blob = png()
+    vi.useFakeTimers()
+    try {
+      const dl = stubDownload()
+      setNav('canShare', undefined)
+      setNav('share', undefined)
+      const blob = png()
 
-    await expect(shareOrDownload(blob, FILE_NAME)).resolves.toBe('downloaded')
-    expect(dl.createObjectURL).toHaveBeenCalledWith(blob)
-    expect(dl.clicked).toEqual([{ href: dl.url, download: FILE_NAME }])
-    await vi.waitFor(() => expect(dl.revokeObjectURL).toHaveBeenCalledWith(dl.url))
+      await expect(shareOrDownload(blob, FILE_NAME)).resolves.toBe('downloaded')
+      expect(dl.createObjectURL).toHaveBeenCalledWith(blob)
+      expect(dl.clicked).toEqual([{ href: dl.url, download: FILE_NAME }])
+      // Revoked eventually, not right away (how long it stays alive is the next test).
+      expect(dl.revokeObjectURL).not.toHaveBeenCalled()
+      vi.runAllTimers()
+      expect(dl.revokeObjectURL).toHaveBeenCalledWith(dl.url)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // Test dispute (T8.7, 2026-11-18): iOS Safari asks "Download?" and reads the blob URL only after the tap, so a
+  // revoke right after the click killed the download on the user's iPhone. The URL stays alive for
+  // DOWNLOAD_URL_LIFETIME_MS (about a minute), then is revoked so it doesn't leak.
+  it('keeps the download’s object URL alive for DOWNLOAD_URL_LIFETIME_MS (at least 60 s), then revokes it', async () => {
+    const lifetime = (shareImage as { DOWNLOAD_URL_LIFETIME_MS?: unknown }).DOWNLOAD_URL_LIFETIME_MS
+    expect(typeof lifetime).toBe('number')
+    const ms = lifetime as number
+    expect(ms).toBeGreaterThanOrEqual(60_000)
+
+    vi.useFakeTimers()
+    try {
+      const dl = stubDownload()
+      setNav('canShare', undefined)
+      setNav('share', undefined)
+
+      await expect(shareOrDownload(png(), FILE_NAME)).resolves.toBe('downloaded')
+      expect(dl.clicked).toEqual([{ href: dl.url, download: FILE_NAME }])
+
+      vi.advanceTimersByTime(1_000)
+      expect(dl.revokeObjectURL, 'still alive 1 s after the click').not.toHaveBeenCalled()
+      vi.advanceTimersByTime(ms - 1_000 - 1)
+      expect(dl.revokeObjectURL, 'still alive just before the lifetime ends').not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1)
+      expect(dl.revokeObjectURL).toHaveBeenCalledTimes(1)
+      expect(dl.revokeObjectURL).toHaveBeenCalledWith(dl.url)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('downloads when share exists but canShare does not (no file sharing check)', async () => {
@@ -456,5 +207,25 @@ describe('shareOrDownload (T5.5)', () => {
     setNav('share', undefined)
     await shareOrDownload(png(), FILE_NAME)
     check()
+  })
+
+  it('shares a player card under its own file name', async () => {
+    const dl = stubDownload()
+    const shareFn = vi.fn(() => Promise.resolve())
+    setNav('canShare', vi.fn(() => true))
+    setNav('share', shareFn)
+    await expect(shareOrDownload(png(), share.playerFileName('Maria'))).resolves.toBe('shared')
+    const file = ((shareFn.mock.calls[0] as unknown[])[0] as { files: File[] }).files[0]
+    expect(file.name).toBe(share.playerFileName('Maria'))
+    expect(file.type).toBe('image/png')
+    expect(dl.clicked).toHaveLength(0)
+  })
+
+  it('downloads a player card under its own file name when the browser can’t share files', async () => {
+    const dl = stubDownload()
+    setNav('canShare', undefined)
+    setNav('share', undefined)
+    await expect(shareOrDownload(png(), share.playerFileName('Maria'))).resolves.toBe('downloaded')
+    expect(dl.clicked).toEqual([{ href: dl.url, download: share.playerFileName('Maria') }])
   })
 })
