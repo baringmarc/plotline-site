@@ -1,4 +1,11 @@
 import type { Format } from '../features/stack/types'
+
+/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st (the share card's place). */
+function ordinal(n: number): string {
+  const tens = n % 100
+  const suffix = tens >= 11 && tens <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'
+  return `${n}${suffix}`
+}
 // Paddle Stack copy, re-exported by ./site (CLAUDE.md: visitor-facing copy lives in src/config/site.ts and its modules).
 /**
  * Paddle Stack (`/paddle-stack`, Milestone 5): a free open-play queue for organizers. It runs on one
@@ -189,8 +196,45 @@ export const paddleStack = {
     record: 'W–L',
     diff: '+/−',
     footer: 'Paddle Stack · free at plotline.fit/paddle-stack',
-    fileName: 'paddle-stack-standings.png',
     failed: 'Couldn’t make the image. Try again.',
+    /** Share cards (T8.7): "Share card" on each standings row, with the player's name for screen readers. */
+    cardButton: 'Share card',
+    cardButtonFor: (name: string) => `Share card for ${name}`,
+    dialogTitle: 'Share a card',
+    previewAlt: 'Preview of the card',
+    sizeLabel: 'Size',
+    sizes: { story: 'Story', post: 'Post' },
+    backgroundLabel: 'Background',
+    /** The built-in backgrounds' names, by id (drawn in shareCards/drawCard.ts). */
+    backgrounds: { clay: 'Clay', night: 'Night court', sunset: 'Sunset', sand: 'Sand' },
+    photoLabel: 'Use your own photo',
+    photoNote: 'Your photo stays on this device.',
+    photoChoice: 'Your photo',
+    darknessLabel: 'Darken the photo',
+    shareButton: 'Share',
+    close: 'Close',
+    drawing: 'Making the card…',
+    /** Inside Messenger, Facebook or Instagram, whose browser blocks downloads and sharing (T8.7). */
+    inAppNote: 'This app’s browser can’t save or share images. Press and hold the card to save it, or open this page in Safari or Chrome (••• → Open in browser).',
+    /** Under the preview on other touch screens. */
+    holdHint: 'You can also press and hold the card to save it.',
+    /** The player card's stat labels (with `record` and `diff` above). */
+    winRateLabel: 'Win %',
+    streakLabel: 'Best streak',
+    placeOf: (place: number, of: number) => `${ordinal(place)} of ${of}`,
+    /** Under the group card's rows when not everyone fits. */
+    more: (n: number) => `+${n} more`,
+    groupFileName: 'paddle-stack-standings.png',
+    /** A file name safe on every phone: lowercase letters, digits and dashes. */
+    playerFileName: (name: string) => {
+      const slug = name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+      return `paddle-stack-${slug || 'player'}.png`
+    },
   },
   restart: 'Start over',
   restartConfirm: 'Start over? This clears the players and scores.',

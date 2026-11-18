@@ -1,154 +1,13 @@
 /**
- * The standings image organizers post in FB groups (T5.5): a PNG drawn on a canvas in Paddle Stack's fonts (T8.2) and the brand's
- * colours, carrying "plotline.fit/paddle-stack". Every player is on it: 1080 wide, square up to 10 rows and taller
- * after that. Nothing is uploaded: it is shared as a file or downloaded.
+ * Shares a card (T5.5, kept for T8.7's share cards in ./shareCards): as a file through the phone's share sheet where
+ * the browser can, otherwise as a download. Nothing is uploaded.
  */
-import { paddleStack } from '../../config/paddleStack'
-import { loadStackFonts, STACK_DISPLAY } from './fonts'
-import type { StandingRow } from './types'
 
-const { share } = paddleStack
-
-export const MAX_NAME = 22
-export const WIDTH = 1080
-/** The shortest the image gets: square. */
-export const MIN_HEIGHT = 1080
-const ROWS_TOP = 350
-const ROW_STEP = 56
-const FOOTER = 100
-
-/** The canvas height for `rowCount` rows: square until the rows need more room, then taller. */
-export function imageHeight(rowCount: number): number {
-  return Math.max(MIN_HEIGHT, ROWS_TOP + rowCount * ROW_STEP + 40 + FOOTER)
-}
-
-/** Brand palette (court-booking-system docs/BRAND.md; the light theme's values in global.css `:root`). */
-const C = { cream: '#f5efe6', brown: '#3b2f2a', brownSoft: '#5a4a42', sand: '#e6d9c6', terracotta: '#7a3f2c' }
-/** Paddle Stack's display face (T8.2) for the title, places and names; DM Sans for the rest. */
-const DISPLAY = STACK_DISPLAY
-const SANS = "'DM Sans', -apple-system, 'Segoe UI', Roboto, sans-serif"
-
-export interface StandingsImageData {
-  title: string
-  date: string
-  rows: { place: number; name: string; record: string; diff: string }[]
-  footer: string
-}
-
-/** Cuts a name to MAX_NAME characters (not UTF-16 units, so ñ or an emoji is never split). */
-function cut(name: string): string {
-  const chars = Array.from(name)
-  return chars.length <= MAX_NAME ? name : `${chars.slice(0, MAX_NAME - 1).join('')}…`
-}
-
-const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0')
-
-/** `title` is the session's title (T8.3); with none, the image says `share.defaultTitle`. */
-export function standingsImageData(rows: StandingRow[], opts: { title?: string; date: Date }): StandingsImageData {
-  const title = opts.title?.trim() || share.defaultTitle
-  const date = new Intl.DateTimeFormat('en-PH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(opts.date)
-  return {
-    title,
-    date,
-    rows: rows.map((r) => ({
-      place: r.place,
-      name: cut(r.name),
-      record: `${r.wins}–${r.losses}`,
-      diff: signed(r.pointsFor - r.pointsAgainst),
-    })),
-    footer: share.footer,
-  }
-}
-
-async function loadFonts() {
-  const fonts = (document as Document & { fonts?: FontFaceSet }).fonts
-  if (!fonts?.load) return
-  loadStackFonts()
-  try {
-    await Promise.all([
-      fonts.load(`800 64px ${DISPLAY}`),
-      fonts.load(`700 32px ${DISPLAY}`),
-      fonts.load(`500 32px ${SANS}`),
-      fonts.load(`700 32px ${SANS}`),
-    ])
-  } catch {
-    // The fallback fonts still draw a readable image.
-  }
-}
-
-/** Shrinks a font until `text` fits in `width`. */
-function fit(ctx: CanvasRenderingContext2D, text: string, weight: number, size: number, family: string, width: number) {
-  let s = size
-  ctx.font = `${weight} ${s}px ${family}`
-  while (s > 24 && ctx.measureText(text).width > width) {
-    s -= 2
-    ctx.font = `${weight} ${s}px ${family}`
-  }
-}
-
-export async function drawStandingsImage(data: StandingsImageData): Promise<Blob> {
-  const canvas = document.createElement('canvas')
-  const height = imageHeight(data.rows.length)
-  canvas.width = WIDTH
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('No 2D canvas')
-  await loadFonts()
-
-  const left = 80
-  const right = WIDTH - 80
-  ctx.fillStyle = C.cream
-  ctx.fillRect(0, 0, WIDTH, height)
-  ctx.textBaseline = 'alphabetic'
-
-  ctx.fillStyle = C.brown
-  ctx.textAlign = 'left'
-  fit(ctx, data.title, 800, 64, DISPLAY, right - left)
-  ctx.fillText(data.title, left, 150)
-  ctx.fillStyle = C.brownSoft
-  ctx.font = `500 32px ${SANS}`
-  ctx.fillText(data.date, left, 205)
-
-  const cols = { place: left, name: left + 80, record: right - 150, diff: right }
-  const head = 278
-  ctx.font = `700 24px ${SANS}`
-  ctx.fillText('#', cols.place, head)
-  ctx.textAlign = 'right'
-  ctx.fillText(share.record, cols.record, head)
-  ctx.fillText(share.diff, cols.diff, head)
-  ctx.fillStyle = C.sand
-  ctx.fillRect(left, head + 18, right - left, 3)
-
-  const step = ROW_STEP
-  data.rows.forEach((row, i) => {
-    const y = ROWS_TOP + i * step
-    if (i % 2 === 1) {
-      ctx.fillStyle = 'rgba(230, 217, 198, 0.45)'
-      ctx.fillRect(left - 16, y - 38, right - left + 32, step - 4)
-    }
-    ctx.textAlign = 'left'
-    ctx.fillStyle = row.place === 1 ? C.terracotta : C.brownSoft
-    ctx.font = `800 30px ${DISPLAY}`
-    ctx.fillText(String(row.place), cols.place, y)
-    ctx.fillStyle = C.brown
-    fit(ctx, row.name, 700, 32, DISPLAY, cols.record - cols.name - 110)
-    ctx.fillText(row.name, cols.name, y)
-    ctx.textAlign = 'right'
-    ctx.font = `500 30px ${SANS}`
-    ctx.fillText(row.record, cols.record, y)
-    ctx.fillText(row.diff, cols.diff, y)
-  })
-  ctx.fillStyle = C.brown
-  ctx.fillRect(0, height - FOOTER, WIDTH, FOOTER)
-  ctx.fillStyle = C.cream
-  ctx.textAlign = 'left'
-  ctx.font = `700 30px ${SANS}`
-  ctx.fillText(data.footer, left, height - 40)
-
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('No image'))), 'image/png')
-  })
-}
+/**
+ * How long a download's object URL stays alive. iOS Safari asks "Download?" and reads the URL only after the tap,
+ * so revoking it at once makes Share do nothing there (T8.7 by-eye check, 2026-11-18).
+ */
+export const DOWNLOAD_URL_LIFETIME_MS = 60_000
 
 /** Shares the image as a file where the browser can (the phone's share sheet), otherwise downloads it. */
 export async function shareOrDownload(blob: Blob, fileName: string): Promise<'shared' | 'downloaded' | 'cancelled'> {
@@ -170,6 +29,6 @@ export async function shareOrDownload(blob: Blob, fileName: string): Promise<'sh
   document.body.appendChild(a)
   a.click()
   a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_LIFETIME_MS)
   return 'downloaded'
 }

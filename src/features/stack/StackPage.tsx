@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { paddleStack } from '../../config/paddleStack'
 import {
@@ -16,7 +16,7 @@ import {
 } from './engine'
 import { loadStackFonts } from './fonts'
 import { parseNames } from './parseNames'
-import { drawStandingsImage, shareOrDownload, standingsImageData } from './shareImage'
+import { ShareCardDialog } from './shareCards/ShareCardDialog'
 import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_STORAGE_KEY, type StackState } from './storage'
 import { StartForm } from './StartForm'
 import { TvBoard } from './TvBoard'
@@ -229,8 +229,7 @@ export function StackPage() {
       {state?.ended && (
         <section className="stack-ended" aria-labelledby="stack-final">
           <h2 id="stack-final">{endedCopy.title}</h2>
-          <StandingsTable session={state.session} label={endedCopy.title} />
-          <ShareBox session={state.session} />
+          <ShareableStandings session={state.session} label={endedCopy.title} />
           <button type="button" className="btn main" onClick={reset}>
             {endedCopy.again}
           </button>
@@ -378,8 +377,7 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
 
       <section className="stack-standings" aria-labelledby="stack-standings">
         <h2 id="stack-standings">{paddleStack.standings.title}</h2>
-        <StandingsTable session={session} label={paddleStack.standings.title} />
-        <ShareBox session={session} />
+        <ShareableStandings session={session} label={paddleStack.standings.title} />
       </section>
 
       <div className="stack-actions">
@@ -528,7 +526,21 @@ function Court({ number, game, nameOf, streakOf, act }: CourtProps) {
   )
 }
 
-function StandingsTable({ session, label }: { session: Session; label: string }) {
+/** The standings with "Share card" on each row and "Share standings" under them; both open the card preview (T8.7). */
+function ShareableStandings({ session, label }: { session: Session; label: string }) {
+  // undefined: closed; null: the group card; a player id: that player's card.
+  const [card, setCard] = useState<string | null | undefined>(undefined)
+  const close = useCallback(() => setCard(undefined), [])
+  return (
+    <>
+      <StandingsTable session={session} label={label} onCard={setCard} />
+      <ShareBox session={session} onOpen={() => setCard(null)} />
+      {card !== undefined && <ShareCardDialog session={session} playerId={card ?? undefined} onClose={close} />}
+    </>
+  )
+}
+
+function StandingsTable({ session, label, onCard }: { session: Session; label: string; onCard: (playerId: string) => void }) {
   const rows = standings(session)
   const s = paddleStack.standings
   if (rows.every((r) => r.games === 0)) return <p className="hint">{s.empty}</p>
@@ -542,6 +554,9 @@ function StandingsTable({ session, label }: { session: Session; label: string })
             <th scope="col">{s.wins}</th>
             <th scope="col">{s.losses}</th>
             <th scope="col">{s.diff}</th>
+            <th scope="col">
+              <span className="sr-only">{paddleStack.share.cardButton}</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -554,6 +569,16 @@ function StandingsTable({ session, label }: { session: Session; label: string })
                 <td>{r.wins}</td>
                 <td>{r.losses}</td>
                 <td>{diff > 0 ? `+${diff}` : diff}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="stack-card-btn"
+                    aria-label={paddleStack.share.cardButtonFor(r.name)}
+                    onClick={() => onCard(r.playerId)}
+                  >
+                    {paddleStack.share.cardButton}
+                  </button>
+                </td>
               </tr>
             )
           })}
@@ -563,44 +588,16 @@ function StandingsTable({ session, label }: { session: Session; label: string })
   )
 }
 
-/** "Share standings": draws the image and shares or downloads it (T5.5). Enabled once a game is scored. */
-function ShareBox({ session }: { session: Session }) {
-  const { share } = paddleStack
-  const [failed, setFailed] = useState(false)
-  const [busy, setBusy] = useState(false)
+/** "Share standings": opens the group card's preview (T5.5, T8.7). Enabled once a game is scored. */
+function ShareBox({ session, onOpen }: { session: Session; onOpen: () => void }) {
   const scored = session.games.some((g) => g.status === 'scored')
-
-  const onShare = async () => {
-    setFailed(false)
-    setBusy(true)
-    try {
-      let blob: Blob
-      try {
-        blob = await drawStandingsImage(standingsImageData(standings(session), { title: session.title, date: new Date() }))
-      } catch {
-        setFailed(true)
-        return
-      }
-      await shareOrDownload(blob, share.fileName)
-    } catch {
-      setFailed(true)
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
     <div className="stack-share">
       <div>
-        <button type="button" className="btn main" disabled={!scored || busy} onClick={() => void onShare()}>
-          {share.button}
+        <button type="button" className="btn main" disabled={!scored} onClick={onOpen}>
+          {paddleStack.share.button}
         </button>
       </div>
-      {failed && (
-        <p className="err" role="alert">
-          {share.failed}
-        </p>
-      )}
     </div>
   )
 }
