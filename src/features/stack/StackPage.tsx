@@ -20,6 +20,8 @@ import { ShareCardDialog } from './shareCards/ShareCardDialog'
 import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_STORAGE_KEY, type StackState } from './storage'
 import { StartForm } from './StartForm'
 import { TvBoard } from './TvBoard'
+import { GoLivePanel } from './live/GoLivePanel'
+import { useLiveStack } from './live/useLiveStack'
 import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
 import { courtTone, teamStreak } from './tvInfo'
 import type { Game, Session, Team } from './types'
@@ -34,6 +36,7 @@ export function StackPage() {
   const [voiceOn, setVoiceOn] = useState(() => speakable && loadVoicePref())
   const [tvOpen, setTvOpen] = useState(false)
   const [nowOn, setNowOn] = useState<number | null>(null)
+  const live = useLiveStack()
   const release = useRef<Promise<() => void> | null>(null)
   const askedFullscreen = useRef(false)
   const [params] = useSearchParams()
@@ -71,6 +74,9 @@ export function StackPage() {
     }
     setState(next)
     if (!saveStack(next)) setStorageFailed(true)
+    // Every change goes to the live stack (if this device has one); the final board is published as the end.
+    if (next.ended) live.end(next.session)
+    else live.submit(next.session)
   }
 
   const openTv = () => {
@@ -150,6 +156,7 @@ export function StackPage() {
     commit({ ...state, session: next })
   }
   const reset = () => {
+    live.forget()
     clearStack()
     setState(null)
   }
@@ -216,6 +223,7 @@ export function StackPage() {
           {!speakable && <p className="hint">{voice.unsupported}</p>}
         </div>
       )}
+      {state && !state.ended && !tvOpen && <GoLivePanel session={state.session} live={live} />}
       {state && !state.ended && !tvOpen && (
         <Board
           session={state.session}
@@ -458,9 +466,9 @@ function Court({ number, game, nameOf, streakOf, act }: CourtProps) {
 
   return (
     <section className={`stack-court tone-${courtTone(number)}${game ? '' : ' empty'}`} aria-labelledby={headingId}>
-      <h3 id={headingId}>
+      <h2 id={headingId}>
         {board.court} {number}
-      </h3>
+      </h2>
       {!game ? (
         <p className="hint">{board.waiting}</p>
       ) : (

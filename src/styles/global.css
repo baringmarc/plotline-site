@@ -669,11 +669,11 @@ form.formcard > .btn { align-self: flex-start; }
 .tone-6 { --tone: var(--court-6); }
 .paddle-stack .stack-court { border-color: var(--tone, var(--line)); overflow: hidden; }
 .paddle-stack .stack-court.empty { border-color: var(--line); }
-.stack-court h3 {
+.stack-court h2 {
   margin: -18px -18px 0; padding: 8px 18px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em;
   background: var(--tone, var(--line)); color: var(--brown);
 }
-.stack-court.empty h3 { background: var(--line); color: var(--text); }
+.stack-court.empty h2 { background: var(--line); color: var(--text); }
 .stack-side { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .stack-court-streak {
   font-family: var(--sans); font-size: 13px; font-weight: 700; white-space: nowrap;
@@ -730,6 +730,12 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-tools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
 .stack-tools .check { align-items: center; font-size: 15px; }
 .stack-tools .hint { flex-basis: 100%; margin: -4px 0 0; }
+.stack-live { display: grid; gap: 10px; justify-items: start; margin: 0 0 18px; }
+.stack-live .hint { margin: 0; }
+.stack-live-link { display: grid; gap: 4px; width: 100%; max-width: 520px; }
+.stack-live-link input { width: 100%; font: inherit; padding: 8px 10px; }
+.stack-live-qr { width: 180px; height: 180px; max-width: 100%; }
+.stack-status { margin: 0; font-weight: 700; }
 .stack-tools .btn { padding: 10px 18px; font-size: 15px; }
 /* TV board, design A "Court bands" (T8.6, the user's pick): logo and title on top, a coloured band per court,
    Up next in a dark band along the bottom. Court tones carry brown text in both themes (AA: 6:1 or more). */
