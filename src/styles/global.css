@@ -830,6 +830,10 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-share input { flex: 1 1 200px; }
 .stack-share .btn { padding: 10px 18px; }
 .stack-share .err { margin: 0; }
+/* "Share my card" on the player view (T6.5): label, then the name picker, then the buttons. */
+.stack-my-card .stack-my-card-pick { flex-direction: column; align-items: stretch; }
+.stack-my-card select { min-height: 44px; width: 100%; max-width: 360px; font: inherit; }
+.stack-my-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* Paddle Stack: share cards (T8.7). "Share card" on each standings row, and the preview dialog. */
 .stack-table td:last-child { text-align: right; padding-right: 0; }

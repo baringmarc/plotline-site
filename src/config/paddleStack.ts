@@ -312,6 +312,14 @@ export const paddleStack = {
     finalStandings: 'Final standings',
     ownStack: 'Run your own open play with Paddle Stack, free.',
     ownStackLink: 'Open Paddle Stack',
+    /** "Share my card" (T6.5): a player picks their name and the T8.7 card is made on their phone. */
+    myCard: {
+      button: 'Share my card',
+      pickLabel: 'Your name',
+      pickPrompt: 'Pick your name',
+      make: 'Make my card',
+      cancel: 'Cancel',
+    },
   },
   restart: 'Start over',
   restartConfirm: 'Start over? This clears the players and scores.',

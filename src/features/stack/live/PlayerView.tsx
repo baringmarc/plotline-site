@@ -2,7 +2,7 @@
  * `/paddle-stack/live/<code>` (T6.4): the organizer's board on a player's own phone, view-only. It follows the
  * stack live (`useLiveViewer`) and rebuilds the board from the snapshot (SPEC §4 "Live stacks").
  */
-import { useEffect, useId } from 'react'
+import { useEffect, useId, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { paddleStack } from '../../../config/paddleStack'
 import { standings } from '../engine'
@@ -11,6 +11,7 @@ import { courtTone, teamStreak } from '../tvInfo'
 import type { Game, Session, Team } from '../types'
 import type { LiveStackView, LiveVenue } from './api'
 import { venueBookUrl, venueLogoUrl } from './handoff'
+import { ShareMyCard } from './ShareMyCard'
 import { sessionFromSnapshot } from './snapshot'
 import { useLiveViewer } from './useLiveViewer'
 
@@ -70,7 +71,8 @@ export function PlayerView() {
 }
 
 function Ready({ view, mode, updatedAt }: { view: LiveStackView; mode: 'live' | 'polling'; updatedAt: Date }) {
-  const session = view.snapshot ? sessionFromSnapshot(view.snapshot) : null
+  // One session per board, so an open share card redraws only when the board changes, not on every render.
+  const session = useMemo(() => (view.snapshot ? sessionFromSnapshot(view.snapshot) : null), [view.snapshot])
   const status = view.ended ? copy.endedNote : mode === 'live' ? copy.live : copy.polling
   return (
     <>
@@ -96,6 +98,8 @@ function Ready({ view, mode, updatedAt }: { view: LiveStackView; mode: 'live' | 
       ) : (
         <LiveBoard session={session} />
       )}
+      {/* One spot for live and ended, so an open card stays open when the stack ends (it then shows the final stats). */}
+      {session && <ShareMyCard session={session} />}
     </>
   )
 }

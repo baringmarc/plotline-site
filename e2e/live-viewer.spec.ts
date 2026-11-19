@@ -54,5 +54,38 @@ for (const theme of themes) {
       await expect(page.getByRole('heading', { name: 'Final standings' })).toBeVisible()
       await checkPage(page, testInfo, { name: `live-viewer-ended-${theme}`, cards })
     })
+
+    // T6.5: a player picks their name and their card is made on the phone, with nothing sent anywhere.
+    test('share my card', async ({ page }, testInfo) => {
+      await open(page, theme, false)
+      // The page's own typeface (added on mount) finishes loading first; the card must fetch nothing more.
+      await expect(page.locator('link[href*="Bricolage"]')).toHaveCount(1)
+      await page.evaluate(async () => {
+        const link = document.querySelector<HTMLLinkElement>('link[href*="Bricolage"]')!
+        if (!link.sheet) await new Promise((done) => link.addEventListener('load', done, { once: true }))
+        await Promise.all(['700 16px "Bricolage Grotesque"', '800 16px "Bricolage Grotesque"'].map((f) => document.fonts.load(f)))
+        await document.fonts.ready
+      })
+      const requests: string[] = []
+      // The viewer's own reads (a poll, Realtime) aren't the card's; anything else is.
+      page.on('request', (r) => {
+        const url = r.url()
+        if (url.startsWith('blob:') || url.startsWith('data:') || /get_live_stack|\/realtime\//.test(url)) return
+        requests.push(`${r.method()} ${url}`)
+      })
+      await page.getByRole('button', { name: 'Share my card' }).click()
+      await checkPage(page, testInfo, { name: `live-viewer-pick-${theme}`, cards })
+      await page.getByRole('combobox', { name: 'Your name' }).selectOption({ label: 'Carla' })
+      await page.getByRole('button', { name: 'Make my card' }).click()
+      const dialog = page.getByRole('dialog', { name: 'Share a card' })
+      await expect(dialog).toBeVisible()
+      const img = dialog.getByRole('img', { name: 'Preview of the card' })
+      await expect(img).toHaveAttribute('src', /^blob:/, { timeout: 20_000 })
+      await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0), { timeout: 20_000 }).toBe(true)
+      expect(requests).toEqual([])
+      await dialog.getByRole('button', { name: 'Close' }).click()
+      await expect(dialog).toBeHidden()
+      await expect(page.getByRole('button', { name: 'Share my card' })).toBeVisible()
+    })
   })
 }
