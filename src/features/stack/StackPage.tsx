@@ -24,6 +24,7 @@ import { TvBoard } from './TvBoard'
 import { getLiveStack, type LiveStackView } from './live/api'
 import { GoLivePanel } from './live/GoLivePanel'
 import { HANDOFF_QUERY, parseHandoff, venueLogoUrl } from './live/handoff'
+import { LIVE_KEY_STORAGE_KEY, loadLiveKey } from './live/liveKey'
 import { useLiveStack } from './live/useLiveStack'
 import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
 import { courtTone, teamStreak } from './tvInfo'
@@ -52,6 +53,18 @@ export function StackPage() {
   const tvWindow = params.get('tv') === '1'
   /** The `?tv=1` window is showing the TV board (not the start screen or the final standings). */
   const tvWindowBoard = tvWindow && !!state && !state.ended
+  /**
+   * The live code the `?tv=1` window shows as its join QR (T6.6). That window doesn't publish, so it can't see the
+   * live status: it follows the key the organizer's window saves on this device.
+   */
+  const [windowLiveCode, setWindowLiveCode] = useState<string | null>(() => loadLiveKey()?.code ?? null)
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === LIVE_KEY_STORAGE_KEY || e.key === null) setWindowLiveCode(loadLiveKey()?.code ?? null)
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
   const current = useRef(state)
   useEffect(() => {
     current.current = state
@@ -216,7 +229,7 @@ export function StackPage() {
   if (tvWindowBoard && state) {
     return (
       <div className="page paddle-stack">
-        <TvBoard session={state.session} nowOn={nowOn} onExit={exitTvWindow} />
+        <TvBoard session={state.session} nowOn={nowOn} onExit={exitTvWindow} joinCode={windowLiveCode} />
       </div>
     )
   }
@@ -231,7 +244,14 @@ export function StackPage() {
         </p>
       )}
       {!state && <StartForm onStart={(session) => commit({ session: fillCourts(session), ended: false })} />}
-      {state && !state.ended && tvOpen && <TvBoard session={state.session} nowOn={nowOn} onExit={closeTv} />}
+      {state && !state.ended && tvOpen && (
+        <TvBoard
+          session={state.session}
+          nowOn={nowOn}
+          onExit={closeTv}
+          joinCode={live.key && live.status?.state !== 'stopped' ? live.key.code : null}
+        />
+      )}
       {state && !state.ended && !tvOpen && (
         <div className="stack-tools">
           <button type="button" className="btn dark" onClick={openTv}>

@@ -179,6 +179,11 @@ export const paddleStack = {
     /** Beside a side that won its last games together (from 2; T8.6). Also on the board's court cards. */
     streak: (n: number) => `${n} wins in a row`,
     footer: 'Paddle Stack · free at plotline.fit/paddle-stack',
+    /** The join QR in the bottom band while the stack is live (T6.6). */
+    join: {
+      title: 'Follow on your phone',
+      qrLabel: 'QR code to follow this board on your phone',
+    },
   },
   voice: {
     label: 'Call out games',

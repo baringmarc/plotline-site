@@ -8,6 +8,7 @@ import { Turnstile } from '../../../components/Turnstile'
 import { paddleStack } from '../../../config/site'
 import { turnstileSiteKey } from '../../../lib/turnstile'
 import type { Session } from '../types'
+import { joinUrl } from './joinLink'
 import type { LiveController } from './useLiveStack'
 
 const { live: copy } = paddleStack
@@ -77,7 +78,7 @@ function StartLive({ session, live }: { session: Session; live: LiveController }
 }
 
 function LiveShare({ code, status }: { code: string; status: LiveController['status'] }) {
-  const link = `${window.location.origin}/paddle-stack/live/${code}`
+  const link = joinUrl(code)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [copied, setCopied] = useState<'yes' | 'no' | null>(null)
 
