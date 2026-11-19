@@ -62,3 +62,25 @@ describe('guard: review round 1 gaps', () => {
     (cmd) => expect(denied(cmd)).toBe(false),
   )
 })
+
+describe('guard: the harness logger may discard its output (T1.13 follow-up)', () => {
+  /** Blocked by the guard when run as the main agent (the reviewer has its own allow-list). */
+  function blocked(command: string): boolean {
+    const res = spawnSync('node', [join(here, 'guard.mjs')], {
+      cwd: project,
+      env: { ...process.env, CLAUDE_PROJECT_DIR: project },
+      input: JSON.stringify({ tool_name: 'Bash', tool_input: { command } }),
+      encoding: 'utf8',
+    })
+    return res.stdout.includes('"permissionDecision":"deny"')
+  }
+
+  it('allows log-event.mjs with output sent to /dev/null and to stdout', () => {
+    expect(blocked(`node .claude/hooks/log-event.mjs reviewer '{"severity":"major"}' >/dev/null 2>&1`)).toBe(false)
+    expect(blocked(`node .claude/hooks/log-event.mjs reviewer '{"severity":"major"}' 2>&1`)).toBe(false)
+  })
+
+  it('still denies log-event.mjs with a redirect that writes a file', () => {
+    expect(blocked(`node .claude/hooks/log-event.mjs reviewer '{"severity":"major"}' > notes.txt`)).toBe(true)
+  })
+})
