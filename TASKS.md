@@ -462,7 +462,8 @@ One-liner: players open a stack from a link or QR on their own phones and the bo
   - Why (/retro M6, approved by the user 2026-11-19): its cases sit near Vitest's 5 s limit; with the device matrix running alongside, 10 timed out in T6.9's Stop hook and the T6.9 reviewer saw 14. Alone, all 152 pass (about 65 s). No engine code changed: a slow test, not a bug in the engine.
   - Do: make "Skill groups over many games (T8.4…)" fast enough to pass under the parallel matrix, by speeding up the engine's search or splitting the sweep into smaller cases, without removing any configuration, level set or assertion.
   - Depends: none
-  - Files: `src/features/stack/engine.ts` (if the search is the cause), `src/features/stack/engine.t84.test.ts`
+  - Also (2026-11-19): `engine.t84.roundrobin.test.ts` timed out once in a full gate run with nothing else running (1 of 48, about 72 s for the file), then passed on the re-run; include it.
+  - Files: `src/features/stack/engine.ts` (if the search is the cause), `src/features/stack/engine.t84.test.ts`, `src/features/stack/engine.t84.roundrobin.test.ts`
   - Acceptance: `npx vitest run src/features/stack/engine.t84.test.ts` passes while `npm run test:e2e` runs at the same time; the same cases and assertions as before; full gate; the reviewer reports no blocking issues.
 
 - [ ] **T1.14 User checks and deploy timing in the plan, by-eye ask before review**
