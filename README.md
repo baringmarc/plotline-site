@@ -63,9 +63,12 @@ npm run dev             # http://localhost:5173
 ```bash
 npm run verify    # typecheck + lint + unit tests + build + drift check
 npm run test:e2e  # browser tests: Chromium, WebKit and Firefox at every device size (see below)
+npm run test:live # live stack smoke against court-booking-system's local stack (see below)
 ```
 
 **Browser tests** (`e2e/`, Playwright). One-time setup: `npx playwright install chromium webkit firefox` (a few hundred MB). `npm run test:e2e` builds the site, serves it with `vite preview` on port 4173 and runs every spec in 18 projects, one per engine × viewport (`e2e/matrix.ts`: phone 390×844, Android 360×740, iPad portrait and landscape, laptop 1366×768, PC 1920×1080), in both themes; the TV board runs only in the `*-pc` projects. Each check fails on sideways scroll, overlapping cards or a console error, and saves a full-page screenshot under `test-results/` (git-ignored). Requests off localhost and Google Fonts get an empty reply, so the tests never reach production. Run one project with `npx playwright test --project=webkit-phone`. It isn't part of `npm run verify` or the commit gate (slow, and the browsers are a big download); tasks that change the screen list it in their Acceptance. WebKit isn't real Safari: the share sheet, photo picker, full screen and wake lock still need a real iPhone or iPad.
+
+**Live stack smoke** (`e2e/live/`, `npm run test:live`). Start court-booking-system's local stack (`npx supabase start` there), then run `LIVE_SUPABASE_PUBLISHABLE_KEY=<publishable key from npx supabase status> npm run test:live`. It needs no browser: it goes live, publishes and reads back through the Edge Function and RPCs. `LIVE_SUPABASE_URL` overrides the default `http://127.0.0.1:54321`. The device matrix doesn't run it.
 
 ## Deploying
 

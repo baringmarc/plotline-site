@@ -345,6 +345,44 @@ export type Database = {
           },
         ]
       }
+      court_open_periods: {
+        Row: {
+          court_id: string
+          created_at: string
+          day_of_week: number
+          end_minute: number
+          id: string
+          start_minute: number
+          venue_id: string
+        }
+        Insert: {
+          court_id: string
+          created_at?: string
+          day_of_week: number
+          end_minute: number
+          id?: string
+          start_minute: number
+          venue_id: string
+        }
+        Update: {
+          court_id?: string
+          created_at?: string
+          day_of_week?: number
+          end_minute?: number
+          id?: string
+          start_minute?: number
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "court_open_periods_venue_id_court_id_fkey"
+            columns: ["venue_id", "court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["venue_id", "id"]
+          },
+        ]
+      }
       court_photos: {
         Row: {
           court_id: string
@@ -380,6 +418,89 @@ export type Database = {
           },
           {
             foreignKeyName: "court_photos_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      court_promo_courts: {
+        Row: {
+          court_id: string
+          promo_id: string
+          venue_id: string
+        }
+        Insert: {
+          court_id: string
+          promo_id: string
+          venue_id: string
+        }
+        Update: {
+          court_id?: string
+          promo_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "court_promo_courts_court_fkey"
+            columns: ["venue_id", "court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["venue_id", "id"]
+          },
+          {
+            foreignKeyName: "court_promo_courts_promo_fkey"
+            columns: ["venue_id", "promo_id"]
+            isOneToOne: false
+            referencedRelation: "court_promos"
+            referencedColumns: ["venue_id", "id"]
+          },
+        ]
+      }
+      court_promos: {
+        Row: {
+          created_at: string
+          days_of_week: number[]
+          end_hour: number
+          ends_on: string
+          id: string
+          is_active: boolean
+          label: string
+          price: number
+          start_hour: number
+          starts_on: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          days_of_week: number[]
+          end_hour: number
+          ends_on: string
+          id?: string
+          is_active?: boolean
+          label: string
+          price: number
+          start_hour: number
+          starts_on: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          days_of_week?: number[]
+          end_hour?: number
+          ends_on?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          price?: number
+          start_hour?: number
+          starts_on?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "court_promos_venue_id_fkey"
             columns: ["venue_id"]
             isOneToOne: false
             referencedRelation: "venues"
@@ -423,6 +544,38 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "venues"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      court_schedule_modes: {
+        Row: {
+          court_id: string
+          schedule_mode: string
+          schedule_revision: number
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          court_id: string
+          schedule_mode?: string
+          schedule_revision?: number
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          court_id?: string
+          schedule_mode?: string
+          schedule_revision?: number
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "court_schedule_modes_venue_id_court_id_fkey"
+            columns: ["venue_id", "court_id"]
+            isOneToOne: true
+            referencedRelation: "courts"
+            referencedColumns: ["venue_id", "id"]
           },
         ]
       }
@@ -595,6 +748,44 @@ export type Database = {
           },
         ]
       }
+      invoice_sends: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_id: string
+          kind: string
+          provider_id: string | null
+          recipients: string[]
+          sent_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_id: string
+          kind: string
+          provider_id?: string | null
+          recipients: string[]
+          sent_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          kind?: string
+          provider_id?: string | null
+          recipients?: string[]
+          sent_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_sends_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           billing_month: string
@@ -692,6 +883,72 @@ export type Database = {
           venue_name?: string
         }
         Relationships: []
+      }
+      live_stacks: {
+        Row: {
+          code: string
+          courts: number
+          created_at: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          open_play_session_id: string | null
+          publish_count: number
+          secret_hash: string
+          snapshot: Json | null
+          title: string | null
+          updated_at: string
+          venue_id: string | null
+          version: number
+        }
+        Insert: {
+          code: string
+          courts: number
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          open_play_session_id?: string | null
+          publish_count?: number
+          secret_hash: string
+          snapshot?: Json | null
+          title?: string | null
+          updated_at?: string
+          venue_id?: string | null
+          version?: number
+        }
+        Update: {
+          code?: string
+          courts?: number
+          created_at?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          open_play_session_id?: string | null
+          publish_count?: number
+          secret_hash?: string
+          snapshot?: Json | null
+          title?: string | null
+          updated_at?: string
+          venue_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stacks_open_play_session_id_fkey"
+            columns: ["open_play_session_id"]
+            isOneToOne: false
+            referencedRelation: "open_play_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_stacks_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       open_play_courts: {
         Row: {
@@ -978,6 +1235,39 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_payment_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          created_at: string
+          id: string
+          label: string
+          position: number
+          qr_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string
+          account_number?: string
+          created_at?: string
+          id?: string
+          label: string
+          position?: number
+          qr_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          created_at?: string
+          id?: string
+          label?: string
+          position?: number
+          qr_path?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_pricing: {
         Row: {
           booking_fee: number
@@ -1152,6 +1442,41 @@ export type Database = {
           },
         ]
       }
+      venue_open_periods: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_minute: number
+          id: string
+          start_minute: number
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_minute: number
+          id?: string
+          start_minute: number
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_minute?: number
+          id?: string
+          start_minute?: number
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_open_periods_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       venue_payment_accounts: {
         Row: {
           account_name: string
@@ -1196,6 +1521,35 @@ export type Database = {
           },
         ]
       }
+      venue_schedule_state: {
+        Row: {
+          schedule_revision: number
+          schedule_v2_active: boolean
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          schedule_revision?: number
+          schedule_v2_active?: boolean
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          schedule_revision?: number
+          schedule_v2_active?: boolean
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_schedule_state_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: true
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       venue_settings: {
         Row: {
           address: string
@@ -1205,6 +1559,7 @@ export type Database = {
           cancel_cutoff_hours: number
           city: string
           currency: string
+          logo_path: string | null
           maps_url: string
           max_rejections: number
           name: string
@@ -1219,6 +1574,7 @@ export type Database = {
           updated_at: string
           venue_id: string
           waiver_text: string
+          walk_ins_enabled: boolean
         }
         Insert: {
           address?: string
@@ -1228,6 +1584,7 @@ export type Database = {
           cancel_cutoff_hours?: number
           city?: string
           currency?: string
+          logo_path?: string | null
           maps_url?: string
           max_rejections?: number
           name: string
@@ -1242,6 +1599,7 @@ export type Database = {
           updated_at?: string
           venue_id: string
           waiver_text?: string
+          walk_ins_enabled?: boolean
         }
         Update: {
           address?: string
@@ -1251,6 +1609,7 @@ export type Database = {
           cancel_cutoff_hours?: number
           city?: string
           currency?: string
+          logo_path?: string | null
           maps_url?: string
           max_rejections?: number
           name?: string
@@ -1265,6 +1624,7 @@ export type Database = {
           updated_at?: string
           venue_id?: string
           waiver_text?: string
+          walk_ins_enabled?: boolean
         }
         Relationships: [
           {
@@ -1309,18 +1669,24 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          protected: boolean
+          showcase_approved: boolean
           slug: string
           status: string
         }
         Insert: {
           created_at?: string
           id?: string
+          protected?: boolean
+          showcase_approved?: boolean
           slug: string
           status?: string
         }
         Update: {
           created_at?: string
           id?: string
+          protected?: boolean
+          showcase_approved?: boolean
           slug?: string
           status?: string
         }
@@ -1373,6 +1739,7 @@ export type Database = {
           to_email: string
         }[]
       }
+      claim_venue_file_cleanup: { Args: { p_limit: number }; Returns: Json }
       create_booking: {
         Args: {
           p_court_id: string
@@ -1400,9 +1767,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_site_live_stack: {
+        Args: { p_courts: number; p_title: string }
+        Returns: Json
+      }
       create_venue: {
         Args: { p_name: string; p_slug: string; p_timezone: string }
         Returns: string
+      }
+      create_venue_live_stack: {
+        Args: { p_open_play_session_id: string }
+        Returns: Json
       }
       create_walk_in: {
         Args: {
@@ -1421,10 +1796,20 @@ export type Database = {
         }[]
       }
       delete_court: { Args: { p_court_id: string }; Returns: undefined }
+      delete_court_promo: { Args: { p_id: string }; Returns: undefined }
+      delete_lead: { Args: { p_lead_id: string }; Returns: undefined }
       delete_open_play: { Args: { p_id: string }; Returns: undefined }
+      delete_unused_venue: {
+        Args: { p_confirm_slug: string; p_venue_id: string }
+        Returns: Json
+      }
       finish_email: {
         Args: { p_error?: string; p_id: string; p_outcome: string }
         Returns: Database["public"]["Enums"]["email_status"]
+      }
+      finish_venue_file_cleanup: {
+        Args: { p_error: string; p_id: string; p_ok: boolean }
+        Returns: undefined
       }
       get_availability: {
         Args: { p_court_id?: string; p_date: string; p_venue_slug?: string }
@@ -1434,6 +1819,7 @@ export type Database = {
           court_id: string
           open_play_session_id: string
           price: number
+          promo_label: string
           slot_end: string
           slot_start: string
           status: string
@@ -1474,8 +1860,44 @@ export type Database = {
           waiver_text: string
         }[]
       }
+      get_live_stack: { Args: { p_code: string }; Returns: Json }
+      get_public_schedule: {
+        Args: { p_venue_slug: string }
+        Returns: {
+          booking_end: string
+          booking_start: string
+          court_id: string
+          operating_date: string
+          period_end: string
+          period_start: string
+        }[]
+      }
+      get_schedule: { Args: { p_venue_id: string }; Returns: Json }
+      get_staff_schedule: {
+        Args: { p_date: string; p_venue_id: string }
+        Returns: {
+          court_id: string
+          operating_date: string
+          period_end: string
+          period_start: string
+        }[]
+      }
       invoice_detail: { Args: { p_invoice_id: string }; Returns: Json }
+      invoice_detail_page: {
+        Args: { p_invoice_id: string; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       invoices_overview: { Args: never; Returns: Json }
+      invoices_page: {
+        Args: {
+          p_limit?: number
+          p_month?: string
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       issue_guest_link: { Args: { p_booking_id: string }; Returns: string }
       mark_invoice_paid: {
         Args: { p_invoice_id: string; p_method: string; p_reference: string }
@@ -1489,6 +1911,17 @@ export type Database = {
           checkout_url: string
         }[]
       }
+      preview_schedule_impact: {
+        Args: {
+          p_draft: Json
+          p_from: string
+          p_limit: number
+          p_offset: number
+          p_to: string
+          p_venue_id: string
+        }
+        Returns: Json
+      }
       proof_target: {
         Args: { p_reference_code: string; p_token: string; p_user_id: string }
         Returns: {
@@ -1496,6 +1929,16 @@ export type Database = {
           booking_id: string
           total_amount: number
         }[]
+      }
+      publish_live_stack: {
+        Args: {
+          p_code: string
+          p_end?: boolean
+          p_secret: string
+          p_snapshot: Json
+          p_version: number
+        }
+        Returns: Json
       }
       publish_venue: { Args: { p_venue_id: string }; Returns: undefined }
       reactivate_venue: { Args: { p_venue_id: string }; Returns: undefined }
@@ -1555,6 +1998,10 @@ export type Database = {
         Args: { p_ids: string[]; p_venue_id?: string }
         Returns: undefined
       }
+      reorder_platform_payment_accounts: {
+        Args: { p_ids: string[] }
+        Returns: undefined
+      }
       reschedule_booking: {
         Args: {
           p_booking_id: string
@@ -1575,9 +2022,67 @@ export type Database = {
           status: Database["public"]["Enums"]["booking_status"]
         }[]
       }
+      save_court_promo: {
+        Args: {
+          p_court_ids: string[]
+          p_days: number[]
+          p_end_hour: number
+          p_ends_on: string
+          p_id: string
+          p_is_active: boolean
+          p_label: string
+          p_price: number
+          p_start_hour: number
+          p_starts_on: string
+        }
+        Returns: string
+      }
+      save_schedule: {
+        Args: {
+          p_changes: Json
+          p_expected_revision: number
+          p_venue_id: string
+        }
+        Returns: Json
+      }
+      set_online_payments: {
+        Args: { p_enabled: boolean; p_venue_id: string }
+        Returns: undefined
+      }
       set_operating_hours: {
         Args: { p_hours: Json; p_venue_id?: string }
         Returns: undefined
+      }
+      set_venue_showcase_approval: {
+        Args: { p_approved: boolean; p_venue_id: string }
+        Returns: undefined
+      }
+      set_walk_ins: {
+        Args: { p_enabled: boolean; p_venue_id: string }
+        Returns: undefined
+      }
+      statement_charges_page: {
+        Args: {
+          p_limit?: number
+          p_month?: string
+          p_offset?: number
+          p_search?: string
+          p_venue_id?: string
+        }
+        Returns: Json
+      }
+      statement_invoices_page: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_status?: string
+          p_venue_id?: string
+        }
+        Returns: Json
+      }
+      statement_summary: {
+        Args: { p_month?: string; p_venue_id?: string }
+        Returns: Json
       }
       suspend_venue: { Args: { p_venue_id: string }; Returns: undefined }
       update_open_play: {
@@ -1593,9 +2098,19 @@ export type Database = {
         Returns: string
       }
       user_id_by_email: { Args: { p_email: string }; Returns: string }
+      venue_deletion_preview: { Args: { p_venue_id: string }; Returns: Json }
       venue_setup_status: { Args: { p_venue_id: string }; Returns: Json }
       venue_statement: { Args: { p_venue_id?: string }; Returns: Json }
       venues_overview: { Args: never; Returns: Json }
+      venues_page: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       booking_source: "online" | "walk_in" | "moved"
