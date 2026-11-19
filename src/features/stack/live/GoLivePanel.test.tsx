@@ -64,6 +64,7 @@ function controller(over: Partial<LiveController> = {}): LiveController {
     submit: vi.fn(),
     end: vi.fn(),
     forget: vi.fn(),
+    adopt: vi.fn(),
     ...over,
   }
 }

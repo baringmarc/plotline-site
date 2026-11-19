@@ -5,6 +5,7 @@ import {
   addPairs,
   addPlayers,
   backInLine,
+  createSession,
   fillCourts,
   isRoundFormat,
   recordScore,
@@ -20,13 +21,15 @@ import { ShareCardDialog } from './shareCards/ShareCardDialog'
 import { clearStack, loadStack, loadVoicePref, saveStack, saveVoicePref, STACK_STORAGE_KEY, type StackState } from './storage'
 import { StartForm } from './StartForm'
 import { TvBoard } from './TvBoard'
+import { getLiveStack, type LiveStackView } from './live/api'
 import { GoLivePanel } from './live/GoLivePanel'
+import { HANDOFF_QUERY, parseHandoff, venueLogoUrl } from './live/handoff'
 import { useLiveStack } from './live/useLiveStack'
 import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
 import { courtTone, teamStreak } from './tvInfo'
 import type { Game, Session, Team } from './types'
 
-const { board, end, ended: endedCopy, venueCta, voice, tv } = paddleStack
+const { board, end, ended: endedCopy, venueCta, voice, tv, handoff: handoffCopy } = paddleStack
 
 /** `/paddle-stack`: a free open-play queue on one device (SPEC §4 "Paddle Stack rules"). */
 export function StackPage() {
@@ -36,6 +39,10 @@ export function StackPage() {
   const [voiceOn, setVoiceOn] = useState(() => speakable && loadVoicePref())
   const [tvOpen, setTvOpen] = useState(false)
   const [nowOn, setNowOn] = useState<number | null>(null)
+  /** A hand-off link that couldn't be used (T6.3), and a hand-off waiting for the organizer's answer. */
+  const [handoffNote, setHandoffNote] = useState<string | null>(null)
+  const [asking, setAsking] = useState<{ code: string; secret: string; view: LiveStackView } | null>(null)
+  const handoffTaken = useRef(false)
   const live = useLiveStack()
   const release = useRef<Promise<() => void> | null>(null)
   const askedFullscreen = useRef(false)
@@ -161,6 +168,43 @@ export function StackPage() {
     setState(null)
   }
 
+  /** Starts the venue's stack here: the key is stored with the venue, and the session takes its title and courts. */
+  const startHandoff = (link: { code: string; secret: string }, view: LiveStackView) => {
+    live.adopt({
+      code: link.code,
+      secret: link.secret,
+      version: view.version,
+      ...(view.venue ? { venue: { name: view.venue.name, logoPath: view.venue.logoPath } } : {}),
+    })
+    setHandoffNote(null)
+    setAsking(null)
+    commit({ session: fillCourts(createSession({ format: 'fair', courts: view.courts, title: view.title })), ended: false })
+  }
+
+  // A hand-off link from a venue (T6.3). The secret leaves the address bar at once, whatever the outcome; this runs
+  // once, since React's development mode mounts twice and the first run already took the link.
+  useEffect(() => {
+    if (handoffTaken.current) return
+    if (!new URLSearchParams(window.location.search).has(HANDOFF_QUERY)) return
+    handoffTaken.current = true
+    const link = parseHandoff(window.location.search, window.location.hash)
+    window.history.replaceState(null, '', '/paddle-stack')
+    // The `?tv=1` window never takes a hand-off; it only loses the link from its address bar.
+    if (tvWindow) return
+    // A link that doesn't parse reads nothing; every outcome is reported from the promise.
+    const reading: Promise<LiveStackView | null> = link ? getLiveStack(link.code) : Promise.resolve(null)
+    reading.then(
+      (view) => {
+        if (!link) setHandoffNote(handoffCopy.bad)
+        else if (!view || view.ended) setHandoffNote(handoffCopy.expired)
+        else if (current.current && !current.current.ended) setAsking({ ...link, view })
+        else startHandoff(link, view)
+      },
+      () => setHandoffNote(handoffCopy.failed),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per page load, by design
+  }, [tvWindow])
+
   /** Closes the `?tv=1` window. Browsers refuse to close a window the script didn't open (a bookmark, a typed URL), so then it goes back to the board. */
   function exitTvWindow() {
     window.close()
@@ -223,7 +267,27 @@ export function StackPage() {
           {!speakable && <p className="hint">{voice.unsupported}</p>}
         </div>
       )}
+      {handoffNote && <p className="hint stack-note" role="alert">{handoffNote}</p>}
+      {asking && (
+        <section className="stack-ask" role="alertdialog" aria-labelledby="stack-ask-title">
+          <p id="stack-ask-title">{handoffCopy.ask}</p>
+          <button type="button" className="btn main" onClick={() => startHandoff(asking, asking.view)}>
+            {handoffCopy.replace}
+          </button>
+          <button type="button" className="btn ghost" onClick={() => setAsking(null)}>
+            {handoffCopy.keep}
+          </button>
+        </section>
+      )}
       {state && !state.ended && !tvOpen && <GoLivePanel session={state.session} live={live} />}
+      {state && !state.ended && !tvOpen && live.key?.venue && (
+        <p className="stack-venue">
+          {live.key.venue.logoPath && (
+            <img className="stack-venue-logo" src={venueLogoUrl(live.key.venue.logoPath)} alt="" />
+          )}
+          <span>{handoffCopy.venueOf(live.key.venue.name)}</span>
+        </p>
+      )}
       {state && !state.ended && !tvOpen && (
         <Board
           session={state.session}

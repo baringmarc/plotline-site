@@ -736,6 +736,10 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-live-link input { width: 100%; font: inherit; padding: 8px 10px; }
 .stack-live-qr { width: 180px; height: 180px; max-width: 100%; }
 .stack-status { margin: 0; font-weight: 700; }
+.stack-venue { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-weight: 700; }
+.stack-venue-logo { width: 36px; height: 36px; object-fit: contain; }
+.stack-ask { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 18px; }
+.stack-ask p { flex-basis: 100%; margin: 0; }
 .stack-tools .btn { padding: 10px 18px; font-size: 15px; }
 /* TV board, design A "Court bands" (T8.6, the user's pick): logo and title on top, a coloured band per court,
    Up next in a dark band along the bottom. Court tones carry brown text in both themes (AA: 6:1 or more). */

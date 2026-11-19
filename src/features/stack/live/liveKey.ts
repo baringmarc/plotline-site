@@ -5,7 +5,17 @@
  */
 export const LIVE_KEY_STORAGE_KEY = 'plotline.paddle-stack.live'
 
-export type LiveKey = { code: string; secret: string; version: number }
+/** The venue a hand-off stack belongs to, for the board's header. */
+export type LiveVenue = { name: string; logoPath: string | null }
+
+export type LiveKey = { code: string; secret: string; version: number; venue?: LiveVenue }
+
+function venueOf(v: unknown): LiveVenue | undefined {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return undefined
+  const { name, logoPath } = v as Record<string, unknown>
+  if (typeof name !== 'string' || (logoPath !== null && typeof logoPath !== 'string')) return undefined
+  return { name, logoPath: logoPath ?? null }
+}
 
 export function loadLiveKey(): LiveKey | null {
   try {
@@ -13,9 +23,10 @@ export function loadLiveKey(): LiveKey | null {
     if (!raw) return null
     const data: unknown = JSON.parse(raw)
     if (typeof data !== 'object' || data === null || Array.isArray(data)) return null
-    const { code, secret, version } = data as Record<string, unknown>
+    const { code, secret, version, venue } = data as Record<string, unknown>
     if (typeof code !== 'string' || typeof secret !== 'string' || !Number.isInteger(version)) return null
-    return { code, secret, version: version as number }
+    const known = venueOf(venue)
+    return known ? { code, secret, version: version as number, venue: known } : { code, secret, version: version as number }
   } catch {
     return null
   }

@@ -20,7 +20,7 @@ export default defineConfig({
     { name: 'live', testMatch: 'smoke.spec.ts' },
     {
       name: 'live-browser',
-      testMatch: 'organizer.spec.ts',
+      testMatch: ['organizer.spec.ts', 'handoff.spec.ts'],
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${LIVE_PORT}` },
     },
   ],

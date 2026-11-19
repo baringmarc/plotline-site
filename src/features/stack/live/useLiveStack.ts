@@ -18,6 +18,8 @@ export interface LiveController {
   end(session: Session): void
   /** Start over: stops publishing and forgets the key on this device. */
   forget(): void
+  /** A hand-off from a venue: stops this device's publishing for the old key and keeps the new one. Publishes nothing. */
+  adopt(key: LiveKey): void
 }
 
 export function useLiveStack(): LiveController {
@@ -97,5 +99,17 @@ export function useLiveStack(): LiveController {
     setError(null)
   }, [remember])
 
-  return { key, status, error, goLive, submit, end, forget }
+  const adopt = useCallback(
+    (next: LiveKey) => {
+      publisher.current?.stop()
+      publisher.current = null
+      saveLiveKey(next)
+      remember(next)
+      setStatus(null)
+      setError(null)
+    },
+    [remember],
+  )
+
+  return { key, status, error, goLive, submit, end, forget, adopt }
 }

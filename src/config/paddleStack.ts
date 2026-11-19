@@ -251,6 +251,15 @@ export const paddleStack = {
       return `paddle-stack-${slug || 'player'}.png`
     },
   },
+  handoff: {
+    bad: 'This link doesn’t work. Ask the venue for a new one.',
+    expired: 'This live stack has ended or expired. Ask the venue for a new link.',
+    failed: 'Couldn’t open the venue’s stack. Check your connection, then open the link again.',
+    ask: 'A session is already running on this device. Replace it with the venue’s stack?',
+    replace: 'Replace it',
+    keep: 'Keep my session',
+    venueOf: (name: string) => `Open play at ${name}`,
+  },
   live: {
     goLive: 'Go live',
     goLiveIntro: 'Players open a link or scan a QR code on their own phones and see the board update live. They can’t change anything.',
