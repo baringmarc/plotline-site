@@ -18,3 +18,8 @@ export function parseHandoff(search: string, hash: string): { code: string; secr
 export function venueLogoUrl(logoPath: string): string {
   return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/venue-media/${logoPath}`
 }
+
+/** A venue's booking page (T6.4): `https://<slug>.plotline.fit/book`. */
+export function venueBookUrl(slug: string): string {
+  return `https://${slug}.plotline.fit/book`
+}

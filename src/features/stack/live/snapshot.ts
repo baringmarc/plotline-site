@@ -5,7 +5,7 @@
  * partner links: the player view doesn't use them.
  */
 import { MAX_COURTS, MAX_SCORE, MAX_TITLE, MIN_COURTS } from '../engine'
-import type { Format, Game, GameStatus, Play, PlayerStatus, Session } from '../types'
+import type { Format, Game, GameStatus, Play, PlayerStatus, Session, Team } from '../types'
 
 export const SNAPSHOT_VERSION = 1
 export const MAX_SNAPSHOT_BYTES = 64 * 1024
@@ -79,6 +79,31 @@ export function buildSnapshot(session: Session): LiveSnapshot {
     players: session.players.map(({ id, name, status }) => ({ id, name, status })),
     line: [...session.line],
     games: session.games.map(toSnapshotGame),
+  }
+}
+
+/**
+ * The session a player's phone shows, rebuilt from a snapshot so the board's helpers (standings, streaks) work on
+ * it. An open queue with no levels or partners: the snapshot carries none. Arrays are fresh copies.
+ */
+export function sessionFromSnapshot(snapshot: LiveSnapshot): Session {
+  return {
+    title: snapshot.title,
+    play: snapshot.play,
+    teams: 'open',
+    format: snapshot.format,
+    courts: snapshot.courts,
+    players: snapshot.players.map(({ id, name, status }) => ({ id, name, status })),
+    line: [...snapshot.line],
+    games: snapshot.games.map((g) => ({
+      id: g.id,
+      court: g.court,
+      teamA: [...g.teamA] as Team,
+      teamB: [...g.teamB] as Team,
+      status: g.status,
+      ...(g.scoreA !== undefined ? { scoreA: g.scoreA } : {}),
+      ...(g.scoreB !== undefined ? { scoreB: g.scoreB } : {}),
+    })),
   }
 }
 

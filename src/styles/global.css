@@ -738,6 +738,17 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-status { margin: 0; font-weight: 700; }
 .stack-venue { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-weight: 700; }
 .stack-venue-logo { width: 36px; height: 36px; object-fit: contain; }
+/* The player view (T6.4): the venue and Book a court on top, then the status line with the last update. */
+.stack-viewer-venue { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0 0 10px; }
+.stack-viewer-venue-name { display: flex; align-items: center; gap: 10px; margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.stack-viewer h1 { overflow-wrap: anywhere; }
+.stack-viewer-status { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin: 0 0 6px; font-size: 15px; color: var(--text-soft); }
+.stack-viewer-dot { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--text); }
+.stack-viewer-dot::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--text-soft); flex: none; }
+.stack-viewer-dot.live::before { background: var(--ok); }
+.stack-viewer-dot.polling::before { background: var(--highlight); }
+.stack-viewer .stack-courts { margin-top: 14px; }
+.stack-viewer .stack-ended { align-items: stretch; }
 .stack-ask { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 18px; }
 .stack-ask p { flex-basis: 100%; margin: 0; }
 .stack-tools .btn { padding: 10px 18px; font-size: 15px; }

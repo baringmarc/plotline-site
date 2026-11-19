@@ -104,7 +104,8 @@ function venueOf(v: Json | undefined): LiveVenue | null {
 function viewOf(data: Json): LiveStackView {
   if (
     !isJsonObject(data) ||
-    typeof data.title !== 'string' ||
+    // An untitled stack reads back as `title: null` (checked on the local stack, 2026-11-19).
+    (typeof data.title !== 'string' && data.title !== null) ||
     typeof data.courts !== 'number' ||
     typeof data.version !== 'number' ||
     typeof data.ended !== 'boolean' ||
@@ -115,7 +116,7 @@ function viewOf(data: Json): LiveStackView {
   const snapshot = data.snapshot === null ? null : readSnapshot(data.snapshot)
   if (data.snapshot !== null && snapshot === null) throw new LiveError('invalid_snapshot')
   return {
-    title: data.title,
+    title: data.title ?? '',
     courts: data.courts,
     snapshot,
     version: data.version,
@@ -135,6 +136,47 @@ export async function getLiveStack(code: string): Promise<LiveStackView | null> 
     throw err
   }
   return viewOf(data)
+}
+
+// ---------- following (anyone with the link: the public Realtime channel) ----------
+
+export type ChannelStatus = 'SUBSCRIBED' | 'CLOSED' | 'CHANNEL_ERROR' | 'TIMED_OUT'
+export type LiveBroadcast = { version: number; snapshot: LiveSnapshot | null; ended: boolean }
+export type LiveHandlers = { onSnapshot(msg: LiveBroadcast): void; onStatus(status: ChannelStatus): void }
+
+const CHANNEL_STATUSES: readonly ChannelStatus[] = ['SUBSCRIBED', 'CLOSED', 'CHANNEL_ERROR', 'TIMED_OUT']
+
+/** A broadcast's payload as `{ version, snapshot, ended }` (its extra `id` dropped), or null when it isn't a valid one. */
+function broadcastOf(payload: unknown): LiveBroadcast | null {
+  if (typeof payload !== 'object' || payload === null) return null
+  const { version, snapshot: raw, ended } = payload as Record<string, unknown>
+  if (typeof version !== 'number' || typeof ended !== 'boolean') return null
+  const snapshot = raw === null || raw === undefined ? null : readSnapshot(raw)
+  if (raw !== null && raw !== undefined && snapshot === null) return null
+  return { version, snapshot, ended }
+}
+
+/**
+ * Joins the public channel `live-stack:<code>` and hands each `snapshot` broadcast and channel status on.
+ * The returned function leaves the channel; after it, nothing more is reported.
+ */
+export function subscribeLiveStack(code: string, handlers: LiveHandlers): () => void {
+  let open = true
+  const channel = supabase
+    .channel(`live-stack:${code}`)
+    .on('broadcast', { event: 'snapshot' }, (msg: { payload?: unknown }) => {
+      if (!open) return
+      const next = broadcastOf(msg.payload)
+      if (next) handlers.onSnapshot(next)
+    })
+    .subscribe((status: string) => {
+      if (open && CHANNEL_STATUSES.includes(status as ChannelStatus)) handlers.onStatus(status as ChannelStatus)
+    })
+  return () => {
+    if (!open) return
+    open = false
+    void supabase.removeChannel(channel)
+  }
 }
 
 // ---------- publishing (the organizer's device, with its secret) ----------

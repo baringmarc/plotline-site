@@ -4,7 +4,7 @@
  * production and `wrangler dev`, and Safari and iOS won't play a video without 206 replies, so the
  * Worker cuts the range itself (T4.2, RESEARCH "Demo video").
  */
-import { paddleStackMeta, type PageMeta } from './config/pageMeta'
+import { liveStackMeta, paddleStackMeta, type PageMeta } from './config/pageMeta'
 
 type Env = { ASSETS: { fetch(request: Request): Promise<Response> } }
 
@@ -83,16 +83,21 @@ export function withPageMeta(html: string, meta: PageMeta): string {
   out = setMeta(out, 'property', 'og:url', meta.url)
   out = setMeta(out, 'property', 'og:image', meta.image)
   out = setMeta(out, 'property', 'og:image:alt', meta.imageAlt)
-  return out.replace('</head>', () => `  <link rel="canonical" href="${escapeHtml(meta.url)}" />\n  </head>`)
+  // A noindex page (a live stack's player link, T6.4) says so and names no canonical.
+  const tag = meta.noindex ? '<meta name="robots" content="noindex" />' : `<link rel="canonical" href="${escapeHtml(meta.url)}" />`
+  return out.replace('</head>', () => `  ${tag}\n  </head>`)
 }
 
 /** Pages with their own head: the path, with or without a trailing slash. */
 const pageMetas: PageMeta[] = [paddleStackMeta]
 
+/** `/paddle-stack/live/<code>`: one segment after the prefix (a trailing slash already trimmed). */
+const isLiveStackPath = (path: string) => path.startsWith(liveStackMeta.prefix) && /^[^/]+$/.test(path.slice(liveStackMeta.prefix.length))
+
 async function withHead(request: Request, res: Response): Promise<Response> {
   if (request.method !== 'GET') return res
   const path = new URL(request.url).pathname.replace(/\/$/, '') || '/'
-  const meta = pageMetas.find((m) => m.path === path)
+  const meta = pageMetas.find((m) => m.path === path) ?? (isLiveStackPath(path) ? liveStackMeta : undefined)
   if (!meta || !(res.headers.get('content-type') ?? '').startsWith('text/html')) return res
   // A 304 (a reload or re-scrape revalidating its copy) and other bodiless replies pass through: they carry no
   // page to rewrite, and a Response with a null-body status can't be given one.
