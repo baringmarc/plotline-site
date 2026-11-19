@@ -717,8 +717,15 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-table th { font-size: 13px; color: var(--text-soft); }
 .stack-table td:nth-child(2) { font-weight: 700; overflow-wrap: anywhere; }
 .stack-ended { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
-.paddle-stack .stack-venue { background: var(--panel); border-radius: var(--radius); padding: 22px; }
-.stack-venue p { margin: 0 0 14px; }
+/* "Run a venue?" on the tool and "Run your own open play" on the player view: text then button on phones,
+   side by side from 640 px. */
+.paddle-stack .stack-venue { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; background: var(--panel); border-radius: var(--radius); padding: 22px; }
+.stack-venue h2 { margin: 0 0 6px; }
+.stack-venue p { margin: 0; max-width: 62ch; }
+.stack-venue .btn { white-space: nowrap; flex-shrink: 0; }
+@media (min-width: 640px) {
+  .paddle-stack .stack-venue { flex-direction: row; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 26px; }
+}
 /* the how-to and FAQ under the tool (T5.6) */
 .paddle-stack .stack-guide { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 32px; }
 .stack-guide-grid { display: grid; gap: 18px 32px; }
@@ -736,7 +743,8 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-live-link input { width: 100%; font: inherit; padding: 8px 10px; }
 .stack-live-qr { width: 180px; height: 180px; max-width: 100%; }
 .stack-status { margin: 0; font-weight: 700; }
-.stack-venue { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-weight: 700; }
+/* the venue line on the organizer's board after a hand-off (T6.3) */
+.stack-handoff-venue { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-weight: 700; }
 .stack-venue-logo { width: 36px; height: 36px; object-fit: contain; }
 /* The player view (T6.4): the venue and Book a court on top, then the status line with the last update. */
 .stack-viewer-venue { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0 0 10px; }

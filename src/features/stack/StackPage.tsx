@@ -301,7 +301,7 @@ export function StackPage() {
       )}
       {state && !state.ended && !tvOpen && <GoLivePanel session={state.session} live={live} />}
       {state && !state.ended && !tvOpen && live.key?.venue && (
-        <p className="stack-venue">
+        <p className="stack-handoff-venue">
           {live.key.venue.logoPath && (
             <img className="stack-venue-logo" src={venueLogoUrl(live.key.venue.logoPath)} alt="" />
           )}
@@ -329,8 +329,10 @@ export function StackPage() {
       )}
       <Guide />
       <aside className="stack-venue">
-        <h2>{venueCta.title}</h2>
-        <p>{venueCta.body}</p>
+        <div className="stack-venue-text">
+          <h2>{venueCta.title}</h2>
+          <p>{venueCta.body}</p>
+        </div>
         <a className="btn ghost" href={venueCta.href}>
           {venueCta.link}
         </a>
