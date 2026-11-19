@@ -88,7 +88,7 @@ export const terms = (supportEmail: string): LegalPage => ({
 export const privacy = (supportEmail: string): LegalPage => ({
   title: 'Privacy notice',
   updated: 'November 2026',
-  intro: `This notice covers this website (plotline.fit) and its two forms: the contact form and the review form. It follows the Philippine Data Privacy Act of 2012. The personal information controller is ${provider}. Questions or requests: ${supportEmail}.`,
+  intro: `This notice covers this website (plotline.fit), its two forms (the contact form and the review form) and Paddle Stack’s Go live, which shares a stack with players. It follows the Philippine Data Privacy Act of 2012. The personal information controller is ${provider}. Questions or requests: ${supportEmail}.`,
   sections: [
     {
       title: 'What we collect',
@@ -120,6 +120,14 @@ export const privacy = (supportEmail: string): LegalPage => ({
       list: [
         'Contact form: while we talk with you, and for 1 year after our last contact if your venue doesn’t join. If it joins, we keep what we need to run your account.',
         'Reviews: for as long as we show them, or until you ask us to remove yours.',
+      ],
+    },
+    {
+      title: 'Live Paddle Stacks',
+      paragraphs: [
+        'Paddle Stack keeps a stack on the organizer’s device. Nothing is sent to us unless the organizer taps Go live, or a venue opens a stack from its Plotline admin.',
+        'A live stack holds its title, the courts, the player names the organizer typed in, the games and their scores. It holds no levels, emails or phone numbers. Anyone with the stack’s link or QR code can see it.',
+        'Player names in a live stack are stored on Plotline’s servers in Singapore (Supabase) until up to 3 days after its last change, then deleted. Ending the session doesn’t delete it sooner. Go live uses Cloudflare Turnstile, like the forms.',
       ],
     },
     {
