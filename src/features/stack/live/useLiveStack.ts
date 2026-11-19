@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '../types'
-import { goLive as goLiveApi, LiveError, type LiveErrorCode } from './api'
+import { goLive as goLiveApi, LiveError, subscribeLiveStack, type LiveErrorCode } from './api'
 import { clearLiveKey, loadLiveKey, saveLiveKey, type LiveKey } from './liveKey'
 import { createLivePublisher, type LivePublisher, type LiveStatus } from './publisher'
 
@@ -22,7 +22,15 @@ export interface LiveController {
   adopt(key: LiveKey): void
 }
 
-export function useLiveStack(): LiveController {
+export interface LiveStackOptions {
+  /** Join this stack's own channel while it is live (T6.9). The `?tv=1` window passes false: it never publishes. */
+  joinChannel?: boolean
+}
+
+// The organizer ignores what arrives on its own channel; joining is what matters (PLATFORM.md §4 Realtime).
+const ignore = { onSnapshot: () => {}, onStatus: () => {} }
+
+export function useLiveStack({ joinChannel = true }: LiveStackOptions = {}): LiveController {
   const [key, setKey] = useState<LiveKey | null>(() => loadLiveKey())
   const [status, setStatus] = useState<LiveStatus | null>(null)
   const [error, setError] = useState<LiveErrorCode | null>(null)
@@ -31,6 +39,15 @@ export function useLiveStack(): LiveController {
 
   // Leaving the page stops publishing; the stack itself stays live until its time runs out.
   useEffect(() => () => publisher.current?.stop(), [])
+
+  // T6.9: join `live-stack:<code>` as soon as the stack exists and keep it for the session, so today's Realtime
+  // message partition exists before the first publish. Keyed on the code, not the key: every publish saves a new
+  // version. Left on Start over (no key), a permanent stop, a new code and unmount; Reconnecting keeps it.
+  const channelCode = joinChannel && key && status?.state !== 'stopped' ? key.code : null
+  useEffect(() => {
+    if (!channelCode) return
+    return subscribeLiveStack(channelCode, ignore)
+  }, [channelCode])
 
   const remember = useCallback((next: LiveKey | null) => {
     keyRef.current = next

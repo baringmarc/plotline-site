@@ -17,6 +17,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { supabase } from '../../lib/supabase'
 import { paddleStack } from '../../config/site'
 import { createSession, fillCourts } from './engine'
 import { LiveError, type LiveStackView } from './live/api'
@@ -33,6 +34,16 @@ const goLive = vi.fn()
 const publishLiveStack = vi.fn()
 const getLiveStack = vi.fn()
 
+/** T6.9: every channel the page joins (through subscribeLiveStack, a stub: no real socket) and its leave function. */
+type Join = { code: string; leave: ReturnType<typeof vi.fn> }
+let joins: Join[] = []
+const subscribeLiveStack = vi.fn((code: string) => {
+  const leave = vi.fn()
+  joins.push({ code, leave })
+  return leave
+})
+const openChannels = () => joins.filter((j) => j.leave.mock.calls.length === 0).map((j) => j.code)
+
 vi.mock('./live/api', async () => {
   const actual = await vi.importActual<typeof import('./live/api')>('./live/api')
   return {
@@ -40,6 +51,7 @@ vi.mock('./live/api', async () => {
     goLive: (...a: unknown[]) => goLive(...a),
     publishLiveStack: (...a: unknown[]) => publishLiveStack(...a),
     getLiveStack: (...a: unknown[]) => getLiveStack(...a),
+    subscribeLiveStack: (code: string) => subscribeLiveStack(code),
   }
 })
 
@@ -159,6 +171,9 @@ async function expectOnePublishOfHandoff(v: LiveStackView = view()) {
 const venueLogo = (container: HTMLElement) => container.querySelector(`img[src="${LOGO_URL}"]`)
 
 beforeEach(() => {
+  joins = []
+  subscribeLiveStack.mockClear()
+  vi.spyOn(supabase, 'channel')
   const storage = new MemoryStorage()
   vi.stubGlobal('localStorage', storage)
   Object.defineProperty(window, 'localStorage', { value: storage, configurable: true })
@@ -170,6 +185,8 @@ beforeEach(() => {
   getLiveStack.mockReset().mockResolvedValue(view())
 })
 afterEach(() => {
+  // T6.9: no test here opens a real Realtime socket (Supabase's own channel is never reached).
+  expect(supabase.channel).not.toHaveBeenCalled()
   window.history.replaceState(null, '', '/')
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
@@ -443,5 +460,45 @@ describe('StackPage hand-off: the venue header after a reload (T6.3)', () => {
     expect(await screen.findByLabelText(liveCopy.linkLabel)).toBeInTheDocument()
     expect(screen.queryByText(copy().venueOf('Claudex Courts'))).not.toBeInTheDocument()
     expect(container.querySelector('img[src*="venue-media"]')).toBeNull()
+  })
+})
+
+describe('StackPage hand-off joins the venue stack’s channel (T6.9)', () => {
+  it('a good hand-off joins live-stack:<code> for the venue’s code, once', async () => {
+    openAt(LINK)
+    await expectHandoffBoard()
+    await expectOnePublishOfHandoff()
+    expect(openChannels()).toEqual([CODE])
+    expect(subscribeLiveStack).toHaveBeenCalledTimes(1)
+  })
+
+  it('an expired code joins no channel', async () => {
+    getLiveStack.mockReset().mockResolvedValue(null)
+    openAt(LINK)
+    await screen.findByText(copy().expired)
+    await settle()
+    expect(subscribeLiveStack).not.toHaveBeenCalled()
+  })
+
+  it('Replace leaves the old key’s channel and joins the venue’s', async () => {
+    const user = userEvent.setup()
+    saveRunningStack()
+    saveLiveKey({ code: 'OLDCODE', secret: 'OLDSECRET', version: 3 })
+    openAt(LINK)
+    await user.click(await screen.findByRole('button', { name: copy().replace }))
+    await expectHandoffBoard()
+    await waitFor(() => expect(openChannels()).toEqual([CODE]))
+    expect(joins.map((j) => j.code)).toEqual(['OLDCODE', CODE])
+  })
+
+  it('Keep stays on the old key’s channel', async () => {
+    const user = userEvent.setup()
+    saveRunningStack()
+    saveLiveKey({ code: 'OLDCODE', secret: 'OLDSECRET', version: 3 })
+    openAt(LINK)
+    await user.click(await screen.findByRole('button', { name: copy().keep }))
+    await settle()
+    expect(openChannels()).toEqual(['OLDCODE'])
+    expect(subscribeLiveStack).toHaveBeenCalledTimes(1)
   })
 })

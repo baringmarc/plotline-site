@@ -6,6 +6,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { supabase } from '../../lib/supabase'
 import { paddleStack } from '../../config/site'
 import { createSession, fillCourts } from './engine'
 import { LIVE_KEY_STORAGE_KEY, loadLiveKey, saveLiveKey } from './live/liveKey'
@@ -19,6 +20,16 @@ const goLive = vi.fn()
 const publishLiveStack = vi.fn()
 const getLiveStack = vi.fn()
 
+/** T6.9: every channel the page joins (through subscribeLiveStack, a stub: no real socket) and its leave function. */
+type Join = { code: string; leave: ReturnType<typeof vi.fn> }
+let joins: Join[] = []
+const subscribeLiveStack = vi.fn((code: string) => {
+  const leave = vi.fn()
+  joins.push({ code, leave })
+  return leave
+})
+const openChannels = () => joins.filter((j) => j.leave.mock.calls.length === 0).map((j) => j.code)
+
 vi.mock('./live/api', async () => {
   const actual = await vi.importActual<typeof import('./live/api')>('./live/api')
   return {
@@ -26,6 +37,7 @@ vi.mock('./live/api', async () => {
     goLive: (...a: unknown[]) => goLive(...a),
     publishLiveStack: (...a: unknown[]) => publishLiveStack(...a),
     getLiveStack: (...a: unknown[]) => getLiveStack(...a),
+    subscribeLiveStack: (code: string) => subscribeLiveStack(code),
   }
 })
 
@@ -91,6 +103,9 @@ const publishArg = (n: number) => publishLiveStack.mock.calls[n][0] as {
 }
 
 beforeEach(() => {
+  joins = []
+  subscribeLiveStack.mockClear()
+  vi.spyOn(supabase, 'channel')
   const storage = new MemoryStorage()
   vi.stubGlobal('localStorage', storage)
   Object.defineProperty(window, 'localStorage', { value: storage, configurable: true })
@@ -102,6 +117,8 @@ beforeEach(() => {
   getLiveStack.mockReset()
 })
 afterEach(() => {
+  // T6.9: no test here opens a real Realtime socket (Supabase's own channel is never reached).
+  expect(supabase.channel).not.toHaveBeenCalled()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -200,5 +217,70 @@ describe('StackPage live wiring (T6.2)', () => {
     await user.click(screen.getByRole('button', { name: `${board.timeOut} Eli` }))
     expect(loadStack()!.session.players.find((p) => p.name === 'Eli')!.status).toBe('out')
     expect(publishLiveStack).not.toHaveBeenCalled()
+  })
+})
+
+describe('StackPage joins its own live channel (T6.9)', () => {
+  it('without a key, the page joins no channel', async () => {
+    saveRunningStack()
+    renderPage()
+    await new Promise((r) => setTimeout(r, 30))
+    expect(subscribeLiveStack).not.toHaveBeenCalled()
+  })
+
+  it('Go live joins live-stack:<code> for the new code, once, and keeps it after the first publish', async () => {
+    const user = userEvent.setup()
+    saveRunningStack()
+    renderPage()
+    await user.click(screen.getByRole('button', { name: copy.goLive }))
+    await user.click(screen.getByRole('button', { name: 'Pass the check' }))
+    await waitFor(() => expect(openChannels()).toEqual(['PAGECODE']))
+    await waitFor(() => expect(publishLiveStack).toHaveBeenCalledTimes(1))
+    // The publish moved the stored version on; the channel is the same one.
+    await waitFor(() => expect(loadLiveKey()!.version).toBe(1))
+    expect(subscribeLiveStack).toHaveBeenCalledTimes(1)
+    expect(openChannels()).toEqual(['PAGECODE'])
+  })
+
+  it('with a stored key (a reload), opening the page joins that code', async () => {
+    saveRunningStack()
+    saveLiveKey({ code: 'KEPT', secret: 'KEPTSECRET', version: 3 })
+    renderPage()
+    expect(await screen.findByLabelText(copy.linkLabel)).toBeInTheDocument()
+    expect(openChannels()).toEqual(['KEPT'])
+    expect(subscribeLiveStack).toHaveBeenCalledTimes(1)
+  })
+
+  it('Start over leaves the channel', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    saveRunningStack()
+    saveLiveKey({ code: 'KEPT', secret: 'KEPTSECRET', version: 3 })
+    renderPage()
+    expect(openChannels()).toEqual(['KEPT'])
+    await user.click(screen.getByRole('button', { name: paddleStack.restart }))
+    expect(openChannels()).toEqual([])
+    expect(subscribeLiveStack).toHaveBeenCalledTimes(1)
+  })
+
+  it('End session (publishing stops for good) leaves the channel', async () => {
+    const user = userEvent.setup()
+    saveRunningStack()
+    saveLiveKey({ code: 'KEPT', secret: 'KEPTSECRET', version: 3 })
+    renderPage()
+    expect(openChannels()).toEqual(['KEPT'])
+    await user.click(screen.getByRole('button', { name: end.button }))
+    await user.click(screen.getByRole('button', { name: end.yes }))
+    await waitFor(() => expect(publishLiveStack).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(openChannels()).toEqual([]))
+  })
+
+  it('leaving the page (unmount) leaves the channel', () => {
+    saveRunningStack()
+    saveLiveKey({ code: 'KEPT', secret: 'KEPTSECRET', version: 3 })
+    const { unmount } = renderPage()
+    expect(openChannels()).toEqual(['KEPT'])
+    unmount()
+    expect(openChannels()).toEqual([])
   })
 })

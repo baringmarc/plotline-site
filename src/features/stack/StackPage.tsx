@@ -44,13 +44,14 @@ export function StackPage() {
   const [handoffNote, setHandoffNote] = useState<string | null>(null)
   const [asking, setAsking] = useState<{ code: string; secret: string; view: LiveStackView } | null>(null)
   const handoffTaken = useRef(false)
-  const live = useLiveStack()
   const release = useRef<Promise<() => void> | null>(null)
   const askedFullscreen = useRef(false)
   const [params] = useSearchParams()
   const navigate = useNavigate()
   /** The `?tv=1` window opened by "Open TV in a new window": the TV board alone, following the organizer's window. */
   const tvWindow = params.get('tv') === '1'
+  // The ?tv=1 window never publishes, so it doesn't hold a channel of its own (T6.9).
+  const live = useLiveStack({ joinChannel: !tvWindow })
   /** The `?tv=1` window is showing the TV board (not the start screen or the final standings). */
   const tvWindowBoard = tvWindow && !!state && !state.ended
   /**

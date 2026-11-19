@@ -6,6 +6,7 @@
 // The API is mocked; the publisher and the key storage are the real ones.
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { supabase } from '../../../lib/supabase'
 import { createSession, fillCourts } from '../engine'
 import type { Session } from '../types'
 import { LiveError, type LiveErrorCode } from './api'
@@ -24,6 +25,8 @@ vi.mock('./api', async () => {
     goLive: (...a: unknown[]) => goLive(...a),
     publishLiveStack: (...a: unknown[]) => publishLiveStack(...a),
     getLiveStack: (...a: unknown[]) => getLiveStack(...a),
+    // T6.9: the hook joins its own channel; the stub keeps every test off a real socket.
+    subscribeLiveStack: vi.fn(() => () => {}),
   }
 })
 
@@ -73,6 +76,7 @@ function mount() {
 }
 
 beforeEach(() => {
+  vi.spyOn(supabase, 'channel')
   const storage = new MemoryStorage()
   vi.stubGlobal('localStorage', storage)
   Object.defineProperty(window, 'localStorage', { value: storage, configurable: true })
@@ -86,6 +90,8 @@ beforeEach(() => {
   }))
 })
 afterEach(() => {
+  // T6.9: no test here opens a real Realtime socket (Supabase's own channel is never reached).
+  expect(supabase.channel).not.toHaveBeenCalled()
   hook?.unmount()
   hook = null
   vi.useRealTimers()

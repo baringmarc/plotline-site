@@ -7,6 +7,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { supabase } from '../../lib/supabase'
 import { paddleStack } from '../../config/site'
 import { createSession, fillCourts } from './engine'
 import { joinUrl, shortJoinLink } from './live/joinLink'
@@ -27,6 +28,8 @@ vi.mock('./live/api', async () => {
     goLive: (...a: unknown[]) => goLive(...a),
     publishLiveStack: (...a: unknown[]) => publishLiveStack(...a),
     getLiveStack: (...a: unknown[]) => getLiveStack(...a),
+    // T6.9: the hook joins its own channel; the stub keeps every test off a real socket.
+    subscribeLiveStack: vi.fn(() => () => {}),
   }
 })
 
@@ -128,6 +131,7 @@ function fireStorage(key: string) {
 }
 
 beforeEach(() => {
+  vi.spyOn(supabase, 'channel')
   const storage = new MemoryStorage()
   vi.stubGlobal('localStorage', storage)
   Object.defineProperty(window, 'localStorage', { value: storage, configurable: true })
@@ -140,6 +144,8 @@ beforeEach(() => {
   qrRender.mockReset()
 })
 afterEach(() => {
+  // T6.9: no test here opens a real Realtime socket (Supabase's own channel is never reached).
+  expect(supabase.channel).not.toHaveBeenCalled()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
