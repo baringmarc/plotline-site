@@ -17,9 +17,11 @@ function allowed(url: URL): boolean {
 
 /**
  * Answers every other request with an empty 200, so no test touches production (the build uses `.env.production`).
- * Supabase REST reads get `[]`, so live lists show their empty state.
+ * Supabase REST reads get `[]`, so live lists show their empty state. WebSockets off the allowed hosts are mocked and
+ * never connect (since T6.9 the organizer's page joins its stack's Realtime channel whenever a live key is saved).
  */
 export async function stubNetwork(page: Page): Promise<void> {
+  await page.routeWebSocket((url) => !allowed(url), () => {})
   await page.route(
     (url) => !allowed(url),
     (route) => {

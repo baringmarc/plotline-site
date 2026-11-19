@@ -1,15 +1,43 @@
-import { useEffect } from 'react'
+import QrCreator from 'qr-creator'
+import { useEffect, useRef } from 'react'
 import { paddleStack } from '../../config/paddleStack'
+import { joinUrl, shortJoinLink } from './live/joinLink'
 import { courtTone, lastResult, teamStreak } from './tvInfo'
 import type { Session, Team } from './types'
 
 const { tv } = paddleStack
 
+/** The join QR and short link in the bottom band (T6.6). Dark on white so phones read it in either theme. */
+function JoinQr({ code }: { code: string }) {
+  const canvas = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    if (canvas.current) QrCreator.render({ text: joinUrl(code), size: 300, ecLevel: 'M', quiet: 2, fill: '#000', background: '#fff' }, canvas.current)
+  }, [code])
+  return (
+    <div className="stack-tv-qr has-code">
+      <p className="stack-tv-qr-title">{tv.join.title}</p>
+      <canvas ref={canvas} width={300} height={300} aria-label={tv.join.qrLabel} />
+      <p className="stack-tv-qr-link">{shortJoinLink(code)}</p>
+    </div>
+  )
+}
+
 /**
  * The big-screen view for a TV or tablet facing the courts: no controls but Exit (or Escape).
  * Design A "Court bands" (T8.6, the user's pick): logo and title on top, a coloured band per court, Up next along the bottom.
  */
-export function TvBoard({ session, nowOn, onExit }: { session: Session; nowOn: number | null; onExit: () => void }) {
+export function TvBoard({
+  session,
+  nowOn,
+  onExit,
+  joinCode,
+}: {
+  session: Session
+  nowOn: number | null
+  onExit: () => void
+  /** The live stack's code while this device is live (T6.6): the bottom slot shows its join QR and short link. */
+  joinCode?: string | null
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onExit()
@@ -101,8 +129,11 @@ export function TvBoard({ session, nowOn, onExit }: { session: Session; nowOn: n
             </p>
           )}
         </div>
-        {/* Kept for Milestone 6's join QR. */}
-        <div className="stack-tv-qr" aria-hidden="true" />
+        {joinCode ? (
+          <JoinQr code={joinCode} />
+        ) : (
+          <div className="stack-tv-qr" aria-hidden="true" />
+        )}
       </div>
       <footer className="stack-tv-foot">
         <span>{tv.footer}</span>

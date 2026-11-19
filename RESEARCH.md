@@ -60,3 +60,24 @@ Rules:
   - Ad blockers (Brave, uBlock and others) may block the beacon, so counts are a floor.
 - **Gotchas:** without a hostname rule, the venue sites get analytics their Privacy text doesn't mention. SPA route changes are counted only by the JS beacon (it follows the History API), not by edge logs.
 - **Recommendation:** the user enables Web Analytics for the zone with the automatic setup and adds a rule so only `plotline.fit` and `www.plotline.fit` are measured; then T5.1 rewrites the Privacy text and checks the counts after a deploy. If injection doesn't reach the Worker's replies, ask the user before adding the manual snippet.
+
+## Milestone 6: Live stacks
+
+### QR code library (T6.1, for T6.2 and T6.6)
+- **Status:** Decided (T6.1, 2026-11-19; the library is in `package.json`, the choice is the plan's, not a SPEC §6 row)
+- **Question:** a small client-side library that draws the join QR on the organizer's board and the TV, with no network call and a permissive licence.
+- **Findings:**
+  - `qr-creator` 1.0.0: MIT, no dependencies, `dist/qr-creator.es6.min.js` 12,073 bytes (5,040 bytes gzipped); `QrCreator.render(config, element)` draws onto a canvas; the minified bundle has no `fetch` or XHR call (its only URL is a credit comment). Source: `npm view qr-creator license version dependencies dist.unpackedSize` → `MIT`, `1.0.0`, none, 125,903 unpacked.
+  - `qrcode-generator` 2.0.4: MIT, no dependencies, but 555,539 bytes unpacked (many language builds), so it was not chosen.
+  - `qrcode` (node-qrcode) pulls in its own dependency tree; not checked further.
+- **Gotchas:** the library draws to a canvas, so the TV and share image can reuse it at the same size. Keep the QR's quiet zone (`quiet`, default 4 modules) on any printed or shared image.
+- **Recommendation:** `qr-creator`: the smallest MIT option with no dependencies and no network, and it renders on the canvas the share cards already use.
+
+### Local live stack (T6.1)
+- **Status:** Researched (2026-11-19)
+- **Question:** how the live specs reach the stack without touching the device matrix's `.env` (`VITE_SUPABASE_URL` points at 127.0.0.1:55321 in this checkout; the local API is 54321).
+- **Findings:**
+  - `npx supabase status` in court-booking-system (2026-11-19): `API_URL` `http://127.0.0.1:54321`, `PUBLISHABLE_KEY` set. `curl -X POST http://127.0.0.1:54321/functions/v1/stack-live` returned `200 {"ok":true,"code":…,"secret":…}` with `access-control-allow-origin: *` (the local project serves every function).
+  - `npx supabase gen types typescript --project-id avhxinkecylhptysgbjx` (the linked staging project, 2026-11-19) produced `live_stacks`, `get_live_stack` and `publish_live_stack`; committed to `src/lib/database.types.ts`.
+- **Gotchas:** the live smoke calls the Edge Function and RPCs from Node with the publishable key, so it needs no browser and no Vite build. The matrix's `.env` is left alone. Publishes are at least 1 s apart on the server, so the smoke waits between them.
+- **Recommendation:** `npm run test:live` (`playwright.live.config.ts`, `e2e/live/*.spec.ts`), with `LIVE_SUPABASE_PUBLISHABLE_KEY` from `npx supabase status`.

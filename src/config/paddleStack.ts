@@ -179,6 +179,11 @@ export const paddleStack = {
     /** Beside a side that won its last games together (from 2; T8.6). Also on the board's court cards. */
     streak: (n: number) => `${n} wins in a row`,
     footer: 'Paddle Stack · free at plotline.fit/paddle-stack',
+    /** The join QR in the bottom band while the stack is live (T6.6). */
+    join: {
+      title: 'Follow on your phone',
+      qrLabel: 'QR code to follow this board on your phone',
+    },
   },
   voice: {
     label: 'Call out games',
@@ -249,6 +254,76 @@ export const paddleStack = {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
       return `paddle-stack-${slug || 'player'}.png`
+    },
+  },
+  handoff: {
+    bad: 'This link doesn’t work. Ask the venue for a new one.',
+    expired: 'This live stack has ended or expired. Ask the venue for a new link.',
+    failed: 'Couldn’t open the venue’s stack. Check your connection, then open the link again.',
+    ask: 'A session is already running on this device. Replace it with the venue’s stack?',
+    replace: 'Replace it',
+    keep: 'Keep my session',
+    venueOf: (name: string) => `Open play at ${name}`,
+  },
+  live: {
+    goLive: 'Go live',
+    goLiveIntro: 'Players open a link or scan a QR code on their own phones and see the board update live. They can’t change anything.',
+    checking: 'Quick check that you’re a person, then the link appears.',
+    checkFailed: 'The check didn’t load. Turn off anything that blocks it, then try again.',
+    linkLabel: 'Link for players',
+    qrLabel: 'QR code for the link',
+    copyLink: 'Copy link',
+    copied: 'Link copied.',
+    copyFailed: 'Couldn’t copy. Select the link and copy it by hand.',
+    sending: 'Going live…',
+    status: {
+      label: 'Live status',
+      live: 'Live',
+      reconnecting: 'Reconnecting…',
+      stopped: 'Stopped',
+    },
+    stopped: {
+      ended: 'The session has ended. The players’ link shows the final standings.',
+      forbidden: 'Another device took over this live stack. This device can’t update it any more.',
+      not_found: 'This live stack has ended or expired. Start it again with Go live.',
+      limit_reached: 'This live stack reached its update limit. Start it again with Go live.',
+      too_large: 'The board is too big to share live. Changes are kept on this device.',
+      invalid_snapshot: 'The board couldn’t be shared. Changes are kept on this device.',
+    },
+    errors: {
+      unavailable: 'Going live is off right now. The board keeps working.',
+      bot_check_failed: 'The check didn’t pass. Try again.',
+      invalid_input: 'Check the title and courts, then try again.',
+      busy: 'Too many live stacks right now. Try again later.',
+      server_error: 'Something went wrong. Try again.',
+      unknown: 'Something went wrong. Try again.',
+    },
+  },
+  /** The player view at /paddle-stack/live/<code> (T6.4): view-only, on the players' own phones. */
+  viewer: {
+    heading: 'Live stack',
+    loading: 'Loading the board…',
+    notFound: 'This stack has ended. Ask the organizer for a new link.',
+    error: 'Couldn’t load the board. Check your connection, then reload.',
+    reload: 'Reload',
+    notStarted: 'The board appears here as soon as the organizer starts it.',
+    viewOnly: 'View only: the organizer runs the board.',
+    live: 'Live',
+    polling: 'Reconnecting… checking for changes every 15 seconds.',
+    endedNote: 'This session has ended.',
+    lastUpdated: 'Last updated',
+    statusLabel: 'Live status',
+    bookCourt: 'Book a court',
+    finalStandings: 'Final standings',
+    ownStack: 'Run your own open play with Paddle Stack, free.',
+    ownStackLink: 'Open Paddle Stack',
+    /** "Share my card" (T6.5): a player picks their name and the T8.7 card is made on their phone. */
+    myCard: {
+      button: 'Share my card',
+      pickLabel: 'Your name',
+      pickPrompt: 'Pick your name',
+      make: 'Make my card',
+      cancel: 'Cancel',
     },
   },
   restart: 'Start over',

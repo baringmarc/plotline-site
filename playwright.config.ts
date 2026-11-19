@@ -16,6 +16,8 @@ const PORT = 4173
 export default defineConfig({
   testDir: 'e2e',
   testMatch: '**/*.spec.ts',
+  // The live stack specs run with `npm run test:live` (playwright.live.config.ts).
+  testIgnore: 'live/**',
   outputDir: 'test-results',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

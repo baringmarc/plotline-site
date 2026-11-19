@@ -17,6 +17,13 @@ export const router = createBrowserRouter([
         hydrateFallbackElement: <RouteLoading />,
         errorElement: <RouteError />,
       },
+      // The player view of a live stack (T6.4), lazy too: a player's phone loads only this page.
+      {
+        path: 'paddle-stack/live/:code',
+        lazy: () => import('../features/stack/live/PlayerView').then((m) => ({ Component: m.PlayerView })),
+        hydrateFallbackElement: <RouteLoading />,
+        errorElement: <RouteError />,
+      },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

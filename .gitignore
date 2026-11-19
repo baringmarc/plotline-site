@@ -31,6 +31,8 @@ dist-ssr
 
 # Playwright
 /test-results/
+/test-results-live/
+/dist-live/
 /playwright-report/
 /blob-report/
 

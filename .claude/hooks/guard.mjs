@@ -217,7 +217,8 @@ const WRITE_OPS = /(^|[^0-9&])>>?(?!&)|\btee\b|\bsed\s+(-[a-zA-Z]*i|--in-place)|
 const HARNESS_SCRIPT = {
   test: (seg) =>
     /^node\s+(\.\/)?\.claude\/hooks\/(verify-gate|log-event)\.mjs(\s|$)/.test(seg) &&
-    !/(^|[^0-9&])>>?(?!&)|\btee\b/.test(seg.replace(/'[^']*'|"[^"]*"/g, '')),
+    // Output may go to /dev/null or to stdout (`2>&1`); a redirect that writes a file is still a write.
+    !/(^|[^0-9&])>>?(?!&)|\btee\b/.test(seg.replace(/'[^']*'|"[^"]*"/g, '').replace(/\d*>&\d+|&?>>?\s*\/dev\/null/g, '')),
 }
 
 /**

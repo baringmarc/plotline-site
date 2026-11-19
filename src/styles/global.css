@@ -669,11 +669,11 @@ form.formcard > .btn { align-self: flex-start; }
 .tone-6 { --tone: var(--court-6); }
 .paddle-stack .stack-court { border-color: var(--tone, var(--line)); overflow: hidden; }
 .paddle-stack .stack-court.empty { border-color: var(--line); }
-.stack-court h3 {
+.stack-court h2 {
   margin: -18px -18px 0; padding: 8px 18px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em;
   background: var(--tone, var(--line)); color: var(--brown);
 }
-.stack-court.empty h3 { background: var(--line); color: var(--text); }
+.stack-court.empty h2 { background: var(--line); color: var(--text); }
 .stack-side { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .stack-court-streak {
   font-family: var(--sans); font-size: 13px; font-weight: 700; white-space: nowrap;
@@ -717,8 +717,15 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-table th { font-size: 13px; color: var(--text-soft); }
 .stack-table td:nth-child(2) { font-weight: 700; overflow-wrap: anywhere; }
 .stack-ended { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
-.paddle-stack .stack-venue { background: var(--panel); border-radius: var(--radius); padding: 22px; }
-.stack-venue p { margin: 0 0 14px; }
+/* "Run a venue?" on the tool and "Run your own open play" on the player view: text then button on phones,
+   side by side from 640 px. */
+.paddle-stack .stack-venue { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; background: var(--panel); border-radius: var(--radius); padding: 22px; }
+.stack-venue h2 { margin: 0 0 6px; }
+.stack-venue p { margin: 0; max-width: 62ch; }
+.stack-venue .btn { white-space: nowrap; flex-shrink: 0; }
+@media (min-width: 640px) {
+  .paddle-stack .stack-venue { flex-direction: row; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 26px; }
+}
 /* the how-to and FAQ under the tool (T5.6) */
 .paddle-stack .stack-guide { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 32px; }
 .stack-guide-grid { display: grid; gap: 18px 32px; }
@@ -730,6 +737,28 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-tools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
 .stack-tools .check { align-items: center; font-size: 15px; }
 .stack-tools .hint { flex-basis: 100%; margin: -4px 0 0; }
+.stack-live { display: grid; gap: 10px; justify-items: start; margin: 0 0 18px; }
+.stack-live .hint { margin: 0; }
+.stack-live-link { display: grid; gap: 4px; width: 100%; max-width: 520px; }
+.stack-live-link input { width: 100%; font: inherit; padding: 8px 10px; }
+.stack-live-qr { width: 180px; height: 180px; max-width: 100%; }
+.stack-status { margin: 0; font-weight: 700; }
+/* the venue line on the organizer's board after a hand-off (T6.3) */
+.stack-handoff-venue { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-weight: 700; }
+.stack-venue-logo { width: 36px; height: 36px; object-fit: contain; }
+/* The player view (T6.4): the venue and Book a court on top, then the status line with the last update. */
+.stack-viewer-venue { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0 0 10px; }
+.stack-viewer-venue-name { display: flex; align-items: center; gap: 10px; margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.stack-viewer h1 { overflow-wrap: anywhere; }
+.stack-viewer-status { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin: 0 0 6px; font-size: 15px; color: var(--text-soft); }
+.stack-viewer-dot { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--text); }
+.stack-viewer-dot::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--text-soft); flex: none; }
+.stack-viewer-dot.live::before { background: var(--ok); }
+.stack-viewer-dot.polling::before { background: var(--highlight); }
+.stack-viewer .stack-courts { margin-top: 14px; }
+.stack-viewer .stack-ended { align-items: stretch; }
+.stack-ask { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 18px; }
+.stack-ask p { flex-basis: 100%; margin: 0; }
 .stack-tools .btn { padding: 10px 18px; font-size: 15px; }
 /* TV board, design A "Court bands" (T8.6, the user's pick): logo and title on top, a coloured band per court,
    Up next in a dark band along the bottom. Court tones carry brown text in both themes (AA: 6:1 or more). */
@@ -797,9 +826,15 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-tv-next li::before { content: counter(next) '. '; opacity: 0.75; }
 .stack-tv-bottom p { margin: 0; color: var(--on-band-soft); font-size: clamp(16px, 1.4vw, 26px); }
 .stack-tv-bottom .stack-tv-break { font-weight: 700; color: var(--on-band); }
-/* Kept empty for Milestone 6's join QR, so the layout doesn't move when it arrives. */
+/* The join QR while the stack is live (T6.6), a little wider than the empty slot kept for it; both hidden below 640 px. */
 .stack-tv-qr { width: clamp(80px, 7.8vw, 150px); aspect-ratio: 1; flex: none; }
-@media (max-width: 640px) { .stack-tv-qr { display: none; } .stack-tv-head { grid-template-columns: 1fr; justify-items: center; } .stack-tv-banner-slot { justify-content: center; } }
+.stack-tv-qr.has-code {
+  width: clamp(120px, 11vw, 220px); aspect-ratio: auto; display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.stack-tv-qr.has-code canvas { width: 100%; height: auto; aspect-ratio: 1; border-radius: 12px; }
+.stack-tv-bottom .stack-tv-qr-title { font-weight: 800; color: var(--on-band); font-size: clamp(13px, 1.1vw, 22px); text-align: center; }
+.stack-tv-bottom .stack-tv-qr-link { font-size: clamp(11px, 0.85vw, 17px); text-align: center; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .stack-tv-qr, .stack-tv-qr.has-code { display: none; } .stack-tv-head { grid-template-columns: 1fr; justify-items: center; } .stack-tv-banner-slot { justify-content: center; } }
 .stack-tv-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; color: var(--text-soft); font-size: clamp(13px, 1.1vw, 20px); }
 
 /* Paddle Stack: "Share standings" under the standings table. */
@@ -809,6 +844,10 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-share input { flex: 1 1 200px; }
 .stack-share .btn { padding: 10px 18px; }
 .stack-share .err { margin: 0; }
+/* "Share my card" on the player view (T6.5): label, then the name picker, then the buttons. */
+.stack-my-card .stack-my-card-pick { flex-direction: column; align-items: stretch; }
+.stack-my-card select { min-height: 44px; width: 100%; max-width: 360px; font: inherit; }
+.stack-my-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* Paddle Stack: share cards (T8.7). "Share card" on each standings row, and the preview dialog. */
 .stack-table td:last-child { text-align: right; padding-right: 0; }

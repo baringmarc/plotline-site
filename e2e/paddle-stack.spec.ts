@@ -11,6 +11,7 @@ const NAMES = ['Ana', 'Ben', 'Carla', 'Dante', 'Ella', 'Felix', 'Gia', 'Hugo', '
 const startCards = '.formcard.stack-start, .stack-guide-grid > *, .stack-faq'
 const boardCards = '.stack-title, .stack-courts > *, .stack-line, .stack-standings, .stack-actions'
 const tvCards = '.stack-tv-logo, .stack-tv-title, .stack-tv-banner, .stack-tv-courts > *, .stack-tv-bottom'
+const tvJoinCards = '.stack-tv-logo, .stack-tv-title, .stack-tv-courts > *, .stack-tv-bottom-main, .stack-tv-qr'
 const TITLE = 'Sunday Open Play (ALL LEVELS)'
 
 async function open(page: Page, theme: (typeof themes)[number], path = '/paddle-stack') {
@@ -112,6 +113,42 @@ for (const theme of themes) {
       await page.goto('/paddle-stack?tv=1')
       await page.locator('.stack-tv').waitFor()
       await checkPage(page, testInfo, { name: `stack-tv-window-${theme}`, cards: tvCards })
+    })
+
+    // T6.6: with a live key on this device the TV's bottom slot shows the join QR and short link. Nothing is
+    // published until the board changes, so no backend is needed.
+    test('TV mode and the ?tv=1 window with the join QR', async ({ page }, testInfo) => {
+      test.skip(!isTvProject(testInfo.project.name), 'the TV board runs only at 1920×1080')
+      await open(page, theme)
+      await startStack(page, { title: TITLE })
+      await page.evaluate(() => {
+        localStorage.setItem('plotline.paddle-stack.live', JSON.stringify({ code: 'k7m2q9', secret: 's', version: 0 }))
+        return document.fonts.ready
+      })
+      await page.goto('/paddle-stack?tv=1')
+      const slot = page.locator('.stack-tv-qr')
+      await expect(slot.locator('canvas')).toBeVisible()
+      await expect(slot).toContainText('/paddle-stack/live/k7m2q9')
+      await checkPage(page, testInfo, { name: `stack-tv-join-window-${theme}`, cards: tvJoinCards })
+      await page.goto('/paddle-stack')
+      await page.getByRole('button', { name: 'TV mode' }).click()
+      await expect(page.locator('.stack-tv-qr canvas')).toBeVisible()
+      await checkPage(page, testInfo, { name: `stack-tv-join-${theme}`, cards: tvJoinCards })
+    })
+
+    // T6.6: below 640 px the TV board has no room for the QR, so the slot stays hidden even while live.
+    test('the ?tv=1 window hides the join QR below 640 px', async ({ page }) => {
+      test.skip((page.viewportSize()?.width ?? 0) >= 640, 'only for phone widths')
+      await open(page, theme)
+      await startStack(page)
+      await page.evaluate(() => {
+        localStorage.setItem('plotline.paddle-stack.live', JSON.stringify({ code: 'k7m2q9', secret: 's', version: 0 }))
+        return document.fonts.ready
+      })
+      await page.goto('/paddle-stack?tv=1')
+      await page.locator('.stack-tv').waitFor()
+      await expect(page.locator('.stack-tv-qr canvas')).toBeAttached()
+      await expect(page.locator('.stack-tv-qr')).toBeHidden()
     })
   })
 }
