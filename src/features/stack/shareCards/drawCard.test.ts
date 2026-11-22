@@ -8,7 +8,7 @@
 // `drawGroupCard(data, { size, background, darkness })` draw on a `document.createElement('canvas')` of
 // `CARD_SIZES[size]` and resolve with its PNG (`toBlob(…, 'image/png')`); they reject without a 2D context or when
 // toBlob gives null. A photo background is drawn with `drawImage`, covering the card without stretching, then a
-// full-card shade of effective alpha `overlayAlpha(darkness)`. Copy: `share.placeOf(place, of)`,
+// full-card shade of effective alpha `overlayAlpha(darkness)`. Copy (the place line is gone since T8.7c):
 // `share.winRateLabel`, `share.streakLabel`, `share.record`, `share.diff`, `share.more(n)`, `share.footer`.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { paddleStack } from '../../../config/site'
@@ -61,7 +61,13 @@ function fakeCanvas(opts: { context?: boolean; blob?: Blob | null } = {}): Fake 
           texts.push({ text: String(t), font: String(target.font) })
           record(prop, [t, ...rest])
         }
-      if (prop === 'measureText') return (t: string) => ({ width: String(t).length * 20, actualBoundingBoxAscent: 20, actualBoundingBoxDescent: 5 })
+      // Like a real canvas, the width grows with the font size (half the size per character).
+      if (prop === 'measureText')
+        return (t: string) => ({
+          width: String(t).length * Number.parseFloat(String(target.font).match(/(\d+(?:\.\d+)?)px/)?.[1] ?? '40') * 0.5,
+          actualBoundingBoxAscent: 20,
+          actualBoundingBoxDescent: 5,
+        })
       if (prop === 'createLinearGradient' || prop === 'createRadialGradient' || prop === 'createConicGradient')
         return (...args: unknown[]) => {
           record(prop, args)
@@ -200,13 +206,13 @@ describe('drawPlayerCard', () => {
     })
   }
 
-  it('draws the name, place of N, W–L, win %, best streak, point difference, title, date and footer', async () => {
+  it('draws the name, W–L, win %, best streak, point difference, title, date and footer, and no place (T8.7c)', async () => {
     const fake = fakeCanvas()
     const data = playerData()
     await drawPlayerCard(data, { size: 'story', background: builtin(), darkness: 50 })
     const drawn = joined(fake)
     expect(drawn).toContain(data.name)
-    expect(drawn).toContain(share.placeOf(data.place, data.of))
+    expect(drawn).not.toContain(`of ${data.of}`)
     expect(drawn).toContain(data.record)
     expect(drawn).toContain('75%')
     expect(drawn).toContain('7')

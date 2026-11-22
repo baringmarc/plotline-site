@@ -19,6 +19,9 @@
 // - a button `share.layout.reset`: back to `defaultLayout(size)`, the saved one cleared;
 // - the layout loads with `loadCardLayout(size)` on open and on a size change, saves with `saveCardLayout` after each
 //   change, and every `drawPlayerCard` call (preview and share) gets it as `opts.layout`.
+// T8.7c (the user's calls, 2026-11-21): the title and the date are parts inside the one player card (removed with a
+// chip like the others, no Title chip for a session without a title); the logo and the link can't be removed, so the
+// card has no ✕ of its own and stays when every part is removed.
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -105,7 +108,9 @@ const lastLayout = (): CardLayout | undefined => {
 const itemButton = (id: CardItemId) => within(dialog()).getByRole('button', { name: L.select(L.items[id]) })
 const queryItemButton = (id: CardItemId) => within(dialog()).queryByRole('button', { name: L.select(L.items[id]) })
 const removedGroup = () => within(dialog()).getByRole('group', { name: L.removedLabel })
-const PARTS: CardPartId[] = ['name', 'place', 'record', 'winRate', 'streak', 'diff']
+const PARTS: CardPartId[] = ['name', 'record', 'winRate', 'streak', 'diff', 'title', 'date']
+const partChip = (p: CardPartId) => within(dialog()).getByRole('button', { name: L.remove(L.parts[p]) })
+const queryPartChip = (p: CardPartId) => within(dialog()).queryByRole('button', { name: L.remove(L.parts[p]) })
 
 async function openPlayer(s = played()) {
   const user = userEvent.setup()
@@ -173,10 +178,10 @@ describe('layout copy (config)', () => {
       expect((L[k] as string).length, k).toBeGreaterThan(0)
     }
     for (const look of ['default', 'compact', 'list'] as const) expect(L.looks[look].length, look).toBeGreaterThan(0)
-    for (const id of ['player', 'title', 'date'] as const) expect(L.items[id].length, id).toBeGreaterThan(0)
+    expect(Object.keys(L.items)).toEqual(['player'])
     for (const p of PARTS) expect(L.parts[p].length, p).toBeGreaterThan(0)
     expect(new Set(Object.values(L.looks)).size).toBe(3)
-    expect(new Set(Object.values(L.parts)).size).toBe(6)
+    expect(new Set(Object.values(L.parts)).size).toBe(7)
   })
 
   it('names the select, remove and restore buttons after the item', () => {
@@ -198,143 +203,139 @@ describe('ShareCardDialog: arranging the player card (T8.7b)', () => {
     expect(within(dialog()).getByText(L.hint)).toBeInTheDocument()
   })
 
-  it('shows a button for each drawn item: the player card, the title and the date', async () => {
+  it('shows one item button, the player card, and none for the title or the date', async () => {
     await openPlayer()
-    for (const id of ['player', 'title', 'date'] as CardItemId[]) {
-      expect(itemButton(id), id).toHaveAttribute('aria-pressed', 'false')
-    }
+    expect(itemButton('player')).toHaveAttribute('aria-pressed', 'false')
+    expect(within(dialog()).queryByRole('button', { name: L.select('Title') })).toBeNull()
+    expect(within(dialog()).queryByRole('button', { name: L.select('Date') })).toBeNull()
   })
 
-  it('shows no title button when the session has no title', async () => {
-    await openPlayer(played(''))
-    expect(queryItemButton('title')).toBeNull()
-    expect(itemButton('player')).toBeInTheDocument()
-    expect(itemButton('date')).toBeInTheDocument()
+  it('offers no Title chip when the session has no title', async () => {
+    const user = await openPlayer(played(''))
+    await select(user, 'player')
+    expect(queryPartChip('title')).toBeNull()
+    expect(partChip('date')).toBeInTheDocument()
+    expect(partChip('name')).toBeInTheDocument()
   })
 
-  it('selects an item when tapped (one at a time) and shows its ✕', async () => {
+  it('selects the card when tapped and shows its part chips, but no ✕ for the card itself', async () => {
     const user = await openPlayer()
-    expect(within(dialog()).queryByRole('button', { name: L.remove(L.items.date) })).toBeNull()
-    await user.click(itemButton('date'))
-    expect(itemButton('date')).toHaveAttribute('aria-pressed', 'true')
-    expect(within(dialog()).getByRole('button', { name: L.remove(L.items.date) })).toBeInTheDocument()
-    await user.click(itemButton('title'))
-    expect(itemButton('title')).toHaveAttribute('aria-pressed', 'true')
-    expect(itemButton('date')).toHaveAttribute('aria-pressed', 'false')
-    expect(within(dialog()).getByRole('button', { name: L.remove(L.items.title) })).toBeInTheDocument()
+    expect(queryPartChip('name')).toBeNull()
+    await user.click(itemButton('player'))
+    expect(itemButton('player')).toHaveAttribute('aria-pressed', 'true')
+    expect(partChip('name')).toBeInTheDocument()
+    expect(within(dialog()).queryByRole('button', { name: L.remove(L.items.player) })).toBeNull()
   })
 
   for (const pointerType of ['mouse', 'touch']) {
-    it(`moves an item dragged with ${pointerType === 'mouse' ? 'a mouse' : 'a finger'} (pointer events)`, async () => {
+    it(`moves the card dragged with ${pointerType === 'mouse' ? 'a mouse' : 'a finger'} (pointer events)`, async () => {
       const user = await openPlayer()
-      const before = lastLayout()!.items.date
-      await select(user, 'date')
-      const btn = itemButton('date')
+      const before = lastLayout()!.items.player
+      await select(user, 'player')
+      const btn = itemButton('player')
       const common = { pointerId: 7, pointerType, isPrimary: true, button: 0 }
       fireEvent.pointerDown(btn, { ...common, buttons: 1, clientX: 100, clientY: 100 })
-      fireEvent.pointerMove(btn, { ...common, buttons: 1, clientX: 120, clientY: 130 })
-      fireEvent.pointerMove(btn, { ...common, buttons: 1, clientX: 140, clientY: 160 })
-      fireEvent.pointerUp(btn, { ...common, buttons: 0, clientX: 140, clientY: 160 })
+      fireEvent.pointerMove(btn, { ...common, buttons: 1, clientX: 90, clientY: 130 })
+      fireEvent.pointerMove(btn, { ...common, buttons: 1, clientX: 80, clientY: 160 })
+      fireEvent.pointerUp(btn, { ...common, buttons: 0, clientX: 80, clientY: 160 })
       await drawnWith((l) => {
-        expect(l.items.date.x).toBeGreaterThan(before.x)
-        expect(l.items.date.y).toBeGreaterThan(before.y)
+        expect(l.items.player.x).toBeLessThan(before.x)
+        expect(l.items.player.y).toBeGreaterThan(before.y)
       })
-      expect(lastLayout()!.items.player).toEqual(defaultLayout('story').items.player)
+      expect(lastLayout()!.items.player.scale).toBe(1)
     })
   }
 
-  it('moves the selected item with the arrow keys', async () => {
+  it('moves the selected card with the arrow keys', async () => {
     const user = await openPlayer()
-    const start = lastLayout()!.items.date
-    await select(user, 'date')
-    itemButton('date').focus()
-    await user.keyboard('{ArrowRight}{ArrowDown}')
+    const start = lastLayout()!.items.player
+    await select(user, 'player')
+    itemButton('player').focus()
+    await user.keyboard('{ArrowLeft}{ArrowDown}')
     await drawnWith((l) => {
-      expect(l.items.date.x).toBeGreaterThan(start.x)
-      expect(l.items.date.y).toBeGreaterThan(start.y)
+      expect(l.items.player.x).toBeLessThan(start.x)
+      expect(l.items.player.y).toBeGreaterThan(start.y)
     })
-    const moved = lastLayout()!.items.date
-    await user.keyboard('{ArrowLeft}{ArrowUp}')
+    const moved = lastLayout()!.items.player
+    await user.keyboard('{ArrowRight}{ArrowUp}')
     await drawnWith((l) => {
-      expect(l.items.date.x).toBeLessThan(moved.x)
-      expect(l.items.date.y).toBeLessThan(moved.y)
+      expect(l.items.player.x).toBeGreaterThan(moved.x)
+      expect(l.items.player.y).toBeLessThan(moved.y)
     })
   })
 
-  it('resizes the selected item with the Size slider', async () => {
+  it('resizes the selected card with the Size slider', async () => {
     const user = await openPlayer()
-    await select(user, 'title')
+    await select(user, 'player')
     const slider = within(dialog()).getByRole('slider', { name: L.itemSize })
     expect(Number(slider.getAttribute('min'))).toBeCloseTo(MIN_SCALE, 5)
     expect(Number(slider.getAttribute('max'))).toBeCloseTo(MAX_SCALE, 5)
     expect(Number((slider as HTMLInputElement).value)).toBeCloseTo(1, 5)
     const target = Math.round(((MIN_SCALE + 1) / 2) * 100) / 100
     fireEvent.change(slider, { target: { value: String(target) } })
-    await drawnWith((l) => expect(l.items.title.scale).toBeCloseTo(target, 2))
-    expect(lastLayout()!.items.date.scale).toBe(1)
+    await drawnWith((l) => expect(l.items.player.scale).toBeCloseTo(target, 2))
+    expect(lastLayout()!.removedParts).toEqual([])
   })
 
-  it('removes the title with its ✕ and brings it back from Removed', async () => {
-    const user = await openPlayer()
-    await select(user, 'title')
-    await user.click(within(dialog()).getByRole('button', { name: L.remove(L.items.title) }))
-    await drawnWith((l) => expect(l.items.title.removed).toBe(true))
-    expect(queryItemButton('title')).toBeNull()
-    await user.click(within(removedGroup()).getByRole('button', { name: L.restore(L.items.title) }))
-    await drawnWith((l) => expect(l.items.title.removed).toBe(false))
-    expect(itemButton('title')).toBeInTheDocument()
-  })
-
-  it('removes the date with its ✕ and brings it back', async () => {
-    const user = await openPlayer()
-    await select(user, 'date')
-    await user.click(within(dialog()).getByRole('button', { name: L.remove(L.items.date) }))
-    await drawnWith((l) => expect(l.items.date.removed).toBe(true))
-    await user.click(within(removedGroup()).getByRole('button', { name: L.restore(L.items.date) }))
-    await drawnWith((l) => expect(l.items.date.removed).toBe(false))
-  })
-
-  it('shows a ✕ for each part of the selected player card', async () => {
+  it('removes the title with its chip and brings it back from Removed', async () => {
     const user = await openPlayer()
     await select(user, 'player')
-    for (const p of PARTS) expect(within(dialog()).getByRole('button', { name: L.remove(L.parts[p]) }), p).toBeInTheDocument()
-    await user.click(itemButton('date'))
-    expect(within(dialog()).queryByRole('button', { name: L.remove(L.parts.name) })).toBeNull()
+    await user.click(partChip('title'))
+    await drawnWith((l) => expect(l.removedParts).toEqual(['title']))
+    expect(queryPartChip('title')).toBeNull()
+    await user.click(within(removedGroup()).getByRole('button', { name: L.restore(L.parts.title) }))
+    await drawnWith((l) => expect(l.removedParts).toEqual([]))
+    expect(partChip('title')).toBeInTheDocument()
   })
 
-  it('removes one part of the player card and brings it back', async () => {
+  it('removes the date with its chip and brings it back', async () => {
     const user = await openPlayer()
     await select(user, 'player')
-    await user.click(within(dialog()).getByRole('button', { name: L.remove(L.parts.winRate) }))
+    await user.click(partChip('date'))
+    await drawnWith((l) => expect(l.removedParts).toEqual(['date']))
+    await user.click(within(removedGroup()).getByRole('button', { name: L.restore(L.parts.date) }))
+    await drawnWith((l) => expect(l.removedParts).toEqual([]))
+  })
+
+  it('shows a chip for each part of the selected card, and none for the logo or the link', async () => {
+    const user = await openPlayer()
+    await select(user, 'player')
+    for (const p of PARTS) expect(partChip(p), p).toBeInTheDocument()
+    expect(within(dialog()).queryByRole('button', { name: /logo|link|plotline/i })).toBeNull()
+  })
+
+  it('removes one part of the card and brings it back', async () => {
+    const user = await openPlayer()
+    await select(user, 'player')
+    await user.click(partChip('winRate'))
     await drawnWith((l) => expect(l.removedParts).toEqual(['winRate']))
-    expect(lastLayout()!.items.player.removed).toBe(false)
-    expect(within(dialog()).queryByRole('button', { name: L.remove(L.parts.winRate) })).toBeNull()
+    expect(itemButton('player')).toBeInTheDocument()
+    expect(queryPartChip('winRate')).toBeNull()
     await user.click(within(removedGroup()).getByRole('button', { name: L.restore(L.parts.winRate) }))
     await drawnWith((l) => expect(l.removedParts).toEqual([]))
   })
 
-  it('removes the player card when every part is removed, and restoring it brings all the parts back', async () => {
+  it('keeps the card when every part is removed (the logo and the link stay), and brings each part back', async () => {
     const user = await openPlayer()
     for (const p of PARTS) {
       await select(user, 'player')
-      await user.click(within(dialog()).getByRole('button', { name: L.remove(L.parts[p]) }))
+      await user.click(partChip(p))
     }
-    await drawnWith((l) => expect(l.items.player.removed).toBe(true))
-    expect(queryItemButton('player')).toBeNull()
-    await user.click(within(removedGroup()).getByRole('button', { name: L.restore(L.items.player) }))
-    await drawnWith((l) => {
-      expect(l.items.player.removed).toBe(false)
-      expect(l.removedParts).toEqual([])
-    })
+    await drawnWith((l) => expect([...l.removedParts].sort()).toEqual([...PARTS].sort()))
     expect(itemButton('player')).toBeInTheDocument()
+    for (const p of PARTS) expect(within(removedGroup()).getByRole('button', { name: L.restore(L.parts[p]) }), p).toBeInTheDocument()
+    await user.click(within(removedGroup()).getByRole('button', { name: L.restore(L.parts.name) }))
+    await drawnWith((l) => {
+      expect(l.removedParts).not.toContain('name')
+      expect(l.removedParts).toHaveLength(PARTS.length - 1)
+    })
   })
 
-  it('removes the whole player card with its ✕', async () => {
+  it('has no way to remove the whole card', async () => {
     const user = await openPlayer()
     await select(user, 'player')
-    await user.click(within(dialog()).getByRole('button', { name: L.remove(L.items.player) }))
-    await drawnWith((l) => expect(l.items.player.removed).toBe(true))
-    expect(within(removedGroup()).getByRole('button', { name: L.restore(L.items.player) })).toBeInTheDocument()
+    expect(within(dialog()).queryByRole('button', { name: L.remove(L.items.player) })).toBeNull()
+    expect(within(dialog()).queryByRole('button', { name: L.restore(L.items.player) })).toBeNull()
   })
 
   it('sets the panel’s opacity with its slider', async () => {
@@ -401,9 +402,9 @@ describe('ShareCardDialog: the saved layout', () => {
     await waitFor(() => expect(loadCardLayout('story').look).toBe('list'))
     fireEvent.change(within(dialog()).getByRole('slider', { name: L.opacity }), { target: { value: '25' } })
     await waitFor(() => expect(loadCardLayout('story').opacity).toBe(25))
-    await select(user, 'date')
-    await user.click(within(dialog()).getByRole('button', { name: L.remove(L.items.date) }))
-    await waitFor(() => expect(loadCardLayout('story').items.date.removed).toBe(true))
+    await select(user, 'player')
+    await user.click(partChip('date'))
+    await waitFor(() => expect(loadCardLayout('story').removedParts).toEqual(['date']))
     expect(loadCardLayout('post')).toEqual(defaultLayout('post'))
     expect(localStorage.getItem(CARD_LAYOUT_KEY)).not.toBeNull()
   })
@@ -433,11 +434,11 @@ describe('ShareCardDialog: the saved layout', () => {
     expect(lastLayout()).toEqual(defaultLayout('story'))
     await user.click(within(dialog()).getByRole('radio', { name: L.looks.compact }))
     await drawnWith((l) => expect(l.look).toBe('compact'))
-    await select(user, 'title')
-    await user.click(within(dialog()).getByRole('button', { name: L.remove(L.items.title) }))
+    await select(user, 'player')
+    await user.click(partChip('title'))
     await drawnWith((l) => {
       expect(l.look).toBe('compact')
-      expect(l.items.title.removed).toBe(true)
+      expect(l.removedParts).toEqual(['title'])
     })
     expect(within(dialog()).queryByRole('alert')).toBeNull()
   })
@@ -464,7 +465,7 @@ describe('ShareCardDialog: the group card has no layout controls', () => {
     const s = played()
     render(<ShareCardDialog session={s} onClose={() => {}} />)
     await waitFor(() => expect(drawGroupCard).toHaveBeenCalled())
-    for (const id of ['player', 'title', 'date'] as CardItemId[]) expect(queryItemButton(id), id).toBeNull()
+    for (const id of ['player'] as CardItemId[]) expect(queryItemButton(id), id).toBeNull()
     expect(within(dialog()).queryByRole('slider', { name: L.opacity })).toBeNull()
     expect(within(dialog()).queryByRole('slider', { name: L.itemSize })).toBeNull()
     expect(within(dialog()).queryByRole('radiogroup', { name: L.lookLabel })).toBeNull()

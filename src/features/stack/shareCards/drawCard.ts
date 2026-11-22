@@ -1,7 +1,7 @@
 /**
- * Draws the share cards (T8.7) on a canvas: the player card (Strava-style stats, arranged by its layout, T8.7b) and the
- * group card (the leaderboard), at story or post size, on a built-in background or the organizer's photo under a
- * shade. Names and big numbers use
+ * Draws the share cards (T8.7) on a canvas: the player card (Strava-style stats, arranged by its layout, T8.7b, with
+ * the logo, the title, the date and the link inside it, T8.7c) and the group card (the leaderboard), at story or post
+ * size, on a built-in background or the organizer's photo under a shade. Names and big numbers use
  * Paddle Stack's display face (T8.2), waited for before any text is drawn; the rest is DM Sans. No image is loaded:
  * the Plotline logo is drawn as shapes, so nothing is fetched while making a card.
  */
@@ -9,7 +9,20 @@ import { paddleStack } from '../../../config/paddleStack'
 import { loadStackFonts, STACK_DISPLAY } from '../fonts'
 import { overlayAlpha, type CardBackground } from './backgrounds'
 import { CARD_SIZES, type CardSize, type GroupCardData, type PlayerCardData } from './cardData'
-import { defaultLayout, fitLayout, itemRects, ITEM_WIDTH, PLAYER_METRICS, STAT_PARTS, statsShown, type CardLayout, type Rect } from './layout'
+import {
+  defaultLayout,
+  fitLayout,
+  itemRects,
+  ITEM_WIDTH,
+  partShown,
+  PLAYER_METRICS,
+  STAT_PARTS,
+  statsHeight,
+  statsShown,
+  type CardLayout,
+  type CardPartId,
+  type Rect,
+} from './layout'
 
 const { share } = paddleStack
 
@@ -249,22 +262,20 @@ function logo(ctx: CanvasRenderingContext2D, x: number, y: number, size: number)
   ctx.fillText('km', x + 170 * u, y + 187 * u)
 }
 
-/** Logo tile and "plotline" wordmark, top left. */
-function header(ctx: CanvasRenderingContext2D, theme: Theme) {
-  logo(ctx, LEFT, 80, 88)
-  ctx.fillStyle = theme.text
-  ctx.textAlign = 'left'
-  ctx.font = `800 44px ${DISPLAY}`
-  ctx.fillText(paddleStack.tv.brand, LEFT + 110, 138)
+/** The group card's logo tile, top left (no wordmark: the tile is the brand). */
+function header(ctx: CanvasRenderingContext2D) {
+  logo(ctx, LEFT, 80, 72)
 }
 
+/** The group card's Paddle Stack link, bottom right, small and soft under a faint rule. */
 function footer(ctx: CanvasRenderingContext2D, theme: Theme, text: string, W: number, H: number) {
-  ctx.fillStyle = theme.soft
+  ctx.fillStyle = theme.line
   ctx.fillRect(LEFT, H - 150, W - 2 * LEFT, 2)
+  ctx.textAlign = 'right'
+  fitFont(ctx, text, 500, 26, SANS, W - 2 * LEFT)
+  ctx.fillStyle = theme.soft
+  ctx.fillText(text, W - LEFT, H - 84)
   ctx.textAlign = 'left'
-  fitFont(ctx, text, 700, 30, SANS, W - 2 * LEFT)
-  ctx.fillStyle = theme.text
-  ctx.fillText(text, LEFT, H - 84)
 }
 
 /** Shrinks a font until `text` fits in `width` (in steps of 2 px times `k`, down to 20 px times `k`). */
@@ -277,48 +288,38 @@ function fitFont(ctx: CanvasRenderingContext2D, text: string, weight: number, si
   }
 }
 
+/** Like fitFont, then cuts the text with "…" if it still doesn't fit at the smallest size; returns what to draw. */
+function fitText(ctx: CanvasRenderingContext2D, text: string, weight: number, size: number, family: string, width: number, k = 1): string {
+  fitFont(ctx, text, weight, size, family, width, k)
+  if (ctx.measureText(text).width <= width) return text
+  const chars = Array.from(text)
+  while (chars.length > 1 && ctx.measureText(`${chars.join('').trimEnd()}…`).width > width) chars.pop()
+  return `${chars.join('').trimEnd()}…`
+}
+
 // ---------- the player card ----------
 
 /** A font size with one decimal, so a scaled item's text keeps its proportions. */
 const px = (n: number) => Math.round(n * 10) / 10
 
-/** The player card, title and date where the layout puts them (T8.7b); the header and footer never move. */
+/** The player card where the layout puts it (T8.7b); everything on the card is drawn inside it (T8.7c). */
 export async function drawPlayerCard(data: PlayerCardData, opts: DrawOptions): Promise<Blob> {
-  const { canvas, ctx, theme, width: W, height: H } = await start(opts)
+  const { canvas, ctx, theme } = await start(opts)
   const layout = fitLayout(opts.layout ?? defaultLayout(opts.size), opts.size)
-  const rects = itemRects(layout, opts.size, { hasTitle: data.title !== '' })
-  header(ctx, theme)
-
-  ctx.textAlign = 'left'
-  if (rects.title) {
-    const r = rects.title
-    const s = layout.items.title.scale
-    ctx.fillStyle = theme.text
-    fitFont(ctx, data.title, 700, px(44 * s), DISPLAY, r.w, s)
-    ctx.fillText(data.title, r.x, r.y + (opts.size === 'story' ? 46 : 44) * s)
-  }
-  if (rects.date) {
-    const r = rects.date
-    const s = layout.items.date.scale
-    ctx.fillStyle = theme.soft
-    fitFont(ctx, data.date, 500, px(32 * s), SANS, r.w, s)
-    ctx.fillText(data.date, r.x, r.y + 32 * s)
-  }
-  if (rects.player) playerItem(ctx, data, layout, opts.size, rects.player, theme)
-
-  footer(ctx, theme, data.footer, W, H)
+  const hasTitle = data.title !== ''
+  playerItem(ctx, data, layout, opts.size, itemRects(layout, opts.size, { hasTitle }).player, theme, hasTitle)
   return toPng(canvas)
 }
 
-function playerItem(ctx: CanvasRenderingContext2D, data: PlayerCardData, layout: CardLayout, size: CardSize, r: Rect, theme: Theme) {
+function playerItem(ctx: CanvasRenderingContext2D, data: PlayerCardData, layout: CardLayout, size: CardSize, r: Rect, theme: Theme, hasTitle: boolean) {
   const s = layout.items.player.scale
   const m = PLAYER_METRICS[size]
-  const story = size === 'story'
   const X = (lx: number) => r.x + lx * s
   const Y = (ly: number) => r.y + ly * s
   const cw = ITEM_WIDTH - 2 * m.pad
+  const shown = (p: CardPartId) => partShown(layout, p, { hasTitle })
 
-  // The panel behind the card; only it fades, the text stays solid.
+  // The panel behind the card; only it fades, the text and the logo stay solid.
   if (layout.opacity > 0) {
     ctx.globalAlpha = layout.opacity / 100
     ctx.fillStyle = theme.card
@@ -327,21 +328,69 @@ function playerItem(ctx: CanvasRenderingContext2D, data: PlayerCardData, layout:
     ctx.globalAlpha = 1
   }
 
-  ctx.textAlign = 'left'
-  let y = m.pad
-  if (!layout.removedParts.includes('name')) {
+  // Top row: the logo, then the name beside it (the logo alone when the name is removed).
+  const named = shown('name')
+  logo(ctx, X(m.pad), Y(named ? m.pad + m.nameFont * 0.5 - m.logo / 2 : m.pad), m.logo * s)
+  if (named) {
+    const nx = m.pad + m.logo + m.logoGap
+    ctx.textAlign = 'left' // the logo's "km" leaves it centred
     ctx.fillStyle = theme.text
-    fitFont(ctx, data.name, 800, px(m.nameFont * s), DISPLAY, cw * s, s)
-    ctx.fillText(data.name, X(m.pad), Y(y + m.nameFont * 0.85))
-    y += m.name
+    fitFont(ctx, data.name, 800, px(m.nameFont * s), DISPLAY, (cw - m.logo - m.logoGap) * s, s)
+    ctx.fillText(data.name, X(nx), Y(m.pad + m.nameFont * 0.85))
   }
-  if (!layout.removedParts.includes('place')) {
-    ctx.fillStyle = theme.accent
-    ctx.font = `800 ${px(m.placeFont * s)}px ${DISPLAY}`
-    ctx.fillText(share.placeOf(data.place, data.of), X(m.pad), Y(y + m.placeFont * 0.95))
-    y += m.place
-  }
+  let y = m.pad + (named ? m.name : m.logo)
 
+  const statsH = statsHeight(layout, size)
+  if (statsH > 0) {
+    statTiles(ctx, data, layout, size, X, Y, y + m.gap, theme)
+    y += m.gap + statsH
+  }
+  y += m.gap
+
+  // Bottom row: the title and the date on the left, the link on the right, on the last line's baseline. A title too
+  // long for the room left of the link is cut with "…" so the two never overlap.
+  ctx.font = `500 ${px(m.linkFont * s)}px ${SANS}`
+  const linkW = ctx.measureText(data.footer).width
+  const leftW = Math.max(cw * s * 0.4, cw * s - linkW - 24 * s)
+  let base = Y(y + m.link * 0.7)
+  if (shown('title')) {
+    ctx.textAlign = 'left'
+    ctx.fillStyle = theme.text
+    const title = fitText(ctx, data.title, 700, px(m.titleFont * s), DISPLAY, leftW, s)
+    base = Y(y + m.titleFont * 1.05)
+    ctx.fillText(title, X(m.pad), base)
+    y += m.title
+  }
+  if (shown('date')) {
+    ctx.textAlign = 'left'
+    ctx.fillStyle = theme.soft
+    const date = fitText(ctx, data.date, 500, px(m.dateFont * s), SANS, leftW, s)
+    base = Y(y + m.dateFont)
+    ctx.fillText(date, X(m.pad), base)
+  }
+  ctx.textAlign = 'right'
+  ctx.fillStyle = theme.soft
+  fitFont(ctx, data.footer, 500, px(m.linkFont * s), SANS, cw * s, s)
+  ctx.fillText(data.footer, X(m.pad + cw), base)
+  ctx.textAlign = 'left'
+}
+
+/** The stat tiles from `top` (layout pixels inside the card), in the layout's look. */
+function statTiles(
+  ctx: CanvasRenderingContext2D,
+  data: PlayerCardData,
+  layout: CardLayout,
+  size: CardSize,
+  X: (lx: number) => number,
+  Y: (ly: number) => number,
+  top: number,
+  theme: Theme,
+) {
+  const s = layout.items.player.scale
+  const m = PLAYER_METRICS[size]
+  const story = size === 'story'
+  const cw = ITEM_WIDTH - 2 * m.pad
+  const y = top
   const values: Record<(typeof STAT_PARTS)[number], [string, string]> = {
     record: [share.record, data.record],
     winRate: [share.winRateLabel, data.winRate === null ? '—' : `${data.winRate}%`],
@@ -349,8 +398,6 @@ function playerItem(ctx: CanvasRenderingContext2D, data: PlayerCardData, layout:
     diff: [share.diff, data.diff],
   }
   const stats = statsShown(layout).map((p) => values[p])
-  if (stats.length === 0) return
-  if (y > m.pad) y += m.gap
 
   ctx.strokeStyle = theme.line
   ctx.lineWidth = 2 * s
@@ -404,7 +451,7 @@ export async function drawGroupCard(data: GroupCardData, opts: DrawOptions): Pro
   const { canvas, ctx, theme, width: W, height: H } = await start(opts)
   const story = opts.size === 'story'
   const right = W - LEFT
-  header(ctx, theme)
+  header(ctx)
 
   ctx.textAlign = 'left'
   ctx.fillStyle = theme.text

@@ -1,11 +1,5 @@
 import type { Format } from '../features/stack/types'
 
-/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st (the share card's place). */
-function ordinal(n: number): string {
-  const tens = n % 100
-  const suffix = tens >= 11 && tens <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'
-  return `${n}${suffix}`
-}
 // Paddle Stack copy, re-exported by ./site (CLAUDE.md: visitor-facing copy lives in src/config/site.ts and its modules).
 /**
  * Paddle Stack (`/paddle-stack`, Milestone 5): a free open-play queue for organizers. It runs on one
@@ -200,7 +194,8 @@ export const paddleStack = {
     defaultTitle: 'Open play standings',
     record: 'W–L',
     diff: '+/−',
-    footer: 'Paddle Stack · free at plotline.fit/paddle-stack',
+    /** The link on both share cards, bottom right (T8.7c). */
+    footer: 'plotline.fit/paddle-stack',
     failed: 'Couldn’t make the image. Try again.',
     /** Share cards (T8.7): "Share card" on each standings row, with the player's name for screen readers. */
     cardButton: 'Share card',
@@ -226,18 +221,18 @@ export const paddleStack = {
     /** The player card's stat labels (with `record` and `diff` above). */
     winRateLabel: 'Win %',
     streakLabel: 'Best streak',
-    placeOf: (place: number, of: number) => `${ordinal(place)} of ${of}`,
     /** Under the group card's rows when not everyone fits. */
     more: (n: number) => `+${n} more`,
     /** Arranging the player card in the preview (T8.7b). */
     layout: {
-      hint: 'Tap the player card, the title or the date to pick it, then drag it to move it.',
+      hint: 'Tap the card to pick it, then drag it to move it.',
       itemSize: 'Size of the picked item',
       opacity: 'Card background',
       lookLabel: 'Look',
       looks: { default: 'Default', compact: 'Compact', list: 'List' },
-      items: { player: 'Player card', title: 'Title', date: 'Date' },
-      parts: { name: 'Name', place: 'Place', record: 'W–L', winRate: 'Win %', streak: 'Best streak', diff: '+/−' },
+      items: { player: 'Player card' },
+      /** The parts of the card that can be removed; the logo and the link always stay (T8.7c). */
+      parts: { name: 'Name', record: 'W–L', winRate: 'Win %', streak: 'Best streak', diff: '+/−', title: 'Title', date: 'Date' },
       select: (label: string) => `Pick ${label}`,
       remove: (label: string) => `Remove ${label}`,
       restore: (label: string) => `Add ${label} back`,

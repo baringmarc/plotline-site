@@ -7,7 +7,8 @@
 // object keyed by size (`{ story?: CardLayout, post?: CardLayout }`); `loadCardLayout(size)` returns
 // `defaultLayout(size)` for missing, unparsable or invalid data and when storage throws; `saveCardLayout(size, layout)`
 // returns false when storage throws and keeps the other size's layout; `clearCardLayout(size)` drops that size only and
-// never throws.
+// never throws. T8.7c: the layout has one item (the player card); a T8.7b layout (three items and a place part) still
+// loads: the place is dropped and a removed title or date item becomes a removed part.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CARD_SIZES, type CardSize } from './cardData'
 import {
@@ -18,7 +19,6 @@ import {
   itemRects,
   loadCardLayout,
   moveItem,
-  removeItem,
   removePart,
   resizeItem,
   saveCardLayout,
@@ -65,9 +65,8 @@ afterEach(() => {
 function arranged(size: CardSize): CardLayout {
   let l = defaultLayout(size)
   l = moveItem(l, size, 'player', 20, 40)
-  l = moveItem(l, size, 'date', 30, 10)
-  l = resizeItem(l, size, 'title', 0.8)
-  l = removeItem(l, 'date')
+  l = resizeItem(l, size, 'player', 0.8)
+  l = removePart(l, 'date')
   l = removePart(l, 'streak')
   l = setOpacity(l, 35)
   l = setLook(l, 'list')
@@ -89,15 +88,15 @@ describe('card layout storage (T8.7b)', () => {
     expect(loadCardLayout('post')).toEqual(defaultLayout('post'))
   })
 
-  it('saves a layout and loads it back: positions, sizes, removed items and parts, opacity and look', () => {
+  it('saves a layout and loads it back: position, size, removed parts, opacity and look', () => {
     const l = arranged('story')
     expect(saveCardLayout('story', l)).toBe(true)
     const back = loadCardLayout('story')
     expect(back).toEqual(l)
     expect(back.look).toBe('list')
     expect(back.opacity).toBe(35)
-    expect(back.removedParts).toEqual(['streak'])
-    expect(back.items.date.removed).toBe(true)
+    expect(back.removedParts).toEqual(['date', 'streak'])
+    expect(back.items.player.scale).toBeCloseTo(0.8, 5)
   })
 
   it('keeps one JSON object in the key, by size', () => {
@@ -135,7 +134,7 @@ describe('card layout storage (T8.7b)', () => {
         'an item whose x is not a number',
         JSON.stringify({ story: { ...defaultLayout('story'), items: { ...defaultLayout('story').items, player: { x: 'left', y: 300, scale: 1, removed: false } } } }),
       ],
-      ['an item missing', JSON.stringify({ story: { ...defaultLayout('story'), items: { player: defaultLayout('story').items.player } } })],
+      ['the player card missing', JSON.stringify({ story: { ...defaultLayout('story'), items: {} } })],
       ['an unknown look', JSON.stringify({ story: { ...defaultLayout('story'), look: 'grid' } })],
       ['an opacity that is not a number', JSON.stringify({ story: { ...defaultLayout('story'), opacity: 'half' } })],
       ['removedParts that is not a list', JSON.stringify({ story: { ...defaultLayout('story'), removedParts: 'name' } })],
@@ -149,21 +148,39 @@ describe('card layout storage (T8.7b)', () => {
     }
   })
 
-  it('never loads an item off the card or into the header or footer', () => {
+  it('never loads the card off the card', () => {
     const l = defaultLayout('post')
-    const off = { ...l, items: { ...l.items, player: { ...l.items.player, x: 5000, y: -5000 }, date: { ...l.items.date, y: 99999 } } }
-    localStorage.setItem(CARD_LAYOUT_KEY, JSON.stringify({ post: off }))
-    const back = loadCardLayout('post')
-    const rects = itemRects(back, 'post', { hasTitle: true })
-    const { width } = CARD_SIZES.post
-    for (const id of ['player', 'title', 'date'] as const) {
-      const r = rects[id]
-      if (!r) continue
-      expect(r.x, id).toBeGreaterThanOrEqual(-0.5)
-      expect(r.x + r.w, id).toBeLessThanOrEqual(width + 0.5)
-      expect(r.y, id).toBeGreaterThanOrEqual(SAFE_AREA.post.top - 0.5)
-      expect(r.y + r.h, id).toBeLessThanOrEqual(SAFE_AREA.post.bottom + 0.5)
+    for (const [x, y] of [
+      [5000, -5000],
+      [-5000, 99999],
+    ]) {
+      localStorage.setItem(CARD_LAYOUT_KEY, JSON.stringify({ post: { ...l, items: { player: { ...l.items.player, x, y } } } }))
+      const r = itemRects(loadCardLayout('post'), 'post', { hasTitle: true }).player
+      const { width } = CARD_SIZES.post
+      expect(r.x, `${x},${y}`).toBeGreaterThanOrEqual(-0.5)
+      expect(r.x + r.w, `${x},${y}`).toBeLessThanOrEqual(width + 0.5)
+      expect(r.y, `${x},${y}`).toBeGreaterThanOrEqual(SAFE_AREA.post.top - 0.5)
+      expect(r.y + r.h, `${x},${y}`).toBeLessThanOrEqual(SAFE_AREA.post.bottom + 0.5)
     }
+  })
+
+  it('loads a layout saved before T8.7c: the place dropped, a removed title or date item now a removed part', () => {
+    const old = {
+      items: {
+        player: { x: 80, y: 600, scale: 0.9, removed: false },
+        title: { x: 80, y: 230, scale: 1, removed: true },
+        date: { x: 80, y: 300, scale: 1, removed: false },
+      },
+      removedParts: ['place', 'streak'],
+      opacity: 60,
+      look: 'compact',
+    }
+    localStorage.setItem(CARD_LAYOUT_KEY, JSON.stringify({ story: old }))
+    const back = loadCardLayout('story')
+    expect(back.items).toEqual({ player: { x: 80, y: 600, scale: 0.9 } })
+    expect(back.removedParts).toEqual(['streak', 'title'])
+    expect(back.opacity).toBe(60)
+    expect(back.look).toBe('compact')
   })
 
   it('loads the default when reading storage throws', () => {

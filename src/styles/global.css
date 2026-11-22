@@ -880,10 +880,6 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-card-item:active { cursor: grabbing; }
 .stack-card-item[aria-pressed="true"] { border: 2px solid #fff; box-shadow: 0 0 0 2px var(--highlight); }
 .stack-card-item:focus-visible { outline: 3px solid var(--highlight); outline-offset: 2px; }
-.stack-card-remove {
-  position: absolute; transform: translate(-50%, -50%); width: 32px; height: 32px; padding: 0; border: 2px solid #fff; border-radius: 50%;
-  background: var(--brown); color: #fff; font-size: 15px; line-height: 1; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-} /* fixed colours: it sits on the card, not the page */
 .stack-card-arrange { display: grid; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .stack-card-arrange .hint { margin: 0; font-size: 13px; }
 .stack-card-range { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }

@@ -89,8 +89,9 @@ test('no network request while making and sharing a card, uploaded photo include
 })
 
 // T8.7b: arranging the player card with a real pointer (mouse here; touch is the user's by-eye check), in every
-// project and both themes: drag the date, pick the List look, remove a part, and the layout comes back on reopening.
-// No network request throughout (TASKS.md T8.7b Acceptance).
+// project and both themes: drag the card, pick the List look, remove a part, and the layout comes back on reopening.
+// No network request throughout (TASKS.md T8.7b Acceptance). T8.7c: the card is the only item; the title and the date
+// are parts inside it.
 for (const theme of themes) {
   test(`arrange the player card, ${theme}`, async ({ page }, testInfo) => {
     await scoredBoard(page, theme)
@@ -103,17 +104,18 @@ for (const theme of themes) {
     const dialog = page.getByRole('dialog', { name: 'Share a card' })
     await previewReady(page)
 
-    const date = dialog.getByRole('button', { name: 'Pick Date' })
-    const before = (await date.boundingBox())!
+    const card = dialog.getByRole('button', { name: 'Pick Player card' })
+    await expect(dialog.getByRole('button', { name: 'Pick Date' })).toHaveCount(0)
+    const before = (await card.boundingBox())!
     await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2)
     await page.mouse.down()
     await page.mouse.move(before.x + before.width / 2, before.y + before.height / 2 + 60, { steps: 6 })
     await page.mouse.up()
-    await expect(date).toHaveAttribute('aria-pressed', 'true')
-    await expect.poll(async () => (await date.boundingBox())!.y).toBeGreaterThan(before.y + 20)
+    await expect(card).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(async () => (await card.boundingBox())!.y).toBeGreaterThan(before.y + 20)
 
-    await dialog.getByRole('button', { name: 'Pick Player card' }).click()
     await dialog.getByRole('button', { name: 'Remove Best streak' }).click()
+    await expect(dialog.getByRole('button', { name: 'Remove Player card' })).toHaveCount(0)
     await dialog.getByRole('radio', { name: 'List' }).check()
     await dialog.getByRole('slider', { name: 'Card background' }).fill('80')
     await previewReady(page)

@@ -2,7 +2,9 @@
 // parts not drawn, sizes, positions, look and opacity applied)"; Do: "Opacity: a slider for the player card's
 // background panel, from solid to clear; text stays solid. Looks: Default (today's 2×2 tiles), Compact (one slim row
 // of four) and List (one row per stat, label left, big number right). The Plotline logo, wordmark and footer can't be
-// moved, resized or removed … the shared PNG matches the preview."
+// moved, resized or removed … the shared PNG matches the preview." T8.7c (the user's calls, 2026-11-21): everything is
+// inside the one player card: the logo (no wordmark) left of the name, the tiles, the title and then the date bottom
+// left, the link bottom right; no place line; the logo and the link are drawn on every layout and move with the card.
 //
 // Contract (the plan's names): `drawPlayerCard(data, { size, background, darkness, layout? })`, `layout` defaulting
 // to `defaultLayout(size)`; removed items and parts are not drawn; each item is drawn inside its box from
@@ -15,19 +17,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { paddleStack } from '../../../config/site'
 import { BACKGROUNDS, type CardBackground } from './backgrounds'
-import { CARD_SIZES, type CardSize, type PlayerCardData } from './cardData'
-import { drawPlayerCard } from './drawCard'
+import type { CardSize, PlayerCardData } from './cardData'
+import { drawGroupCard, drawPlayerCard } from './drawCard'
 import {
   MIN_SCALE,
   defaultLayout,
   itemRects,
   moveItem,
-  removeItem,
   removePart,
   resizeItem,
   setLook,
   setOpacity,
-  type CardItemId,
   type CardLayout,
   type CardPartId,
 } from './layout'
@@ -171,7 +171,11 @@ function fakeCanvas(): Fake {
       texts.push({ text: String(t), x: dx, y: dy, px: px * k, font: String(state.font), alpha: alphaNow(), align: String(state.textAlign) })
       log.push(`text ${t} ${dx},${dy} ${px * k} ${String(state.textAlign)}`)
     },
-    measureText: (t: string) => ({ width: String(t).length * 20, actualBoundingBoxAscent: 20, actualBoundingBoxDescent: 5 }),
+    // Like a real canvas, the width grows with the font size (half the size per character).
+    measureText: (t: string) => {
+      const px = Number.parseFloat(String(state.font).match(/(\d+(?:\.\d+)?)px/)?.[1] ?? '40')
+      return { width: String(t).length * px * 0.5, actualBoundingBoxAscent: 20, actualBoundingBoxDescent: 5 }
+    },
     createLinearGradient: () => ({ addColorStop: () => undefined }),
     createRadialGradient: () => ({ addColorStop: () => undefined }),
     createConicGradient: () => ({ addColorStop: () => undefined }),
@@ -231,12 +235,17 @@ const data = playerData()
 /** What each part of the player card draws: its value and, for a stat, its label. */
 const PART_TEXTS: Record<CardPartId, string[]> = {
   name: [data.name],
-  place: [share.placeOf(data.place, data.of)],
   record: [data.record, share.record],
   winRate: ['75%', share.winRateLabel],
   streak: ['7', share.streakLabel],
   diff: [data.diff, share.diff],
+  title: [data.title],
+  date: [data.date],
 }
+/** The logo's "km" and the link: drawn on every layout. */
+const FIXED_TEXTS = ['km', share.footer]
+/** The T8.7 place line, no longer drawn. */
+const PLACE = '2nd of 14'
 const STATS: { part: CardPartId; value: string; label: string }[] = [
   { part: 'record', value: data.record, label: share.record },
   { part: 'winRate', value: '75%', label: share.winRateLabel },
@@ -259,11 +268,7 @@ const textOf = (fake: Fake, text: string) => {
 }
 const has = (fake: Fake, text: string) => fake.texts.some((t) => t.text === text || t.text.includes(text))
 
-const rectOf = (layout: CardLayout, size: CardSize, id: CardItemId) => {
-  const r = itemRects(layout, size, { hasTitle: true })[id]
-  if (!r) throw new Error(`${id} has no rect`)
-  return r
-}
+const rectOf = (layout: CardLayout, size: CardSize, hasTitle = true) => itemRects(layout, size, { hasTitle }).player
 
 function expectInside(t: Text, r: { x: number; y: number; w: number; h: number }, what: string) {
   expect(t.x, `${what} x`).toBeGreaterThanOrEqual(r.x - 1)
@@ -275,6 +280,9 @@ function expectInside(t: Text, r: { x: number; y: number; w: number; h: number }
 /** Fills that lie inside the player card's box (not the background over the whole card). */
 const fillsInside = (fake: Fake, r: { x: number; y: number; w: number; h: number }) =>
   fake.fills.filter((f) => f.box && f.box.x0 >= r.x - 2 && f.box.y0 >= r.y - 2 && f.box.x1 <= r.x + r.w + 2 && f.box.y1 <= r.y + r.h + 2)
+/** Of those, the card-wide ones: the panel, not the logo's tile and dots. */
+const panelFills = (fake: Fake, r: { x: number; y: number; w: number; h: number }) =>
+  fillsInside(fake, r).filter((f) => f.box!.x1 - f.box!.x0 > r.w * 0.9)
 
 // ---------- the default ----------
 
@@ -287,17 +295,24 @@ describe('drawPlayerCard with a layout (T8.7b)', () => {
     })
   }
 
-  it('still draws every part, the title and the date with the default layout', async () => {
+  it('still draws every part, the title, the date, the logo and the link with the default layout', async () => {
     const fake = await draw('story', defaultLayout('story'))
     for (const p of PARTS) for (const t of PART_TEXTS[p]) expect(has(fake, t), `${p}: ${t}`).toBe(true)
-    expect(has(fake, data.title)).toBe(true)
-    expect(has(fake, data.date)).toBe(true)
+    for (const t of FIXED_TEXTS) expect(textOf(fake, t).text, t).toBe(t)
+  })
+
+  it('no longer draws the place or the "plotline" wordmark', async () => {
+    for (const size of SIZES) {
+      const fake = await draw(size, defaultLayout(size))
+      expect(has(fake, PLACE), `${size}: place`).toBe(false)
+      expect(fake.texts.some((t) => t.text === paddleStack.tv.brand), `${size}: wordmark`).toBe(false)
+    }
   })
 })
 
-// ---------- removed parts and items ----------
+// ---------- removed parts ----------
 
-describe('removed parts and items are not drawn', () => {
+describe('removed parts are not drawn', () => {
   for (const part of PARTS) {
     it(`leaves out the ${part} when it is removed, and keeps the rest`, async () => {
       const fake = await draw('story', removePart(defaultLayout('story'), part))
@@ -315,82 +330,120 @@ describe('removed parts and items are not drawn', () => {
     })
   }
 
-  it('leaves out the title when it is removed', async () => {
-    const fake = await draw('story', removeItem(defaultLayout('story'), 'title'))
-    expect(has(fake, data.title)).toBe(false)
+  it('draws no title line for a session without a title', async () => {
+    const fake = await draw('story', defaultLayout('story'), bg(), playerData({ title: '' }))
+    expect(fake.texts.some((t) => t.text === ''), 'no empty title drawn').toBe(false)
     expect(has(fake, data.date)).toBe(true)
-    expect(has(fake, data.name)).toBe(true)
   })
 
-  it('leaves out the date when it is removed', async () => {
-    const fake = await draw('post', removeItem(defaultLayout('post'), 'date'))
-    expect(has(fake, data.date)).toBe(false)
-    expect(has(fake, data.title)).toBe(true)
-  })
-
-  it('leaves out the whole player card when it is removed, and every part of it', async () => {
-    for (const layout of [removeItem(defaultLayout('story'), 'player'), PARTS.reduce((l, p) => removePart(l, p), defaultLayout('story'))]) {
-      const fake = await draw('story', layout)
-      for (const p of PARTS) for (const t of PART_TEXTS[p]) expect(fake.texts.some((x) => x.text === t), `${p}: "${t}" drawn`).toBe(false)
-      expect(has(fake, data.title)).toBe(true)
-      expect(has(fake, data.date)).toBe(true)
+  it('still draws the logo and the link, inside the card, when every part is removed', async () => {
+    for (const size of SIZES) {
+      const empty = PARTS.reduce((l, p) => removePart(l, p), defaultLayout(size))
+      const fake = await draw(size, empty)
+      for (const p of PARTS) for (const t of PART_TEXTS[p]) expect(fake.texts.some((x) => x.text === t), `${size} ${p}: "${t}" drawn`).toBe(false)
+      for (const t of FIXED_TEXTS) expectInside(textOf(fake, t), rectOf(empty, size), `${size} ${t}`)
     }
   })
 })
 
-// ---------- the Plotline items ----------
+// ---------- the logo and the link ----------
 
-describe('the logo, wordmark and footer stay as they are', () => {
-  /** Everything taken off the card's movable items, moved, resized and restyled. */
-  const changed = (size: CardSize) => {
-    let l = defaultLayout(size)
-    l = moveItem(l, size, 'player', 5000, 5000)
-    l = resizeItem(l, size, 'title', MIN_SCALE)
-    l = moveItem(l, size, 'title', -5000, 5000)
-    l = removeItem(l, 'date')
-    l = setLook(setOpacity(l, 0), 'list')
-    return l
-  }
-
+describe('the logo and the link are inside the player card', () => {
   for (const size of SIZES) {
-    it(`draws the wordmark, the logo's "km" and the footer at the same place and size for any layout (${size})`, async () => {
-      const a = await draw(size, defaultLayout(size))
-      const b = await draw(size, changed(size))
-      for (const text of [paddleStack.tv.brand, 'km', share.footer]) {
-        const ta = textOf(a, text)
-        const tb = textOf(b, text)
-        expect([tb.x, tb.y, tb.px], text).toEqual([ta.x, ta.y, ta.px])
-      }
+    it(`draws the logo left of the name, on its row (${size})`, async () => {
+      const l = defaultLayout(size)
+      const fake = await draw(size, l)
+      const r = rectOf(l, size)
+      const km = textOf(fake, 'km')
+      const name = textOf(fake, data.name)
+      expect(km.x, 'the logo is left of the name').toBeLessThan(name.x)
+      expect(km.y, 'the logo sits in the name’s row').toBeLessThan(name.y + 10)
+      expect(km.y, 'the logo sits in the name’s row').toBeGreaterThan(r.y)
+      expect(km.y, 'above the tiles').toBeLessThan(textOf(fake, data.record).y)
     })
 
-    it(`draws the same logo tile and footer rule for any layout (${size})`, async () => {
-      const a = await draw(size, defaultLayout(size))
-      const b = await draw(size, removeItem(removeItem(removeItem(defaultLayout(size), 'player'), 'title'), 'date'))
-      // The header (logo, y < 170) and the footer (below the safe area) are drawn alike.
-      const fixed = (f: Fake) => f.fills.filter((x) => x.box && (x.box.y1 <= 170 || x.box.y0 >= CARD_SIZES[size].height - 160)).map((x) => JSON.stringify(x))
-      expect(fixed(b)).toEqual(fixed(a))
-      expect(fixed(a).length).toBeGreaterThan(0)
+    it(`draws the title then the date bottom left and the link bottom right, on the date’s line (${size})`, async () => {
+      const l = defaultLayout(size)
+      const fake = await draw(size, l)
+      const r = rectOf(l, size)
+      const title = textOf(fake, data.title)
+      const date = textOf(fake, data.date)
+      const link = textOf(fake, share.footer)
+      expect(date.y, 'the date under the title').toBeGreaterThan(title.y)
+      expect(title.y, 'below the tiles').toBeGreaterThan(textOf(fake, data.diff).y)
+      expect(date.x).toBeCloseTo(title.x, 3)
+      expect(title.x, 'left side').toBeLessThan(r.x + r.w / 4)
+      expect(link.align, 'right-aligned').toBe('right')
+      expect(link.x, 'right side').toBeGreaterThan(r.x + r.w * 0.75)
+      expect(link.y, 'on the date’s line').toBeCloseTo(date.y, 3)
+    })
+
+    it(`draws the link small and soft: smaller than the date and not in bold (${size})`, async () => {
+      const fake = await draw(size, defaultLayout(size))
+      const link = textOf(fake, share.footer)
+      expect(link.px).toBeLessThan(textOf(fake, data.date).px)
+      expect(link.font).toMatch(/^500 /)
     })
   }
+
+  it('puts the link on the title’s line when the date is removed, and on a line of its own with neither', async () => {
+    const l = removePart(defaultLayout('story'), 'date')
+    const fake = await draw('story', l)
+    expect(textOf(fake, share.footer).y).toBeCloseTo(textOf(fake, data.title).y, 3)
+    const neither = removePart(l, 'title')
+    const alone = await draw('story', neither)
+    expectInside(textOf(alone, share.footer), rectOf(neither, 'story'), 'the link alone')
+  })
+
+  it('keeps the logo when the name is removed', async () => {
+    const l = removePart(defaultLayout('post'), 'name')
+    const fake = await draw('post', l)
+    expectInside(textOf(fake, 'km'), rectOf(l, 'post'), 'logo')
+  })
 })
 
-// ---------- positions and sizes ----------
+describe('a long title never runs under the link', () => {
+  // Titles may be up to 60 characters (T8.5).
+  const long = 'Saturday morning open play at the new courts by the river'
 
-describe('each item is drawn at its position and size', () => {
   for (const size of SIZES) {
-    for (const look of ['default', 'compact', 'list'] as const) {
-      it(`draws the player card’s text inside its box, and the title and date inside theirs (${size}, ${look})`, async () => {
-        const l = setLook(defaultLayout(size), look)
-        const fake = await draw(size, l)
-        const player = rectOf(l, size, 'player')
-        for (const p of PARTS) for (const t of PART_TEXTS[p]) expectInside(textOf(fake, t), player, `${p} "${t}"`)
-        expectInside(textOf(fake, data.title), rectOf(l, size, 'title'), 'title')
-        expectInside(textOf(fake, data.date), rectOf(l, size, 'date'), 'date')
+    for (const date of [true, false]) {
+      it(`cuts a long title with "…" so it ends before the link (${size}, ${date ? 'with' : 'without'} the date)`, async () => {
+        const l = date ? defaultLayout(size) : removePart(defaultLayout(size), 'date')
+        const fake = await draw(size, l, bg(), playerData({ title: long }))
+        const title = fake.texts.find((t) => t.text.startsWith('Saturday morning'))!
+        const link = textOf(fake, share.footer)
+        expect(title.text.endsWith('…'), title.text).toBe(true)
+        // The fake measures half the font size per character; the link is drawn right-aligned.
+        const titleRight = title.x + title.text.length * title.px * 0.5
+        const linkLeft = link.x - share.footer.length * link.px * 0.5
+        expect(titleRight, 'the title ends before the link starts').toBeLessThan(linkLeft)
       })
     }
   }
 
-  it('moves every part of the player card with it, and nothing else', async () => {
+  it('keeps a title that fits whole', async () => {
+    const fake = await draw('story', defaultLayout('story'))
+    expect(textOf(fake, data.title).text).toBe(data.title)
+  })
+})
+
+// ---------- positions and sizes ----------
+
+describe('the card is drawn at its position and size', () => {
+  for (const size of SIZES) {
+    for (const look of ['default', 'compact', 'list'] as const) {
+      it(`draws all the card’s text inside its box (${size}, ${look})`, async () => {
+        const l = setLook(defaultLayout(size), look)
+        const fake = await draw(size, l)
+        const r = rectOf(l, size)
+        for (const p of PARTS) for (const t of PART_TEXTS[p]) expectInside(textOf(fake, t), r, `${p} "${t}"`)
+        for (const t of FIXED_TEXTS) expectInside(textOf(fake, t), r, t)
+      })
+    }
+  }
+
+  it('moves every part, the logo and the link with the card', async () => {
     for (const size of SIZES) {
       const base = defaultLayout(size)
       const moved = moveItem(base, size, 'player', -40, 60)
@@ -399,45 +452,70 @@ describe('each item is drawn at its position and size', () => {
       expect(dx !== 0 || dy !== 0, `${size}: the move went somewhere`).toBe(true)
       const a = await draw(size, base)
       const b = await draw(size, moved)
-      for (const p of PARTS)
-        for (const t of PART_TEXTS[p]) {
-          expect(textOf(b, t).x - textOf(a, t).x, `${size} ${t} x`).toBeCloseTo(dx, 3)
-          expect(textOf(b, t).y - textOf(a, t).y, `${size} ${t} y`).toBeCloseTo(dy, 3)
-        }
-      for (const t of [data.title, data.date]) expect([textOf(b, t).x, textOf(b, t).y], t).toEqual([textOf(a, t).x, textOf(a, t).y])
+      for (const t of [...PARTS.flatMap((p) => PART_TEXTS[p]), ...FIXED_TEXTS]) {
+        expect(textOf(b, t).x - textOf(a, t).x, `${size} ${t} x`).toBeCloseTo(dx, 3)
+        expect(textOf(b, t).y - textOf(a, t).y, `${size} ${t} y`).toBeCloseTo(dy, 3)
+      }
     }
   })
 
-  it('moves the title and the date on their own', async () => {
-    const base = defaultLayout('story')
-    const moved = moveItem(moveItem(base, 'story', 'title', 50, 20), 'story', 'date', 30, 70)
-    const a = await draw('story', base)
-    const b = await draw('story', moved)
-    expect(textOf(b, data.title).x - textOf(a, data.title).x).toBeCloseTo(moved.items.title.x - base.items.title.x, 3)
-    expect(textOf(b, data.title).y - textOf(a, data.title).y).toBeCloseTo(moved.items.title.y - base.items.title.y, 3)
-    expect(textOf(b, data.date).x - textOf(a, data.date).x).toBeCloseTo(moved.items.date.x - base.items.date.x, 3)
-    expect(textOf(b, data.date).y - textOf(a, data.date).y).toBeCloseTo(moved.items.date.y - base.items.date.y, 3)
-    expect(textOf(b, data.name).x).toBeCloseTo(textOf(a, data.name).x, 3)
-  })
-
-  for (const id of ['player', 'title', 'date'] as CardItemId[]) {
-    it(`draws the ${id} at its scale: text size and offsets within the box scale with it`, async () => {
-      const size: CardSize = 'story'
+  for (const size of SIZES) {
+    it(`draws the card at its scale: text size and offsets within the box scale with it (${size})`, async () => {
       const base = defaultLayout(size)
       const s = (MIN_SCALE + 1) / 2
-      const small = resizeItem(base, size, id, s)
+      const small = resizeItem(base, size, 'player', s)
       const a = await draw(size, base)
       const b = await draw(size, small)
-      const ra = rectOf(base, size, id)
-      const rb = rectOf(small, size, id)
-      const texts = id === 'player' ? [data.name, share.placeOf(data.place, data.of), data.record, share.record] : [id === 'title' ? data.title : data.date]
-      for (const t of texts) {
+      const ra = rectOf(base, size)
+      const rb = rectOf(small, size)
+      for (const t of [data.name, data.record, share.record, data.title, data.date, share.footer]) {
         const ta = textOf(a, t)
         const tb = textOf(b, t)
         expect(tb.px / ta.px, `${t} font size`).toBeCloseTo(s, 1)
         expect(tb.x - rb.x, `${t} x within the box`).toBeCloseTo((ta.x - ra.x) * s, 0)
         expect(tb.y - rb.y, `${t} y within the box`).toBeCloseTo((ta.y - ra.y) * s, 0)
       }
+    })
+  }
+})
+
+// ---------- the group card (T8.7c) ----------
+
+describe('the group card’s logo and link', () => {
+  const group = {
+    title: 'Saturday open play',
+    date: 'Thu, 12 Nov 2026',
+    rows: [
+      { place: 1, name: 'Andrew', record: '2–0', diff: '+8' },
+      { place: 2, name: 'Maria', record: '1–1', diff: '0' },
+    ],
+    more: 0,
+    footer: share.footer,
+  }
+  const drawGroup = async (size: CardSize) => {
+    const fake = fakeCanvas()
+    await drawGroupCard(group, { size, background: bg(), darkness: 50 })
+    vi.mocked(document.createElement).mockRestore()
+    return fake
+  }
+
+  for (const size of SIZES) {
+    it(`draws the logo without the "plotline" wordmark (${size})`, async () => {
+      const fake = await drawGroup(size)
+      expect(fake.texts.some((t) => t.text === paddleStack.tv.brand)).toBe(false)
+      const km = textOf(fake, 'km')
+      // The 72 px tile at (80, 80): its "km" sits inside it, near the top left of the card.
+      expect(km.x).toBeLessThan(80 + 72)
+      expect(km.y).toBeLessThan(80 + 72)
+    })
+
+    it(`draws the link bottom right, small and soft (${size})`, async () => {
+      const fake = await drawGroup(size)
+      const link = textOf(fake, share.footer)
+      expect(link.align).toBe('right')
+      expect(link.font).toMatch(/^500 /)
+      expect(link.px).toBeLessThanOrEqual(26)
+      expect(link.x).toBeGreaterThan(1080 / 2)
     })
   }
 })
@@ -492,7 +570,7 @@ describe('the player card panel’s opacity', () => {
       it(`fills the panel behind the player card at alpha ${opacity / 100} (${id})`, async () => {
         const l = setOpacity(defaultLayout('story'), opacity)
         const fake = await draw('story', l, bg(id))
-        const inside = fillsInside(fake, rectOf(l, 'story', 'player'))
+        const inside = panelFills(fake, rectOf(l, 'story'))
         expect(
           inside.some((f) => Math.abs(f.alpha - opacity / 100) < 0.02),
           `a fill of alpha ${opacity / 100} inside the player card; found ${JSON.stringify(inside.map((f) => f.alpha))}`,
@@ -500,11 +578,12 @@ describe('the player card panel’s opacity', () => {
       })
     }
 
-    it(`fills nothing behind the player card at opacity 0 (${id})`, async () => {
+    it(`fills no panel behind the player card at opacity 0, only the logo (${id})`, async () => {
       const l = setOpacity(defaultLayout('story'), 0)
       const fake = await draw('story', l, bg(id))
-      const inside = fillsInside(fake, rectOf(l, 'story', 'player'))
-      expect(inside.filter((f) => f.alpha !== 0).map((f) => f.alpha)).toEqual([])
+      const r = rectOf(l, 'story')
+      expect(panelFills(fake, r).filter((f) => f.alpha !== 0).map((f) => f.alpha)).toEqual([])
+      expect(fillsInside(fake, r).length, 'the logo is still filled in').toBeGreaterThan(0)
     })
   }
 
@@ -513,7 +592,7 @@ describe('the player card panel’s opacity', () => {
       for (const opacity of [0, 40]) {
         const l = setOpacity(setLook(defaultLayout('post'), look), opacity)
         const fake = await draw('post', l)
-        const inside = fillsInside(fake, rectOf(l, 'post', 'player'))
+        const inside = panelFills(fake, rectOf(l, 'post'))
         if (opacity === 0) expect(inside.filter((f) => f.alpha !== 0), `${look} at 0`).toEqual([])
         else expect(inside.some((f) => Math.abs(f.alpha - 0.4) < 0.02), `${look} at 40`).toBe(true)
         for (const s of STATS) expect(textOf(fake, s.value).alpha, `${look} ${s.value} at ${opacity}`).toBe(1)
@@ -526,6 +605,6 @@ describe('the player card panel’s opacity', () => {
     const base = setOpacity(defaultLayout('story'), 40)
     const moved = moveItem(base, 'story', 'player', 0, 200)
     const fake = await draw('story', moved)
-    expect(fillsInside(fake, rectOf(moved, 'story', 'player')).some((f) => Math.abs(f.alpha - 0.4) < 0.02)).toBe(true)
+    expect(panelFills(fake, rectOf(moved, 'story')).some((f) => Math.abs(f.alpha - 0.4) < 0.02)).toBe(true)
   })
 })
