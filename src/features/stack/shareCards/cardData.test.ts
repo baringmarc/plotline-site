@@ -333,10 +333,10 @@ describe('playerCardData: the player card’s layout data', () => {
     expect(playerCardData(run('W'), 'p1', { date: NOON_UTC })!.date).toMatch(THU_12_NOV)
   })
 
-  it('carries the Paddle Stack footer with the address', () => {
+  it('carries the Paddle Stack link as the footer, and just the link (T8.7c)', () => {
     const data = playerCardData(run('W'), 'p1', { date: NOON_UTC })!
     expect(data.footer).toBe(share.footer)
-    expect(data.footer).toContain('Paddle Stack')
+    expect(data.footer).toBe('plotline.fit/paddle-stack')
     expect(data.footer).toContain('plotline.fit/paddle-stack')
   })
 

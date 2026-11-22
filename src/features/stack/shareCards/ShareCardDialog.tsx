@@ -1,8 +1,8 @@
 /**
  * The share card preview (T8.7): pick story or post, a built-in background or your own photo (with a darkness
  * slider), see the card, then share it as a file or download it. Everything is drawn on this device.
- * The player card can be arranged in the preview (T8.7b): pick an item, drag it, size it, remove parts, pick a look
- * and the panel's opacity; the layout is saved on this device per size.
+ * The player card can be arranged in the preview (T8.7b): pick it, drag it, size it, remove parts, pick a look and
+ * the panel's opacity; the layout is saved on this device per size. The logo and the link inside it stay (T8.7c).
  */
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { paddleStack } from '../../../config/paddleStack'
@@ -23,10 +23,8 @@ import {
   itemRects,
   loadCardLayout,
   moveItem,
-  removeItem,
   removePart,
   resizeItem,
-  restoreItem,
   restorePart,
   saveCardLayout,
   setLook,
@@ -103,7 +101,8 @@ export function ShareCardDialog({ session, playerId, onClose }: { session: Sessi
   const arranging = Boolean(player)
   const cardLayout = arranging ? layout : undefined
   const choices: Choices = { session, playerId, size, choice, photo, darkness, layout: cardLayout }
-  const rects = arranging ? itemRects(layout, size, { hasTitle: session.title.trim() !== '' }) : {}
+  const hasTitle = session.title.trim() !== ''
+  const rects: Partial<ReturnType<typeof itemRects>> = arranging ? itemRects(layout, size, { hasTitle }) : {}
   const sel = picked && rects[picked] ? picked : null
 
   // Redraw the preview whenever the card, size, background, darkness or layout changes; a stale draw is dropped.
@@ -242,9 +241,10 @@ export function ShareCardDialog({ session, playerId, onClose }: { session: Sessi
 
   const pct = (n: number, of: number) => `${(n / of) * 100}%`
   const { width: CW, height: CH } = CARD_SIZES[size]
-  const removedItems = CARD_ITEMS.filter((id) => layout.items[id].removed && (id !== 'title' || session.title.trim() !== ''))
-  const removedParts = CARD_PARTS.filter((p) => layout.removedParts.includes(p))
-  const partsLeft = CARD_PARTS.filter((p) => !layout.removedParts.includes(p))
+  // A session without a title has no title line to remove or bring back.
+  const parts = CARD_PARTS.filter((p) => p !== 'title' || hasTitle)
+  const removedParts = parts.filter((p) => layout.removedParts.includes(p))
+  const partsLeft = parts.filter((p) => !layout.removedParts.includes(p))
 
   const onShare = async () => {
     if (!drawn) return
@@ -291,20 +291,6 @@ export function ShareCardDialog({ session, playerId, onClose }: { session: Sessi
                       />
                     )
                   })}
-                  {sel && rects[sel] && (
-                    <button
-                      type="button"
-                      className="stack-card-remove"
-                      aria-label={L.remove(L.items[sel])}
-                      style={{ left: pct(rects[sel].x + rects[sel].w, CW), top: pct(rects[sel].y, CH) }}
-                      onClick={() => {
-                        commit(removeItem(layout, sel))
-                        setPicked(null)
-                      }}
-                    >
-                      ✕
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -340,16 +326,11 @@ export function ShareCardDialog({ session, playerId, onClose }: { session: Sessi
                   ))}
                 </div>
               )}
-              {(removedItems.length > 0 || removedParts.length > 0) && (
+              {removedParts.length > 0 && (
                 <div role="group" aria-label={L.removedLabel} className="stack-card-choices">
                   <span className="stack-card-label" aria-hidden="true">
                     {L.removedLabel}
                   </span>
-                  {removedItems.map((id) => (
-                    <button key={id} type="button" className="stack-chip-btn" aria-label={L.restore(L.items[id])} onClick={() => commit(restoreItem(layout, id, size))}>
-                      <span aria-hidden="true">+</span> {L.items[id]}
-                    </button>
-                  ))}
                   {removedParts.map((p) => (
                     <button key={p} type="button" className="stack-chip-btn" aria-label={L.restore(L.parts[p])} onClick={() => commit(restorePart(layout, p, size))}>
                       <span aria-hidden="true">+</span> {L.parts[p]}

@@ -1,22 +1,21 @@
-// T8.7b Arrange the player card: the layout model (TASKS.md T8.7b). Acceptance: "tests cover the layout model (move,
-// resize within limits, items kept on the card, removing and restoring parts inside the player card and whole items,
-// the fixed Plotline items untouched), the three looks and the opacity". Do (the user's calls, 2026-11-18, SPEC §6):
-// three items (the player card: name, place and four stat tiles as one card; the session title; the date); each part
-// of the player card removable on its own, the rest closing up; removing every part removes the card; looks Default
-// (2×2 tiles), Compact (one row of four) and List (one row per stat); an opacity for the player card's panel, solid
-// to clear; the Plotline logo, wordmark and footer can't be moved, resized or removed.
+// T8.7b Arrange the player card, rearranged by T8.7c: the layout model (TASKS.md T8.7b, T8.7c). T8.7c (the user's
+// calls, 2026-11-21, SPEC §6): everything on the player card is inside one card that moves and resizes as a whole:
+// the Plotline logo left of the name (no wordmark), the four stat tiles, the session title and the date bottom left,
+// and the Paddle Stack link bottom right; the place ("2nd of 14") is gone. The name, each tile, the title and the date
+// can be removed on their own and the rest close up; the logo and the link can't, so the card itself is never
+// removed. Looks Default (2×2 tiles), Compact (one row of four) and List (one row per stat); an opacity for the
+// card's panel, solid to clear.
 //
-// Contract (the plan's names, `./layout`):
-// - `CardLayout` = { items: Record<'player'|'title'|'date', { x, y, scale, removed }>, removedParts, opacity, look };
-//   x, y = the top-left of the item's box in card pixels (`CARD_SIZES[size]` space).
-// - `SAFE_AREA[size]` = { top, bottom }: **y coordinates** in card pixels; every item's box stays inside the card
-//   horizontally (0…width) and between `top` (below the logo and wordmark, which end at y 168) and `bottom` (above the
-//   footer's rule at height − 150).
-// - `itemRects(layout, size, { hasTitle })` gives the boxes of the items that are drawn; `hitItem` finds the item
-//   under a point; `moveItem`/`resizeItem`/`removeItem`/`restoreItem`/`removePart`/`restorePart`/`setOpacity`/
-//   `setLook` return a new layout and never mutate; fixed or unknown ids leave the layout unchanged.
-// - `setLook(layout, look, size?)`: the plan's two arguments, plus the card size (a layout doesn't carry it), which the
-//   positions are re-clamped for (the player card's height changes with the look). Named in the test-writer's report.
+// Contract (`./layout`):
+// - `CardLayout` = { items: { player: { x, y, scale } }, removedParts, opacity, look }; x, y = the top-left of the
+//   card's box in card pixels (`CARD_SIZES[size]` space).
+// - `SAFE_AREA[size]` = { top, bottom }: y coordinates the card stays between (the whole card: nothing is drawn
+//   outside the player card any more); it stays inside horizontally (0…width).
+// - `itemRects(layout, size, { hasTitle })` gives the card's box (shorter without a title line); `hitItem` finds it
+//   under a point; `moveItem`/`resizeItem`/`removePart`/`restorePart`/`setOpacity`/`setLook` return a new layout and
+//   never mutate; the fixed parts (logo, link) and unknown ids leave the layout unchanged.
+// - `playerHeight`, `statsHeight` and `footHeight` give the card's, the tiles' and the bottom row's heights at scale 1
+//   from `PLAYER_METRICS` (drawCard.ts draws from the same numbers).
 import { describe, expect, it } from 'vitest'
 import { CARD_SIZES, type CardSize } from './cardData'
 import {
@@ -24,22 +23,24 @@ import {
   CARD_LOOKS,
   CARD_PARTS,
   DEFAULT_OPACITY,
-  FIXED_ITEMS,
+  FIXED_PARTS,
   MAX_SCALE,
   MIN_SCALE,
+  PLAYER_METRICS,
   SAFE_AREA,
   defaultLayout,
+  footHeight,
   hitItem,
   itemRects,
   moveItem,
-  removeItem,
+  partShown,
+  playerHeight,
   removePart,
   resizeItem,
-  restoreItem,
   restorePart,
   setLook,
   setOpacity,
-  type CardItemId,
+  statsHeight,
   type CardLayout,
   type CardLook,
   type CardPartId,
@@ -47,19 +48,16 @@ import {
 
 const SIZES: CardSize[] = ['story', 'post']
 const WITH_TITLE = { hasTitle: true }
-const ITEMS: CardItemId[] = ['player', 'title', 'date']
-const PARTS: CardPartId[] = ['name', 'place', 'record', 'winRate', 'streak', 'diff']
+const NO_TITLE = { hasTitle: false }
+const PARTS: CardPartId[] = ['name', 'record', 'winRate', 'streak', 'diff', 'title', 'date']
+const TILES: CardPartId[] = ['record', 'winRate', 'streak', 'diff']
 const LOOKS: CardLook[] = ['default', 'compact', 'list']
 
 type Rect = { x: number; y: number; w: number; h: number }
 
-const rectOf = (layout: CardLayout, size: CardSize, id: CardItemId, hasTitle = true): Rect => {
-  const r = itemRects(layout, size, { hasTitle })[id]
-  if (!r) throw new Error(`${id} has no rect`)
-  return r
-}
+const cardRect = (layout: CardLayout, size: CardSize, hasTitle = true): Rect => itemRects(layout, size, { hasTitle }).player
 
-/** The box lies on the card, between the header and the footer. */
+/** The box lies on the card, inside the safe area. */
 function expectInSafeArea(r: Rect, size: CardSize, what: string) {
   const { width } = CARD_SIZES[size]
   const safe = SAFE_AREA[size]
@@ -72,26 +70,30 @@ function expectInSafeArea(r: Rect, size: CardSize, what: string) {
 /** A deep copy to check the input was not mutated. */
 const snapshot = (l: CardLayout) => JSON.parse(JSON.stringify(l)) as CardLayout
 
-/** All six parts removed, one at a time. */
 const withoutParts = (l: CardLayout, parts: CardPartId[]) => parts.reduce((acc, p) => removePart(acc, p), l)
-
-const overlap = (a: Rect, b: Rect) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 
 // ---------- constants ----------
 
 describe('layout constants', () => {
-  it('names the three movable items, the six parts of the player card and the three looks', () => {
-    expect([...CARD_ITEMS].sort()).toEqual([...ITEMS].sort())
+  it('names one movable item (the player card), its seven removable parts and the three looks', () => {
+    expect([...CARD_ITEMS]).toEqual(['player'])
     expect([...CARD_PARTS].sort()).toEqual([...PARTS].sort())
     expect([...CARD_LOOKS].sort()).toEqual([...LOOKS].sort())
   })
 
-  it('keeps the Plotline logo, wordmark and footer out of the movable items', () => {
-    expect([...FIXED_ITEMS].sort()).toEqual(['footer', 'logo', 'wordmark'])
-    for (const f of FIXED_ITEMS) expect(CARD_ITEMS as readonly string[]).not.toContain(f)
+  it('no longer has the place as a part', () => {
+    expect(CARD_PARTS as readonly string[]).not.toContain('place')
   })
 
-  it('lets an item shrink and grow from its default size (MIN_SCALE < 1 < MAX_SCALE)', () => {
+  it('keeps the logo and the link out of the removable parts and the movable items', () => {
+    expect([...FIXED_PARTS].sort()).toEqual(['link', 'logo'])
+    for (const f of FIXED_PARTS) {
+      expect(CARD_PARTS as readonly string[], f).not.toContain(f)
+      expect(CARD_ITEMS as readonly string[], f).not.toContain(f)
+    }
+  })
+
+  it('lets the card shrink and grow from its default size (MIN_SCALE < 1 < MAX_SCALE)', () => {
     expect(MIN_SCALE).toBeGreaterThan(0)
     expect(MIN_SCALE).toBeLessThan(1)
     expect(MAX_SCALE).toBeGreaterThan(1)
@@ -103,12 +105,17 @@ describe('layout constants', () => {
   })
 
   for (const size of SIZES) {
-    it(`puts the ${size} safe area below the logo and wordmark and above the footer`, () => {
-      const { height } = CARD_SIZES[size]
+    it(`lets the ${size} card use the whole height (nothing is drawn outside the player card)`, () => {
       const safe = SAFE_AREA[size]
-      expect(safe.top).toBeGreaterThanOrEqual(168)
-      expect(safe.bottom).toBeLessThanOrEqual(height - 150)
-      expect(safe.bottom).toBeGreaterThan(safe.top)
+      expect(safe.top).toBe(0)
+      expect(safe.bottom).toBe(CARD_SIZES[size].height)
+    })
+
+    it(`makes the ${size} logo smaller than the T8.7 header's 88 px tile, and no taller than the name's row`, () => {
+      const m = PLAYER_METRICS[size]
+      expect(m.logo).toBeLessThan(88)
+      expect(m.logo).toBeLessThanOrEqual(m.name)
+      expect(m.linkFont, 'the link is smaller than the date').toBeLessThan(m.dateFont)
     })
   }
 })
@@ -117,25 +124,20 @@ describe('layout constants', () => {
 
 describe('defaultLayout', () => {
   for (const size of SIZES) {
-    it(`shows all three items at their default size on the ${size} card, nothing removed, the Default look`, () => {
+    it(`shows the ${size} card at its default size, nothing removed, the Default look`, () => {
       const l = defaultLayout(size)
-      for (const id of ITEMS) {
-        expect(l.items[id].removed, id).toBe(false)
-        expect(l.items[id].scale, id).toBe(1)
-      }
+      expect(l.items.player.scale).toBe(1)
+      expect(Object.keys(l.items)).toEqual(['player'])
       expect(l.removedParts).toEqual([])
       expect(l.look).toBe('default')
       expect(l.opacity).toBe(DEFAULT_OPACITY)
     })
 
-    it(`places every ${size} item inside the safe area, without overlapping another`, () => {
-      const l = defaultLayout(size)
-      const rects = itemRects(l, size, WITH_TITLE)
-      expect(Object.keys(rects).sort()).toEqual([...ITEMS].sort())
-      for (const id of ITEMS) expectInSafeArea(rects[id]!, size, id)
-      expect(overlap(rects.player!, rects.title!), 'player/title').toBe(false)
-      expect(overlap(rects.player!, rects.date!), 'player/date').toBe(false)
-      expect(overlap(rects.title!, rects.date!), 'title/date').toBe(false)
+    it(`places the ${size} card inside the safe area, roughly centred`, () => {
+      const r = cardRect(defaultLayout(size), size)
+      expectInSafeArea(r, size, 'player')
+      const { height } = CARD_SIZES[size]
+      expect(Math.abs(r.y + r.h / 2 - height / 2), 'vertically centred').toBeLessThan(40)
     })
   }
 
@@ -149,113 +151,165 @@ describe('defaultLayout', () => {
   })
 })
 
-// ---------- itemRects ----------
+// ---------- heights ----------
 
-describe('itemRects', () => {
-  it('puts each box’s top-left at the item’s x and y', () => {
-    const l = defaultLayout('story')
-    for (const id of ITEMS) {
-      const r = rectOf(l, 'story', id)
-      expect(r.x, id).toBeCloseTo(l.items[id].x, 5)
-      expect(r.y, id).toBeCloseTo(l.items[id].y, 5)
-      expect(r.w, id).toBeGreaterThan(0)
-      expect(r.h, id).toBeGreaterThan(0)
-    }
-  })
-
-  it('leaves the title out when the session has no title', () => {
-    const rects = itemRects(defaultLayout('story'), 'story', { hasTitle: false })
-    expect(rects.title).toBeUndefined()
-    expect(rects.player).toBeDefined()
-    expect(rects.date).toBeDefined()
-  })
-
-  it('leaves out an item that was removed', () => {
-    for (const id of ITEMS) {
-      const rects = itemRects(removeItem(defaultLayout('post'), id), 'post', WITH_TITLE)
-      expect(rects[id], id).toBeUndefined()
-      for (const other of ITEMS.filter((o) => o !== id)) expect(rects[other], `${other} stays`).toBeDefined()
-    }
-  })
-
-  it('has no box for the fixed Plotline items', () => {
-    const rects = itemRects(defaultLayout('story'), 'story', WITH_TITLE) as Record<string, unknown>
-    for (const f of FIXED_ITEMS) expect(rects[f], f).toBeUndefined()
-  })
-
+describe('the card’s heights', () => {
   for (const size of SIZES) {
-    it(`grows and shrinks a ${size} box with its scale`, () => {
-      const base = defaultLayout(size)
-      const s = (MIN_SCALE + 1) / 2
-      for (const id of ITEMS) {
-        const a = rectOf(base, size, id)
-        const b = rectOf(resizeItem(base, size, id, s), size, id)
-        expect(b.w, `${id} width`).toBeCloseTo(a.w * s, 0)
-        expect(b.h, `${id} height`).toBeCloseTo(a.h * s, 0)
-      }
+    it(`adds up the ${size} card from its rows: top row, tiles, bottom row, with the gaps and padding`, () => {
+      const m = PLAYER_METRICS[size]
+      const l = defaultLayout(size)
+      const tiles = 2 * m.tile + m.tileGap
+      expect(statsHeight(l, size)).toBe(tiles)
+      expect(footHeight(l, size, WITH_TITLE)).toBe(m.title + m.date)
+      expect(playerHeight(l, size, WITH_TITLE)).toBe(m.pad + m.name + m.gap + tiles + m.gap + m.title + m.date + m.pad)
     })
   }
 
-  it('makes the Compact player card shorter than the Default one (one row of four, not 2×2)', () => {
+  it('sizes the tiles for each look and the tiles left', () => {
+    const m = PLAYER_METRICS.story
+    const l = defaultLayout('story')
+    expect(statsHeight(setLook(l, 'compact'), 'story')).toBe(m.compactTile)
+    expect(statsHeight(setLook(l, 'list'), 'story')).toBe(4 * m.row + 3 * m.rowGap)
+    expect(statsHeight(removePart(l, 'diff'), 'story'), 'three tiles still take two rows').toBe(2 * m.tile + m.tileGap)
+    expect(statsHeight(withoutParts(l, ['streak', 'diff']), 'story'), 'two tiles take one row').toBe(m.tile)
+    expect(statsHeight(withoutParts(l, TILES), 'story')).toBe(0)
+  })
+
+  it('sizes the bottom row from the title and date lines, or the link’s line with neither', () => {
+    const m = PLAYER_METRICS.post
+    const l = defaultLayout('post')
+    expect(footHeight(removePart(l, 'title'), 'post', WITH_TITLE)).toBe(m.date)
+    expect(footHeight(removePart(l, 'date'), 'post', WITH_TITLE)).toBe(m.title)
+    expect(footHeight(l, 'post', NO_TITLE), 'a session without a title').toBe(m.date)
+    expect(footHeight(withoutParts(l, ['title', 'date']), 'post', WITH_TITLE)).toBe(m.link)
+  })
+
+  it('uses the logo’s height for the top row when the name is removed', () => {
+    const m = PLAYER_METRICS.story
+    const l = defaultLayout('story')
+    expect(playerHeight(l, 'story') - playerHeight(removePart(l, 'name'), 'story')).toBe(m.name - m.logo)
+  })
+
+  it('drops one gap with the tiles', () => {
+    const m = PLAYER_METRICS.story
+    const l = defaultLayout('story')
+    expect(playerHeight(l, 'story') - playerHeight(withoutParts(l, TILES), 'story')).toBe(m.gap + statsHeight(l, 'story'))
+  })
+})
+
+// ---------- itemRects ----------
+
+describe('itemRects', () => {
+  it('puts the box’s top-left at the card’s x and y', () => {
+    const l = defaultLayout('story')
+    const r = cardRect(l, 'story')
+    expect(r.x).toBeCloseTo(l.items.player.x, 5)
+    expect(r.y).toBeCloseTo(l.items.player.y, 5)
+    expect(r.w).toBeGreaterThan(0)
+    expect(r.h).toBeGreaterThan(0)
+  })
+
+  it('makes the card shorter for a session without a title (no title line), like a removed title', () => {
     for (const size of SIZES) {
-      const d = rectOf(defaultLayout(size), size, 'player')
-      const c = rectOf(setLook(defaultLayout(size), 'compact'), size, 'player')
+      const l = defaultLayout(size)
+      expect(cardRect(l, size, false).h, size).toBeLessThan(cardRect(l, size, true).h)
+      expect(cardRect(l, size, false).w, size).toBe(cardRect(l, size, true).w)
+      expect(cardRect(l, size, false), size).toEqual(cardRect(removePart(l, 'title'), size, true))
+    }
+  })
+
+  it('always has the card’s box, whatever is removed', () => {
+    const empty = withoutParts(defaultLayout('story'), PARTS)
+    const r = cardRect(empty, 'story')
+    expect(r).toBeDefined()
+    expect(r.h, 'still room for the logo and the link').toBeGreaterThan(0)
+  })
+
+  for (const size of SIZES) {
+    it(`grows and shrinks the ${size} box with its scale`, () => {
+      const base = defaultLayout(size)
+      const s = (MIN_SCALE + 1) / 2
+      const a = cardRect(base, size)
+      const b = cardRect(resizeItem(base, size, 'player', s), size)
+      expect(b.w).toBeCloseTo(a.w * s, 0)
+      expect(b.h).toBeCloseTo(a.h * s, 0)
+    })
+  }
+
+  it('makes the Compact card shorter than the Default one (one row of four, not 2×2)', () => {
+    for (const size of SIZES) {
+      const d = cardRect(defaultLayout(size), size)
+      const c = cardRect(setLook(defaultLayout(size), 'compact'), size)
       expect(c.h, size).toBeLessThan(d.h)
     }
   })
 
-  it('makes the player card shorter as parts are removed (the rest close up)', () => {
+  it('makes the card shorter as parts are removed (the rest close up)', () => {
     for (const look of LOOKS) {
       const base = setLook(defaultLayout('story'), look)
-      const full = rectOf(base, 'story', 'player').h
-      const noName = rectOf(removePart(base, 'name'), 'story', 'player').h
-      expect(noName, `${look}: without the name`).toBeLessThan(full)
-      const noPlace = rectOf(removePart(base, 'place'), 'story', 'player').h
-      expect(noPlace, `${look}: without the place`).toBeLessThan(full)
-      const noTiles = rectOf(withoutParts(base, ['record', 'winRate', 'streak', 'diff']), 'story', 'player').h
-      expect(noTiles, `${look}: without the four tiles`).toBeLessThan(full)
+      const full = cardRect(base, 'story').h
+      for (const p of ['name', 'title', 'date'] as CardPartId[]) {
+        expect(cardRect(removePart(base, p), 'story').h, `${look}: without the ${p}`).toBeLessThan(full)
+      }
+      expect(cardRect(withoutParts(base, TILES), 'story').h, `${look}: without the four tiles`).toBeLessThan(full)
+    }
+  })
+
+  it('keeps the logo’s row and the link’s row when everything removable is gone', () => {
+    for (const size of SIZES) {
+      const m = PLAYER_METRICS[size]
+      const h = playerHeight(withoutParts(defaultLayout(size), PARTS), size)
+      expect(h, size).toBe(2 * m.pad + m.logo + m.gap + m.link)
     }
   })
 
   it('makes the List look one row per stat: removing one stat shortens it', () => {
     const list = setLook(defaultLayout('story'), 'list')
-    const full = rectOf(list, 'story', 'player').h
-    for (const p of ['record', 'winRate', 'streak', 'diff'] as CardPartId[]) {
-      expect(rectOf(removePart(list, p), 'story', 'player').h, p).toBeLessThan(full)
-    }
+    const full = cardRect(list, 'story').h
+    for (const p of TILES) expect(cardRect(removePart(list, p), 'story').h, p).toBeLessThan(full)
+  })
+})
+
+// ---------- partShown ----------
+
+describe('partShown', () => {
+  it('shows every part by default, and not a removed one', () => {
+    const l = defaultLayout('story')
+    for (const p of PARTS) expect(partShown(l, p, WITH_TITLE), p).toBe(true)
+    for (const p of PARTS) expect(partShown(removePart(l, p), p, WITH_TITLE), p).toBe(false)
+  })
+
+  it('never shows the title of a session without one', () => {
+    expect(partShown(defaultLayout('story'), 'title', NO_TITLE)).toBe(false)
+    expect(partShown(defaultLayout('story'), 'date', NO_TITLE)).toBe(true)
   })
 })
 
 // ---------- hitItem ----------
 
 describe('hitItem', () => {
-  const centre = (r: Rect) => [r.x + r.w / 2, r.y + r.h / 2] as const
-
-  it('finds the item under a point inside its box', () => {
+  it('finds the card under a point inside its box', () => {
     for (const size of SIZES) {
       const l = defaultLayout(size)
-      for (const id of ITEMS) {
-        const [x, y] = centre(rectOf(l, size, id))
-        expect(hitItem(l, size, WITH_TITLE, x, y), `${size} ${id}`).toBe(id)
-      }
+      const r = cardRect(l, size)
+      expect(hitItem(l, size, WITH_TITLE, r.x + r.w / 2, r.y + r.h / 2), size).toBe('player')
+      expect(hitItem(l, size, WITH_TITLE, r.x + 2, r.y + 2), `${size} corner`).toBe('player')
     }
   })
 
-  it('finds nothing over the header, the footer or an empty corner', () => {
+  it('finds nothing above or below the card, or off the card', () => {
     const l = defaultLayout('story')
-    const { width, height } = CARD_SIZES.story
-    expect(hitItem(l, 'story', WITH_TITLE, 120, 120)).toBeNull()
-    expect(hitItem(l, 'story', WITH_TITLE, width / 2, height - 80)).toBeNull()
+    const r = cardRect(l, 'story')
+    expect(hitItem(l, 'story', WITH_TITLE, r.x + 10, r.y - 20)).toBeNull()
+    expect(hitItem(l, 'story', WITH_TITLE, r.x + 10, r.y + r.h + 20)).toBeNull()
     expect(hitItem(l, 'story', WITH_TITLE, -10, -10)).toBeNull()
   })
 
-  it('finds no removed item and no title when the session has none', () => {
+  it('finds nothing in the title line’s room when the session has no title', () => {
     const l = defaultLayout('story')
-    const [tx, ty] = centre(rectOf(l, 'story', 'title'))
-    expect(hitItem(l, 'story', { hasTitle: false }, tx, ty)).not.toBe('title')
-    expect(hitItem(removeItem(l, 'title'), 'story', WITH_TITLE, tx, ty)).not.toBe('title')
-    const [px, py] = centre(rectOf(l, 'story', 'player'))
-    expect(hitItem(removeItem(l, 'player'), 'story', WITH_TITLE, px, py)).not.toBe('player')
+    const r = cardRect(l, 'story', true)
+    expect(hitItem(l, 'story', WITH_TITLE, r.x + 10, r.y + r.h - 5)).toBe('player')
+    expect(hitItem(l, 'story', NO_TITLE, r.x + 10, r.y + r.h - 5)).toBeNull()
   })
 })
 
@@ -263,31 +317,34 @@ describe('hitItem', () => {
 
 describe('moveItem', () => {
   for (const size of SIZES) {
-    it(`moves a ${size} item by dx, dy`, () => {
+    it(`moves the ${size} card by dx, dy`, () => {
       const l = defaultLayout(size)
-      const moved = moveItem(l, size, 'date', 30, 40)
-      expect(moved.items.date.x).toBeCloseTo(l.items.date.x + 30, 5)
-      expect(moved.items.date.y).toBeCloseTo(l.items.date.y + 40, 5)
-      expect(moved.items.player).toEqual(l.items.player)
-      expect(moved.items.title).toEqual(l.items.title)
+      const moved = moveItem(l, size, 'player', 30, 40)
+      expect(moved.items.player.x).toBeCloseTo(Math.min(l.items.player.x + 30, CARD_SIZES[size].width - cardRect(l, size).w), 5)
+      expect(moved.items.player.y).toBeCloseTo(l.items.player.y + 40, 5)
+      expect(moved.items.player.scale).toBe(l.items.player.scale)
     })
 
-    it(`keeps every ${size} item on the card, between the header and the footer, however far it is dragged`, () => {
-      const { width } = CARD_SIZES[size]
-      const safe = SAFE_AREA[size]
-      for (const id of ITEMS) {
-        const l = defaultLayout(size)
-        const farRightDown = rectOf(moveItem(l, size, id, 5000, 5000), size, id)
-        expectInSafeArea(farRightDown, size, `${id} dragged right and down`)
-        expect(farRightDown.x + farRightDown.w, `${id} stops at the right edge`).toBeCloseTo(width, 0)
-        expect(farRightDown.y + farRightDown.h, `${id} stops at the footer`).toBeCloseTo(safe.bottom, 0)
-        const farLeftUp = rectOf(moveItem(l, size, id, -5000, -5000), size, id)
-        expectInSafeArea(farLeftUp, size, `${id} dragged left and up`)
-        expect(farLeftUp.x, `${id} stops at the left edge`).toBeCloseTo(0, 0)
-        expect(farLeftUp.y, `${id} stops under the header`).toBeCloseTo(safe.top, 0)
-      }
+    it(`keeps the ${size} card on the card however far it is dragged`, () => {
+      const { width, height } = CARD_SIZES[size]
+      const l = defaultLayout(size)
+      const farRightDown = cardRect(moveItem(l, size, 'player', 5000, 5000), size)
+      expectInSafeArea(farRightDown, size, 'dragged right and down')
+      expect(farRightDown.x + farRightDown.w, 'stops at the right edge').toBeCloseTo(width, 0)
+      expect(farRightDown.y + farRightDown.h, 'stops at the bottom edge').toBeCloseTo(height, 0)
+      const farLeftUp = cardRect(moveItem(l, size, 'player', -5000, -5000), size)
+      expectInSafeArea(farLeftUp, size, 'dragged left and up')
+      expect(farLeftUp.x, 'stops at the left edge').toBeCloseTo(0, 0)
+      expect(farLeftUp.y, 'stops at the top edge').toBeCloseTo(0, 0)
     })
   }
+
+  it('moves a smaller card further before it stops', () => {
+    const small = resizeItem(defaultLayout('story'), 'story', 'player', MIN_SCALE)
+    const r = cardRect(moveItem(small, 'story', 'player', 5000, 0), 'story')
+    expect(r.x).toBeCloseTo(CARD_SIZES.story.width - r.w, 0)
+    expect(r.x).toBeGreaterThan(cardRect(moveItem(defaultLayout('story'), 'story', 'player', 5000, 0), 'story').x)
+  })
 
   it('returns a new layout and leaves the one passed in as it was', () => {
     const l = defaultLayout('story')
@@ -297,9 +354,9 @@ describe('moveItem', () => {
     expect(l).toEqual(before)
   })
 
-  it('leaves the layout unchanged for the logo, wordmark, footer or an unknown id', () => {
+  it('leaves the layout unchanged for the logo, the link, the old title and date items or an unknown id', () => {
     const l = defaultLayout('story')
-    for (const id of [...FIXED_ITEMS, 'nope', '']) {
+    for (const id of [...FIXED_PARTS, 'title', 'date', 'nope', '']) {
       expect(moveItem(l, 'story', id, 50, 50), id).toEqual(l)
     }
   })
@@ -308,35 +365,32 @@ describe('moveItem', () => {
 // ---------- resizing ----------
 
 describe('resizeItem', () => {
-  it('sets the scale inside the limits', () => {
-    const l = defaultLayout('post')
+  it('sets the scale inside the limits, and keeps the position when it still fits', () => {
     const s = (MIN_SCALE + 1) / 2
-    expect(resizeItem(l, 'post', 'date', s).items.date.scale).toBeCloseTo(s, 5)
+    const l = defaultLayout('post')
+    const small = resizeItem(l, 'post', 'player', s)
+    expect(small.items.player.scale).toBeCloseTo(s, 5)
+    expect(small.items.player.x).toBe(l.items.player.x)
+    expect(small.items.player.y).toBe(l.items.player.y)
   })
 
   it('stops at MIN_SCALE when asked for smaller', () => {
-    for (const id of ITEMS) {
-      expect(resizeItem(defaultLayout('story'), 'story', id, 0).items[id].scale, id).toBeCloseTo(MIN_SCALE, 5)
-      expect(resizeItem(defaultLayout('story'), 'story', id, -3).items[id].scale, id).toBeCloseTo(MIN_SCALE, 5)
-    }
+    expect(resizeItem(defaultLayout('story'), 'story', 'player', 0).items.player.scale).toBeCloseTo(MIN_SCALE, 5)
+    expect(resizeItem(defaultLayout('story'), 'story', 'player', -3).items.player.scale).toBeCloseTo(MIN_SCALE, 5)
   })
 
   for (const size of SIZES) {
-    it(`never goes above MAX_SCALE or past the ${size} safe area`, () => {
-      for (const id of ITEMS) {
-        const big = resizeItem(defaultLayout(size), size, id, 100)
-        expect(big.items[id].scale, id).toBeLessThanOrEqual(MAX_SCALE)
-        expect(big.items[id].scale, `${id} still grows`).toBeGreaterThan(1)
-        expectInSafeArea(rectOf(big, size, id), size, `${id} at the largest size`)
-      }
+    it(`never goes above MAX_SCALE or past the ${size} card`, () => {
+      const big = resizeItem(defaultLayout(size), size, 'player', 100)
+      expect(big.items.player.scale).toBeLessThanOrEqual(MAX_SCALE)
+      expect(big.items.player.scale, 'still grows').toBeGreaterThan(1)
+      expectInSafeArea(cardRect(big, size), size, 'at the largest size')
     })
 
-    it(`moves a ${size} item back inside when growing it near the edge would push it off`, () => {
-      for (const id of ITEMS) {
-        const atCorner = moveItem(defaultLayout(size), size, id, 5000, 5000)
-        const grown = resizeItem(atCorner, size, id, MAX_SCALE)
-        expectInSafeArea(rectOf(grown, size, id), size, `${id} grown in the corner`)
-      }
+    it(`moves the ${size} card back inside when growing it near the edge would push it off`, () => {
+      const atCorner = moveItem(defaultLayout(size), size, 'player', 5000, 5000)
+      const grown = resizeItem(atCorner, size, 'player', MAX_SCALE)
+      expectInSafeArea(cardRect(grown, size), size, 'grown in the corner')
     })
   }
 
@@ -345,64 +399,16 @@ describe('resizeItem', () => {
     const before = snapshot(l)
     expect(resizeItem(l, 'story', 'player', MIN_SCALE)).not.toBe(l)
     expect(l).toEqual(before)
-    for (const id of [...FIXED_ITEMS, 'nope']) expect(resizeItem(l, 'story', id, MIN_SCALE), id).toEqual(l)
-  })
-})
-
-// ---------- removing and restoring whole items ----------
-
-describe('removeItem and restoreItem', () => {
-  it('removes the title and the date whole, and brings them back', () => {
-    for (const id of ['title', 'date'] as CardItemId[]) {
-      const l = defaultLayout('story')
-      const gone = removeItem(l, id)
-      expect(gone.items[id].removed, id).toBe(true)
-      const back = restoreItem(gone, id)
-      expect(back.items[id].removed, id).toBe(false)
-      expect(back.items[id].x, `${id} keeps its place`).toBe(l.items[id].x)
-      expect(back.items[id].y).toBe(l.items[id].y)
-    }
-  })
-
-  it('removes the player card whole and brings it back with its parts', () => {
-    const l = removePart(defaultLayout('post'), 'streak')
-    const gone = removeItem(l, 'player')
-    expect(gone.items.player.removed).toBe(true)
-    const back = restoreItem(gone, 'player')
-    expect(back.items.player.removed).toBe(false)
-    expect(back.removedParts).toEqual(['streak'])
-  })
-
-  it('brings every part back when the player card is restored after all its parts were removed', () => {
-    const empty = withoutParts(defaultLayout('story'), PARTS)
-    expect(empty.items.player.removed).toBe(true)
-    const back = restoreItem(empty, 'player')
-    expect(back.items.player.removed).toBe(false)
-    expect(back.removedParts).toEqual([])
-  })
-
-  it('never mutates and ignores the fixed Plotline items and unknown ids', () => {
-    const l = defaultLayout('story')
-    const before = snapshot(l)
-    removeItem(l, 'title')
-    restoreItem(removeItem(l, 'date'), 'date')
-    expect(l).toEqual(before)
-    for (const id of [...FIXED_ITEMS, 'nope']) {
-      expect(removeItem(l, id), id).toEqual(l)
-      expect(restoreItem(l, id), id).toEqual(l)
-    }
+    for (const id of [...FIXED_PARTS, 'nope']) expect(resizeItem(l, 'story', id, MIN_SCALE), id).toEqual(l)
+    expect(resizeItem(l, 'story', 'player', Number.NaN)).toEqual(l)
   })
 })
 
 // ---------- parts of the player card ----------
 
 describe('removePart and restorePart', () => {
-  it('removes each part of the player card on its own and keeps the card', () => {
-    for (const p of PARTS) {
-      const l = removePart(defaultLayout('story'), p)
-      expect(l.removedParts, p).toEqual([p])
-      expect(l.items.player.removed, p).toBe(false)
-    }
+  it('removes each part on its own', () => {
+    for (const p of PARTS) expect(removePart(defaultLayout('story'), p).removedParts, p).toEqual([p])
   })
 
   it('does not list a part twice', () => {
@@ -410,35 +416,27 @@ describe('removePart and restorePart', () => {
     expect(l.removedParts).toEqual(['diff'])
   })
 
-  it('removes the player card when its last part is removed', () => {
-    const fiveGone = withoutParts(defaultLayout('story'), PARTS.slice(0, 5))
-    expect(fiveGone.items.player.removed).toBe(false)
-    const allGone = removePart(fiveGone, PARTS[5])
-    expect(allGone.items.player.removed).toBe(true)
-    expect(itemRects(allGone, 'story', WITH_TITLE).player).toBeUndefined()
+  it('keeps the card when every part is removed: the logo and the link stay', () => {
+    const empty = withoutParts(defaultLayout('story'), PARTS)
+    expect([...empty.removedParts].sort()).toEqual([...PARTS].sort())
+    expect(empty.items.player).toEqual(defaultLayout('story').items.player)
+    expect(hitItem(empty, 'story', WITH_TITLE, empty.items.player.x + 5, empty.items.player.y + 5)).toBe('player')
+  })
+
+  it('cannot remove the logo or the link', () => {
+    const l = defaultLayout('story')
+    for (const f of FIXED_PARTS) expect(removePart(l, f as unknown as CardPartId), f).toEqual(l)
   })
 
   it('brings a part back', () => {
-    const l = withoutParts(defaultLayout('post'), ['name', 'winRate'])
-    const back = restorePart(l, 'name')
-    expect(back.removedParts).toEqual(['winRate'])
-    expect(back.items.player.removed).toBe(false)
+    const l = withoutParts(defaultLayout('post'), ['name', 'winRate', 'date'])
+    expect(restorePart(l, 'name').removedParts).toEqual(['winRate', 'date'])
+    expect(restorePart(l, 'date').removedParts).toEqual(['name', 'winRate'])
   })
 
-  it('brings the player card back with the part restored', () => {
-    const empty = withoutParts(defaultLayout('story'), PARTS)
-    const back = restorePart(empty, 'place')
-    expect(back.items.player.removed).toBe(false)
-    expect(back.removedParts).not.toContain('place')
-    expect(back.removedParts.sort()).toEqual(PARTS.filter((p) => p !== 'place').sort())
-    expect(itemRects(back, 'story', WITH_TITLE).player).toBeDefined()
-  })
-
-  it('also brings the player card back when it was removed whole', () => {
-    const l = removeItem(removePart(defaultLayout('story'), 'name'), 'player')
-    const back = restorePart(l, 'name')
-    expect(back.items.player.removed).toBe(false)
-    expect(back.removedParts).toEqual([])
+  it('changes nothing when the part was not removed', () => {
+    const l = removePart(defaultLayout('story'), 'name')
+    expect(restorePart(l, 'diff')).toEqual(l)
   })
 
   it('never mutates and ignores unknown parts', () => {
@@ -448,16 +446,17 @@ describe('removePart and restorePart', () => {
     restorePart(removePart(l, 'diff'), 'diff')
     expect(l).toEqual(before)
     expect(removePart(l, 'nope' as CardPartId)).toEqual(l)
+    expect(removePart(l, 'place' as CardPartId)).toEqual(l)
     expect(restorePart(removePart(l, 'diff'), 'nope' as CardPartId)).toEqual(removePart(l, 'diff'))
   })
 
-  it('keeps the shrunk player card inside the safe area', () => {
+  it('keeps the card inside the safe area as parts come back', () => {
     for (const size of SIZES) {
-      const atBottom = moveItem(defaultLayout(size), size, 'player', 0, 5000)
-      const fewer = withoutParts(atBottom, ['name', 'record'])
-      expectInSafeArea(rectOf(fewer, size, 'player'), size, `${size} with fewer parts`)
-      const back = restorePart(restorePart(fewer, 'name'), 'record')
-      expectInSafeArea(rectOf(back, size, 'player'), size, `${size} with the parts back`)
+      const fewer = withoutParts(defaultLayout(size), ['name', 'record', 'title', 'date'])
+      const atBottom = moveItem(fewer, size, 'player', 0, 5000)
+      expectInSafeArea(cardRect(atBottom, size), size, `${size} with fewer parts`)
+      const back = restorePart(restorePart(restorePart(atBottom, 'name', size), 'record', size), 'title', size)
+      expectInSafeArea(cardRect(back, size), size, `${size} with the parts back`)
     }
   })
 })
@@ -465,17 +464,19 @@ describe('removePart and restorePart', () => {
 // ---------- opacity and looks ----------
 
 describe('setOpacity', () => {
-  it('sets the player card panel’s opacity from 0 (clear) to 100 (solid)', () => {
+  it('sets the card panel’s opacity from 0 (clear) to 100 (solid)', () => {
     const l = defaultLayout('story')
     expect(setOpacity(l, 0).opacity).toBe(0)
     expect(setOpacity(l, 40).opacity).toBe(40)
     expect(setOpacity(l, 100).opacity).toBe(100)
   })
 
-  it('clamps below 0 and above 100', () => {
+  it('clamps below 0 and above 100, rounds, and ignores a non-number', () => {
     const l = defaultLayout('story')
     expect(setOpacity(l, -20).opacity).toBe(0)
     expect(setOpacity(l, 250).opacity).toBe(100)
+    expect(setOpacity(l, 33.4).opacity).toBe(33)
+    expect(setOpacity(l, Number.NaN)).toEqual(l)
   })
 
   it('changes nothing else and never mutates', () => {
@@ -499,13 +500,12 @@ describe('setLook', () => {
   })
 
   for (const size of SIZES) {
-    it(`keeps the ${size} player card inside the safe area after a change of look`, () => {
+    it(`keeps the ${size} card inside the safe area after a change of look`, () => {
       for (const from of LOOKS) {
         for (const to of LOOKS) {
           const atBottom = moveItem(setLook(defaultLayout(size), from), size, 'player', 5000, 5000)
           const grown = resizeItem(atBottom, size, 'player', MAX_SCALE)
-          // The layout doesn't know its size, so setLook takes it as a third argument to re-clamp the positions.
-          expectInSafeArea(rectOf(setLook(grown, to, size), size, 'player'), size, `${from} → ${to}`)
+          expectInSafeArea(cardRect(setLook(grown, to, size), size), size, `${from} → ${to}`)
         }
       }
     })
