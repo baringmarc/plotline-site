@@ -122,43 +122,55 @@ function expectLocks(s: Session) {
   for (const p of s.players) {
     if (p.partner === undefined) continue
     const q = s.players.find((x) => x.id === p.partner)
-    expect(q, `${p.name}'s partner is a player`).toBeDefined()
-    expect(q!.id, `${p.name} is not their own partner`).not.toBe(p.id)
-    expect(q!.partner, `${q!.name} points back at ${p.name}`).toBe(p.id)
-    expect(q!.status, `${p.name} and ${q!.name} share a status`).toBe(p.status)
+    unless(q !== undefined, () => expect(q, `${p.name}'s partner is a player`).toBeDefined())
+    unless(q!.id !== p.id, () => expect(q!.id, `${p.name} is not their own partner`).not.toBe(p.id))
+    unless(q!.partner === p.id, () => expect(q!.partner, `${q!.name} points back at ${p.name}`).toBe(p.id))
+    unless(q!.status === p.status, () => expect(q!.status, `${p.name} and ${q!.name} share a status`).toBe(p.status))
   }
   s.line.forEach((x, i) => {
     const p = byId(s, x)
     if (p.partner === undefined) return
     const j = s.line.indexOf(p.partner)
-    expect(Math.abs(i - j), `${p.name} stands next to their partner`).toBe(1)
-    if (joinIndex(s, x) < joinIndex(s, p.partner)) expect(j, `${p.name} stands first (joined first)`).toBe(i + 1)
+    unless(Math.abs(i - j) === 1, () => expect(Math.abs(i - j), `${p.name} stands next to their partner`).toBe(1))
+    if (joinIndex(s, x) < joinIndex(s, p.partner))
+      unless(j === i + 1, () => expect(j, `${p.name} stands first (joined first)`).toBe(i + 1))
   })
   for (const g of playing(s)) {
     for (const x of playersOf(g)) {
       const p = byId(s, x)
       if (p.partner === undefined) continue
       const team = (g.teamA as string[]).includes(x) ? g.teamA : g.teamB
-      expect(team as string[], `${p.name}'s partner is on their team`).toContain(p.partner)
+      unless((team as string[]).includes(p.partner), () =>
+        expect(team as string[], `${p.name}'s partner is on their team`).toContain(p.partner),
+      )
     }
   }
+}
+
+/**
+ * Runs `assertion` only when `ok` is false: the same check and the same failure message, without an `expect` call
+ * on every pass. The many-games sweeps make tens of thousands of these checks, and `expect` itself was most of their
+ * time (T1.15), which pushed them past Vitest's 5 s limit under load.
+ */
+function unless(ok: boolean, assertion: () => void) {
+  if (!ok) assertion()
 }
 
 /** Every active player is in the line or on court exactly once, each game two a side. */
 function expectConsistent(s: Session) {
   const on = playing(s).flatMap(playersOf)
-  expect(new Set(on).size).toBe(on.length)
-  expect(new Set(s.line).size).toBe(s.line.length)
+  unless(new Set(on).size === on.length, () => expect(new Set(on).size).toBe(on.length))
+  unless(new Set(s.line).size === s.line.length, () => expect(new Set(s.line).size).toBe(s.line.length))
   for (const p of s.players) {
     const inLine = s.line.includes(p.id)
     const isOn = on.includes(p.id)
-    if (p.status === 'waiting') expect(inLine && !isOn, `${p.name} waiting`).toBe(true)
-    else if (p.status === 'playing') expect(isOn && !inLine, `${p.name} playing`).toBe(true)
-    else expect(inLine || isOn, `${p.name} ${p.status}`).toBe(false)
+    if (p.status === 'waiting') unless(inLine && !isOn, () => expect(inLine && !isOn, `${p.name} waiting`).toBe(true))
+    else if (p.status === 'playing') unless(isOn && !inLine, () => expect(isOn && !inLine, `${p.name} playing`).toBe(true))
+    else unless(!(inLine || isOn), () => expect(inLine || isOn, `${p.name} ${p.status}`).toBe(false))
   }
   for (const g of s.games) {
-    expect(g.teamA).toHaveLength(2)
-    expect(g.teamB).toHaveLength(2)
+    unless(g.teamA.length === 2, () => expect(g.teamA).toHaveLength(2))
+    unless(g.teamB.length === 2, () => expect(g.teamB).toHaveLength(2))
   }
   expectLocks(s)
 }
@@ -354,7 +366,10 @@ function trackWaits(s: Session, waits: Map<string, number>, started: number) {
   }
   const active = s.players.filter((p) => p.status === 'waiting' || p.status === 'playing').length
   for (const p of s.players) {
-    expect(waits.get(p.id) ?? 0, `${p.name} waits through at most ${2 * active} game starts (nobody waits forever)`).toBeLessThanOrEqual(2 * active)
+    const waited = waits.get(p.id) ?? 0
+    unless(waited <= 2 * active, () =>
+      expect(waited, `${p.name} waits through at most ${2 * active} game starts (nobody waits forever)`).toBeLessThanOrEqual(2 * active),
+    )
   }
 }
 

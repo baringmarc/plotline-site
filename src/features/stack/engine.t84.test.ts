@@ -120,30 +120,41 @@ const allPaired = (s: Session) => {
   return active.length > 0 && active.every((p) => p.partner !== undefined)
 }
 
+/**
+ * Runs `assertion` only when `ok` is false: the same check and the same failure message, without an `expect` call
+ * on every pass. The many-games sweeps make about 100,000 of these checks, and `expect` itself was most of their
+ * time (T1.15), which pushed them past Vitest's 5 s limit under load.
+ */
+function unless(ok: boolean, assertion: () => void) {
+  if (!ok) assertion()
+}
+
 /** Every active player is in the line or on court exactly once, each game has the right number a side. */
 function expectConsistent(s: Session) {
   const perSide = s.play === 'singles' ? 1 : 2
   const on = playing(s).flatMap(playersOf)
-  expect(new Set(on).size).toBe(on.length)
-  expect(new Set(s.line).size).toBe(s.line.length)
+  unless(new Set(on).size === on.length, () => expect(new Set(on).size).toBe(on.length))
+  unless(new Set(s.line).size === s.line.length, () => expect(new Set(s.line).size).toBe(s.line.length))
   for (const p of s.players) {
     const inLine = s.line.includes(p.id)
     const isOn = on.includes(p.id)
-    if (p.status === 'waiting') expect(inLine && !isOn, `${p.name} waiting`).toBe(true)
-    else if (p.status === 'playing') expect(isOn && !inLine, `${p.name} playing`).toBe(true)
-    else expect(inLine || isOn, `${p.name} ${p.status}`).toBe(false)
+    if (p.status === 'waiting') unless(inLine && !isOn, () => expect(inLine && !isOn, `${p.name} waiting`).toBe(true))
+    else if (p.status === 'playing') unless(isOn && !inLine, () => expect(isOn && !inLine, `${p.name} playing`).toBe(true))
+    else unless(!(inLine || isOn), () => expect(inLine || isOn, `${p.name} ${p.status}`).toBe(false))
   }
   for (const g of s.games) {
-    expect(g.teamA).toHaveLength(perSide)
-    expect(g.teamB).toHaveLength(perSide)
+    unless(g.teamA.length === perSide, () => expect(g.teamA).toHaveLength(perSide))
+    unless(g.teamB.length === perSide, () => expect(g.teamB).toHaveLength(perSide))
   }
   if (allPaired(s)) {
-    expect(s).not.toHaveProperty('teams')
+    unless(!('teams' in s), () => expect(s).not.toHaveProperty('teams'))
+    const partnerOf = (pid: string) => s.players.find((p) => p.id === pid)!.partner
     const still = (pid: string) => s.players.find((p) => p.id === pid)!.status !== 'removed'
     for (const g of s.games)
-      for (const t of [g.teamA, g.teamB]) if (still(t[0])) expect(s.players.find((p) => p.id === t[0])!.partner).toBe(t[1])
+      for (const t of [g.teamA, g.teamB])
+        if (still(t[0])) unless(partnerOf(t[0]) === t[1], () => expect(partnerOf(t[0])).toBe(t[1]))
     for (let i = 0; i < s.line.length; i += 2)
-      expect(s.players.find((p) => p.id === s.line[i])!.partner).toBe(s.line[i + 1])
+      unless(partnerOf(s.line[i]) === s.line[i + 1], () => expect(partnerOf(s.line[i])).toBe(s.line[i + 1]))
   }
 }
 

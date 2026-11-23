@@ -74,26 +74,38 @@ const allPaired = (s: Session) => {
   return active.length > 0 && active.every((p) => p.partner !== undefined)
 }
 
+/**
+ * Runs `assertion` only when `ok` is false: the same check and the same failure message, without an `expect` call
+ * on every pass. The many-games sweep makes tens of thousands of these checks, and `expect` itself was most of its
+ * time (T1.15), which pushed it past Vitest's 5 s limit under load.
+ */
+function unless(ok: boolean, assertion: () => void) {
+  if (!ok) assertion()
+}
+
 function expectConsistent(s: Session) {
   const perSide = s.play === 'singles' ? 1 : 2
   const on = playing(s).flatMap(playersOf)
-  expect(new Set(on).size).toBe(on.length)
-  expect(new Set(s.line).size).toBe(s.line.length)
+  unless(new Set(on).size === on.length, () => expect(new Set(on).size).toBe(on.length))
+  unless(new Set(s.line).size === s.line.length, () => expect(new Set(s.line).size).toBe(s.line.length))
   for (const p of s.players) {
     const inLine = s.line.includes(p.id)
     const isOn = on.includes(p.id)
-    if (p.status === 'waiting') expect(inLine && !isOn, `${p.name} waiting`).toBe(true)
-    else if (p.status === 'playing') expect(isOn && !inLine, `${p.name} playing`).toBe(true)
-    else expect(inLine || isOn, `${p.name} ${p.status}`).toBe(false)
+    if (p.status === 'waiting') unless(inLine && !isOn, () => expect(inLine && !isOn, `${p.name} waiting`).toBe(true))
+    else if (p.status === 'playing') unless(isOn && !inLine, () => expect(isOn && !inLine, `${p.name} playing`).toBe(true))
+    else unless(!(inLine || isOn), () => expect(inLine || isOn, `${p.name} ${p.status}`).toBe(false))
   }
   for (const g of s.games) {
-    expect(g.teamA).toHaveLength(perSide)
-    expect(g.teamB).toHaveLength(perSide)
-    expect(new Set(playersOf(g)).size).toBe(perSide * 2)
+    unless(g.teamA.length === perSide, () => expect(g.teamA).toHaveLength(perSide))
+    unless(g.teamB.length === perSide, () => expect(g.teamB).toHaveLength(perSide))
+    const distinct = new Set(playersOf(g)).size
+    unless(distinct === perSide * 2, () => expect(distinct).toBe(perSide * 2))
   }
-  if (allPaired(s))
+  if (allPaired(s)) {
+    const partnerOf = (pid: string) => s.players.find((p) => p.id === pid)!.partner
     for (let i = 0; i < s.line.length; i += 2)
-      expect(s.players.find((p) => p.id === s.line[i])!.partner).toBe(s.line[i + 1])
+      unless(partnerOf(s.line[i]) === s.line[i + 1], () => expect(partnerOf(s.line[i])).toBe(s.line[i + 1]))
+  }
 }
 
 // ---------- a reference for SPEC's Round Robin rule ----------
