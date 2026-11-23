@@ -44,7 +44,6 @@ function session(players: Player[], games: Game[] = [], title = ''): Session {
   return {
     title,
     play: 'singles',
-    teams: 'open',
     format: 'fair',
     courts: 1,
     players,

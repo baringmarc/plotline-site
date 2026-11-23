@@ -8,7 +8,9 @@
 // - types: `Format` gains 'round-robin' | 'mexicano' | 'skill-groups' | 'winners-losers';
 // - engine: `isRoundFormat(format)`, and the existing API (`createSession`, `addPlayers`, `addPairs`, `setLevel`,
 //   `timeOut`, `backInLine`, `removePlayer`, `fillCourts`, `recordScore`, `skipGame`, `standings`, `serialize`,
-//   `deserialize`, `StackError` code `bad-combo`); saves stay version 2.
+//   `deserialize`, `StackError` code `bad-combo`); saves are version 3 since T8.9.
+// T8.9 (Teams removed): what was "fixed pairs" is a session whose players are all in locked pairs (`pairs`, no
+// `names`); it must play as fixed pairs did. Mixed solos and pairs: engine.t89.test.ts.
 //
 // Team order: a team is compared as a set of players (which player is listed first inside a team is not a rule);
 // which team is A is checked where SPEC names it (Mexicano: 1 & 4 is team A; groups: 1 & 3 is team A).
@@ -30,7 +32,7 @@ import {
   timeOut,
   type NewPlayer,
 } from './engine'
-import type { Format, Game, Level, Play, Session, Teams } from './types'
+import type { Format, Game, Level, Play, Session } from './types'
 
 // ---------- helpers ----------
 
@@ -100,40 +102,59 @@ function pairList(n: number, levels?: (Level | undefined)[]): [NewPlayer, NewPla
   return Array.from({ length: n }, (_, i) => [ps[i * 2], ps[i * 2 + 1]] as [NewPlayer, NewPlayer])
 }
 
+/** `pairs`: `count` locked pairs and no solo players; otherwise `count` solo players. */
 function make(
   format: Format,
   count: number,
-  opts: { courts: number; play?: Play; teams?: Teams; levels?: (Level | undefined)[] },
+  opts: { courts: number; play?: Play; pairs?: boolean; levels?: (Level | undefined)[] },
 ): Session {
   const play = opts.play ?? 'doubles'
-  const teams = opts.teams ?? 'open'
-  return teams === 'fixed'
-    ? createSession({ format, courts: opts.courts, play, teams, pairs: pairList(count, opts.levels) })
-    : createSession({ format, courts: opts.courts, play, teams, names: people(count, opts.levels) })
+  return opts.pairs
+    ? createSession({ format, courts: opts.courts, play, pairs: pairList(count, opts.levels) })
+    : createSession({ format, courts: opts.courts, play, names: people(count, opts.levels) })
+}
+
+/** Every player still in the session is in a locked pair (what fixed pairs were before T8.9). */
+const allPaired = (s: Session) => {
+  const active = s.players.filter((p) => p.status !== 'removed')
+  return active.length > 0 && active.every((p) => p.partner !== undefined)
+}
+
+/**
+ * Runs `assertion` only when `ok` is false: the same check and the same failure message, without an `expect` call
+ * on every pass. The many-games sweeps make about 100,000 of these checks, and `expect` itself was most of their
+ * time (T1.15), which pushed them past Vitest's 5 s limit under load.
+ */
+function unless(ok: boolean, assertion: () => void) {
+  if (!ok) assertion()
 }
 
 /** Every active player is in the line or on court exactly once, each game has the right number a side. */
 function expectConsistent(s: Session) {
   const perSide = s.play === 'singles' ? 1 : 2
   const on = playing(s).flatMap(playersOf)
-  expect(new Set(on).size).toBe(on.length)
-  expect(new Set(s.line).size).toBe(s.line.length)
+  unless(new Set(on).size === on.length, () => expect(new Set(on).size).toBe(on.length))
+  unless(new Set(s.line).size === s.line.length, () => expect(new Set(s.line).size).toBe(s.line.length))
   for (const p of s.players) {
     const inLine = s.line.includes(p.id)
     const isOn = on.includes(p.id)
-    if (p.status === 'waiting') expect(inLine && !isOn, `${p.name} waiting`).toBe(true)
-    else if (p.status === 'playing') expect(isOn && !inLine, `${p.name} playing`).toBe(true)
-    else expect(inLine || isOn, `${p.name} ${p.status}`).toBe(false)
+    if (p.status === 'waiting') unless(inLine && !isOn, () => expect(inLine && !isOn, `${p.name} waiting`).toBe(true))
+    else if (p.status === 'playing') unless(isOn && !inLine, () => expect(isOn && !inLine, `${p.name} playing`).toBe(true))
+    else unless(!(inLine || isOn), () => expect(inLine || isOn, `${p.name} ${p.status}`).toBe(false))
   }
   for (const g of s.games) {
-    expect(g.teamA).toHaveLength(perSide)
-    expect(g.teamB).toHaveLength(perSide)
+    unless(g.teamA.length === perSide, () => expect(g.teamA).toHaveLength(perSide))
+    unless(g.teamB.length === perSide, () => expect(g.teamB).toHaveLength(perSide))
   }
-  if (s.teams === 'fixed') {
+  if (allPaired(s)) {
+    unless(!('teams' in s), () => expect(s).not.toHaveProperty('teams'))
+    const partnerOf = (pid: string) => s.players.find((p) => p.id === pid)!.partner
+    const still = (pid: string) => s.players.find((p) => p.id === pid)!.status !== 'removed'
     for (const g of s.games)
-      for (const t of [g.teamA, g.teamB]) expect(s.players.find((p) => p.id === t[0])!.partner).toBe(t[1])
+      for (const t of [g.teamA, g.teamB])
+        if (still(t[0])) unless(partnerOf(t[0]) === t[1], () => expect(partnerOf(t[0])).toBe(t[1]))
     for (let i = 0; i < s.line.length; i += 2)
-      expect(s.players.find((p) => p.id === s.line[i])!.partner).toBe(s.line[i + 1])
+      unless(partnerOf(s.line[i]) === s.line[i + 1], () => expect(partnerOf(s.line[i])).toBe(s.line[i + 1]))
   }
 }
 
@@ -158,9 +179,9 @@ function expectFill(before: Session, after: Session, expected: Expected[]) {
 
 // ---------- group formats: a reference for SPEC's group rule ----------
 
-/** The line read as sides: a player, or (fixed pairs) the two partners standing together. */
+/** The line read as sides: a player, or (all locked pairs) the two partners standing together. */
 function lineSides(s: Session): string[][] {
-  if (s.teams !== 'fixed') return s.line.map((x) => [x])
+  if (!allPaired(s)) return s.line.map((x) => [x])
   return Array.from({ length: s.line.length / 2 }, (_, i) => [s.line[i * 2], s.line[i * 2 + 1]])
 }
 
@@ -186,7 +207,7 @@ function poolOf(s: Session, side: string[]): 'W' | 'L' | undefined {
  * of the line. Players keep line order on court: 1 & 3 against 2 & 4 (pairs: pair against pair; singles 1 against 2).
  */
 function expectedGroups<K>(s: Session, keyOf: (side: string[]) => K | undefined): Expected[] {
-  const sideSize = s.teams === 'fixed' ? 2 : 1
+  const sideSize = allPaired(s) ? 2 : 1
   const need = perCourt(s) / sideSize
   let sides = lineSides(s)
   const out: Expected[] = []
@@ -205,7 +226,7 @@ function expectedGroups<K>(s: Session, keyOf: (side: string[]) => K | undefined)
     if (taken.length < need) taken = sides.slice(0, need)
     const p = taken.flat()
     const [a, b] =
-      s.play === 'singles' ? [[p[0]], [p[1]]] : s.teams === 'fixed' ? [taken[0], taken[1]] : [[p[0], p[2]], [p[1], p[3]]]
+      s.play === 'singles' ? [[p[0]], [p[1]]] : sideSize === 2 ? [taken[0], taken[1]] : [[p[0], p[2]], [p[1], p[3]]]
     out.push({ court, a, b })
     sides = sides.filter((x) => !taken.includes(x))
   }
@@ -213,16 +234,16 @@ function expectedGroups<K>(s: Session, keyOf: (side: string[]) => K | undefined)
 }
 
 /** Lineups and events to play many games through. */
-type Config = { label: string; count: number; courts: number; play: Play; teams: Teams }
+type Config = { label: string; count: number; courts: number; play: Play; pairs: boolean }
 const COURTS = [1, 2, 3]
 const DOUBLES: Config[] = [4, 5, 9, 17].flatMap((n) =>
-  COURTS.map((c) => ({ label: `${n} players, ${c} court(s), doubles`, count: n, courts: c, play: 'doubles' as Play, teams: 'open' as Teams })),
+  COURTS.map((c) => ({ label: `${n} players, ${c} court(s), doubles`, count: n, courts: c, play: 'doubles' as Play, pairs: false })),
 )
 const SINGLES: Config[] = [2, 3, 7].flatMap((n) =>
-  COURTS.map((c) => ({ label: `${n} players, ${c} court(s), singles`, count: n, courts: c, play: 'singles' as Play, teams: 'open' as Teams })),
+  COURTS.map((c) => ({ label: `${n} players, ${c} court(s), singles`, count: n, courts: c, play: 'singles' as Play, pairs: false })),
 )
 const FIXED: Config[] = [2, 3, 5, 8].flatMap((n) =>
-  COURTS.map((c) => ({ label: `${n} fixed pairs, ${c} court(s)`, count: n, courts: c, play: 'doubles' as Play, teams: 'fixed' as Teams })),
+  COURTS.map((c) => ({ label: `${n} locked pairs, ${c} court(s)`, count: n, courts: c, play: 'doubles' as Play, pairs: true })),
 )
 
 /**
@@ -240,7 +261,7 @@ function playContinuous(
   let outId: string | undefined
   for (let i = 0; i < games; i++) {
     if (opts.events) {
-      if (i === 8) s = s.teams === 'fixed' ? addPairs(s, [['Zed', 'Yan']]) : addPlayers(s, ['Zed'])
+      if (i === 8) s = allPaired(s) ? addPairs(s, [['Zed', 'Yan']]) : addPlayers(s, ['Zed'])
       if (i === 16 && s.line.length > 0) {
         outId = s.line[0]
         s = timeOut(s, outId)
@@ -283,12 +304,12 @@ describe('formats (T8.4: seven formats; round formats are Americano and Mexicano
 })
 
 describe('combinations (T8.4: bad-combo)', () => {
-  it('Mexicano (changing partners) is not offered with fixed pairs', () => {
-    expectCode(() => createSession({ format: 'mexicano', courts: 1, teams: 'fixed', pairs: pairList(2) }), 'bad-combo')
+  it('Mexicano (changing partners) is not offered with locked pairs', () => {
+    expectCode(() => createSession({ format: 'mexicano', courts: 1, pairs: pairList(2) }), 'bad-combo')
   })
 
-  it.each(NEW_FORMATS)('fixed pairs are not offered in singles (%s)', (format) => {
-    expectCode(() => createSession({ format, courts: 1, play: 'singles', teams: 'fixed', pairs: pairList(2) }), 'bad-combo')
+  it.each(NEW_FORMATS)('locked pairs are not offered in singles (%s)', (format) => {
+    expectCode(() => createSession({ format, courts: 1, play: 'singles', pairs: pairList(2) }), 'bad-combo')
   })
 
   it('Mexicano works in singles and open doubles', () => {
@@ -297,14 +318,14 @@ describe('combinations (T8.4: bad-combo)', () => {
   })
 
   it.each<Format>(['round-robin', 'skill-groups', 'winners-losers'])(
-    '%s works in singles, open doubles and fixed pairs',
+    '%s works in singles, doubles with no locks and doubles with every player locked in a pair',
     (format) => {
       const singles = make(format, 3, { courts: 1, play: 'singles' })
       const open = make(format, 4, { courts: 1 })
-      const fixed = make(format, 2, { courts: 1, teams: 'fixed' })
-      expect([singles.play, singles.teams]).toEqual(['singles', 'open'])
-      expect([open.play, open.teams]).toEqual(['doubles', 'open'])
-      expect([fixed.play, fixed.teams]).toEqual(['doubles', 'fixed'])
+      const fixed = make(format, 2, { courts: 1, pairs: true })
+      expect([singles.play, allPaired(singles)]).toEqual(['singles', false])
+      expect([open.play, allPaired(open)]).toEqual(['doubles', false])
+      expect([fixed.play, allPaired(fixed)]).toEqual(['doubles', true])
     },
   )
 })
@@ -570,18 +591,18 @@ describe('Skill groups: building a group (T8.4)', () => {
     expect(s.line).toEqual(ids(s, 'Ben'))
   })
 
-  it("fixed pairs: a pair's level is the higher of its partners'; pair against pair in line order", () => {
+  it("locked pairs: a pair's level is the higher of its partners'; pair against pair in line order", () => {
     // Pairs: Ana 1 + Ben 3 (3), Cy 1 + Dee 1 (1), Eli 3 + Fay none (3), Gus + Hal none (none)
-    const start = make('skill-groups', 4, { courts: 1, teams: 'fixed', levels: [1, 3, 1, 1, 3, undefined] })
+    const start = make('skill-groups', 4, { courts: 1, pairs: true, levels: [1, 3, 1, 1, 3, undefined] })
     const s = fillCourts(start)
     expect(named(s, onCourt(s, 1).teamA)).toBe('Ana|Ben')
     expect(named(s, onCourt(s, 1).teamB)).toBe('Eli|Fay')
     expect(s.line).toEqual(ids(s, 'Cy', 'Dee', 'Gus', 'Hal'))
   })
 
-  it('a fixed pair with no level fits any group', () => {
+  it('a locked pair with no level fits any group', () => {
     // Pairs: Ana 2 + Ben 2 (2), Cy 1 + Dee 1 (1), Eli + Fay none
-    const s = fillCourts(make('skill-groups', 3, { courts: 1, teams: 'fixed', levels: [2, 2, 1, 1] }))
+    const s = fillCourts(make('skill-groups', 3, { courts: 1, pairs: true, levels: [2, 2, 1, 1] }))
     expect(named(s, onCourt(s, 1).teamA)).toBe('Ana|Ben')
     expect(named(s, onCourt(s, 1).teamB)).toBe('Eli|Fay')
   })
@@ -604,7 +625,7 @@ describe('Skill groups over many games (T8.4: no levels, mixed levels and wildca
   it.each(configs.map((c) => [c.label, c] as const))('%s', (_label, c) => {
     for (const [, levels] of levelSets) {
       for (const events of [false, true]) {
-        const start = make('skill-groups', c.count, { courts: c.courts, play: c.play, teams: c.teams, levels })
+        const start = make('skill-groups', c.count, { courts: c.courts, play: c.play, pairs: c.pairs, levels })
         playContinuous(start, 60, skillGroups, { events })
       }
     }
@@ -679,9 +700,9 @@ describe('Winners vs Losers: pools (T8.4)', () => {
     expect(named(s, playersOf(onCourt(s, 1)))).toBe('Ben|Cy')
   })
 
-  it('fixed pairs: the pair is the side and its last result is its pool', () => {
+  it('locked pairs: the pair is the side and its last result is its pool', () => {
     // Pairs Ana+Ben, Cy+Dee, Eli+Fay, Gus+Hal. Game 1: Ana+Ben beat Cy+Dee.
-    let s = fillCourts(make('winners-losers', 4, { courts: 1, teams: 'fixed' }))
+    let s = fillCourts(make('winners-losers', 4, { courts: 1, pairs: true }))
     s = recordScore(s, onCourt(s, 1).id, 11, 8)
     // Line: Eli+Fay, Gus+Hal, Ana+Ben (W), Cy+Dee (L). Fresh pairs fit any pool: Eli+Fay vs Gus+Hal.
     s = fillCourts(s)
@@ -712,7 +733,7 @@ describe('Winners vs Losers over many games (T8.4, incl. a short pool)', () => {
   const configs = [...DOUBLES, ...SINGLES, ...FIXED]
   it.each(configs.map((c) => [c.label, c] as const))('%s', (_label, c) => {
     for (const events of [false, true]) {
-      const start = make('winners-losers', c.count, { courts: c.courts, play: c.play, teams: c.teams })
+      const start = make('winners-losers', c.count, { courts: c.courts, play: c.play, pairs: c.pairs })
       playContinuous(start, 60, winnersLosers, { events })
     }
   })
@@ -748,29 +769,30 @@ describe('the new formats never mutate their input (T8.4)', () => {
   })
 })
 
-describe('saving the new formats (T8.4: JSON round trip, still version 2)', () => {
-  const cases: [Format, Play, Teams][] = [
-    ['round-robin', 'doubles', 'open'],
-    ['round-robin', 'singles', 'open'],
-    ['round-robin', 'doubles', 'fixed'],
-    ['mexicano', 'doubles', 'open'],
-    ['mexicano', 'singles', 'open'],
-    ['skill-groups', 'doubles', 'open'],
-    ['skill-groups', 'singles', 'open'],
-    ['skill-groups', 'doubles', 'fixed'],
-    ['winners-losers', 'doubles', 'open'],
-    ['winners-losers', 'singles', 'open'],
-    ['winners-losers', 'doubles', 'fixed'],
+describe('saving the new formats (T8.4: JSON round trip; version 3 since T8.9)', () => {
+  const cases: [Format, Play, 'solos' | 'pairs'][] = [
+    ['round-robin', 'doubles', 'solos'],
+    ['round-robin', 'singles', 'solos'],
+    ['round-robin', 'doubles', 'pairs'],
+    ['mexicano', 'doubles', 'solos'],
+    ['mexicano', 'singles', 'solos'],
+    ['skill-groups', 'doubles', 'solos'],
+    ['skill-groups', 'singles', 'solos'],
+    ['skill-groups', 'doubles', 'pairs'],
+    ['winners-losers', 'doubles', 'solos'],
+    ['winners-losers', 'singles', 'solos'],
+    ['winners-losers', 'doubles', 'pairs'],
   ]
-  it.each(cases)('%s (%s, %s): a session mid-play loads back equal and plays on the same', (format, play, teams) => {
-    let s = make(format, teams === 'fixed' ? 4 : 9, { courts: 2, play, teams, levels: MIXED })
+  it.each(cases)('%s (%s, %s): a session mid-play loads back equal and plays on the same', (format, play, who) => {
+    const pairs = who === 'pairs'
+    let s = make(format, pairs ? 4 : 9, { courts: 2, play, pairs, levels: MIXED })
     for (let i = 0; i < 7; i++) {
       s = fillCourts(s)
       s = i % 4 === 3 ? skipGame(s, playing(s)[0].id) : recordScore(s, playing(s)[0].id, ...score(i))
     }
     s = fillCourts(s)
     const json = serialize(s)
-    expect(JSON.parse(json).version).toBe(2)
+    expect(JSON.parse(json).version).toBe(3)
     const loaded = deserialize(json)
     expect(loaded).toEqual(s)
     let a = loaded!
@@ -784,15 +806,15 @@ describe('saving the new formats (T8.4: JSON round trip, still version 2)', () =
     }
   })
 
-  it('a save of Mexicano with fixed pairs (a refused combination) loads as null', () => {
-    const s = make('skill-groups', 2, { courts: 1, teams: 'fixed' })
+  it('a save of Mexicano with locked pairs (a refused combination) loads as null', () => {
+    const s = make('skill-groups', 2, { courts: 1, pairs: true })
     const data = JSON.parse(serialize(s))
     data.session.format = 'mexicano'
     expect(deserialize(JSON.stringify(data))).toBeNull()
   })
 
-  it.each(NEW_FORMATS)('a singles save with fixed pairs is refused for %s', (format) => {
-    const s = make('skill-groups', 2, { courts: 1, teams: 'fixed' })
+  it.each(NEW_FORMATS)('a singles save with locked pairs is refused for %s', (format) => {
+    const s = make('skill-groups', 2, { courts: 1, pairs: true })
     const data = JSON.parse(serialize(s))
     data.session.format = format
     data.session.play = 'singles'

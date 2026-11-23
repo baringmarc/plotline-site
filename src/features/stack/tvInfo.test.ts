@@ -36,7 +36,6 @@ function session(games: Game[], opts: Partial<Session> = {}): Session {
   return {
     title: '',
     play: 'doubles',
-    teams: 'open',
     format: 'fair',
     courts: 3,
     players: IDS.map(player),

@@ -3,13 +3,15 @@
 // together against the next pair with the 2-win cap).
 //
 // Names the tests rely on (the plan's):
-// - types: `Play = 'singles' | 'doubles'`, `Teams = 'open' | 'fixed'`, `Level = 1 | 2 | 3`,
-//   `Team = [string] | [string, string]`; `Session.title` ('' when none), `Session.play`, `Session.teams`;
-//   `Player.level?`, `Player.partner?` (the partner's player id, fixed pairs only); `Game.teamA` / `teamB` are `Team`;
-// - engine: `createSession({ format, courts, title?, play?, teams?, names?, pairs? })`, `NewPlayer`,
-//   `addPlayers` (throws `needs-pair` with fixed pairs), `addPairs`, `setLevel(session, id, level | null)`,
-//   `MAX_TITLE = 60`, `LEVELS = [1, 2, 3]`, codes `bad-combo`, `bad-title`, `needs-pair`, `bad-level`;
-//   `serialize` writes version 2, `deserialize` loads version 1 as doubles / open / title ''.
+// - types: `Play = 'singles' | 'doubles'`, `Level = 1 | 2 | 3`,
+//   `Team = [string] | [string, string]`; `Session.title` ('' when none), `Session.play`;
+//   `Player.level?`, `Player.partner?` (the partner's player id: a pair lock); `Game.teamA` / `teamB` are `Team`;
+// - engine: `createSession({ format, courts, title?, play?, names?, pairs? })`, `NewPlayer`,
+//   `addPlayers`, `addPairs`, `setLevel(session, id, level | null)`,
+//   `MAX_TITLE = 60`, `LEVELS = [1, 2, 3]`, codes `bad-combo`, `bad-title`, `bad-level`;
+//   `serialize` writes version 3, `deserialize` loads version 1 as doubles / no locks / title ''.
+// T8.9 (Teams removed, SPEC §4 "Pair locks"): what was "fixed pairs" is now a session whose players are all in locked
+// pairs (`pairs` with no `names`); it plays as fixed pairs did. Mixed sessions and lock/unlock: engine.t89.test.ts.
 import { describe, expect, it } from 'vitest'
 import {
   LEVELS,
@@ -108,7 +110,7 @@ function expectConsistent(s: Session, perSide: 1 | 2) {
   }
 }
 
-/** Fixed pairs: every team is a pair, partners point at each other, and partners stand next to each other in line. */
+/** All locked pairs: every team is a pair, partners point at each other, and partners stand next to each other in line. */
 function expectPairsTogether(s: Session) {
   for (const p of s.players) {
     expect(p.partner, `${p.name} has a partner`).toBeDefined()
@@ -128,7 +130,7 @@ function expectPairsTogether(s: Session) {
   }
 }
 
-/** The line read pair by pair (fixed pairs). */
+/** The line read pair by pair (all locked pairs). */
 const linePairs = (s: Session) => Array.from({ length: s.line.length / 2 }, (_, i) => key(s.line[i * 2], s.line[i * 2 + 1]))
 const teamKeys = (g: Game) => [key(...side(g.teamA)), key(...side(g.teamB))].sort()
 
@@ -152,25 +154,26 @@ const COURTS = [1, 2, 3]
 const SINGLES_GRID = [2, 3, 5, 7].flatMap((n) => COURTS.map((c) => [n, c] as const))
 const PAIRS_GRID = [2, 3, 5, 9].flatMap((n) => COURTS.map((c) => [n, c] as const))
 
-// ---------- session: title, play, teams ----------
+// ---------- session: title, play ----------
 
 describe('createSession defaults (T8.3)', () => {
-  it('defaults to doubles, an open queue and no title', () => {
+  it('defaults to doubles, no locks, no title, and no teams field (T8.9)', () => {
     const s = createSession({ format: 'fair', courts: 2, names: names(4) })
     expect(s.title).toBe('')
     expect(s.play).toBe('doubles')
-    expect(s.teams).toBe('open')
+    expect(s).not.toHaveProperty('teams')
     for (const p of s.players) {
       expect(p.level).toBeUndefined()
       expect(p.partner).toBeUndefined()
     }
   })
 
-  it('keeps the chosen play and teams', () => {
+  it('keeps the chosen play; pairs come in locked (T8.9)', () => {
     expect(createSession({ format: 'fair', courts: 1, play: 'singles', names: names(2) }).play).toBe('singles')
-    const fixed = createSession({ format: 'fair', courts: 1, play: 'doubles', teams: 'fixed', pairs: pairsOf(2) })
-    expect(fixed.play).toBe('doubles')
-    expect(fixed.teams).toBe('fixed')
+    const pairs = createSession({ format: 'fair', courts: 1, play: 'doubles', pairs: pairsOf(2) })
+    expect(pairs.play).toBe('doubles')
+    expect(pairs).not.toHaveProperty('teams')
+    expect(pairs.players.every((p) => p.partner !== undefined)).toBe(true)
   })
 
   it('an open queue may start with no names at all', () => {
@@ -209,39 +212,39 @@ describe('refused combinations (T8.3: bad-combo)', () => {
     expectCode(() => createSession({ format: 'winners-split', courts: 1, play: 'singles', names: names(4) }), 'bad-combo')
   })
 
-  it.each<Format>(['fair', 'winners-split', 'americano'])('fixed pairs are not offered in singles (%s)', (format) => {
-    expectCode(() => createSession({ format, courts: 1, play: 'singles', teams: 'fixed', pairs: pairsOf(2) }), 'bad-combo')
+  it.each<Format>(['fair', 'winners-split', 'americano'])('locked pairs are not offered in singles (%s)', (format) => {
+    expectCode(() => createSession({ format, courts: 1, play: 'singles', pairs: pairsOf(2) }), 'bad-combo')
   })
 
-  it('Americano (changing partners) is not offered with fixed pairs', () => {
-    expectCode(() => createSession({ format: 'americano', courts: 1, teams: 'fixed', pairs: pairsOf(2) }), 'bad-combo')
+  it('Americano (changing partners) is not offered with locked pairs', () => {
+    expectCode(() => createSession({ format: 'americano', courts: 1, pairs: pairsOf(2) }), 'bad-combo')
   })
 
   it('accepts every offered combination', () => {
-    const offered: [Format, 'singles' | 'doubles', 'open' | 'fixed'][] = [
-      ['fair', 'singles', 'open'],
-      ['americano', 'singles', 'open'],
-      ['fair', 'doubles', 'open'],
-      ['winners-split', 'doubles', 'open'],
-      ['americano', 'doubles', 'open'],
-      ['fair', 'doubles', 'fixed'],
-      ['winners-split', 'doubles', 'fixed'],
+    const offered: [Format, 'singles' | 'doubles', 'solos' | 'pairs'][] = [
+      ['fair', 'singles', 'solos'],
+      ['americano', 'singles', 'solos'],
+      ['fair', 'doubles', 'solos'],
+      ['winners-split', 'doubles', 'solos'],
+      ['americano', 'doubles', 'solos'],
+      ['fair', 'doubles', 'pairs'],
+      ['winners-split', 'doubles', 'pairs'],
     ]
-    for (const [format, play, teams] of offered) {
+    for (const [format, play, who] of offered) {
       const s =
-        teams === 'fixed'
-          ? createSession({ format, courts: 1, play, teams, pairs: pairsOf(2) })
-          : createSession({ format, courts: 1, play, teams, names: names(4) })
-      expect([s.format, s.play, s.teams]).toEqual([format, play, teams])
+        who === 'pairs'
+          ? createSession({ format, courts: 1, play, pairs: pairsOf(2) })
+          : createSession({ format, courts: 1, play, names: names(4) })
+      expect([s.format, s.play, s.players.every((p) => (p.partner !== undefined) === (who === 'pairs'))]).toEqual([format, play, true])
     }
   })
 
-  it('an unknown play or teams value is refused with a StackError', () => {
+  it('an unknown play or format is refused with a StackError', () => {
     expect(() =>
       createSession({ format: 'fair', courts: 1, play: 'triples' as unknown as 'singles', names: names(4) }),
     ).toThrow(StackError)
     expect(() =>
-      createSession({ format: 'fair', courts: 1, teams: 'mixed' as unknown as 'open', names: names(4) }),
+      createSession({ format: 'king-of-the-court' as unknown as Format, courts: 1, names: names(4) }),
     ).toThrow(StackError)
   })
 })
@@ -454,11 +457,11 @@ describe('doubles stays as it was (T8.3)', () => {
   })
 })
 
-// ---------- fixed pairs ----------
+// ---------- all locked pairs (was: fixed pairs) ----------
 
-describe('fixed pairs: entering pairs (T8.3)', () => {
+describe('all locked pairs: entering pairs (T8.3, T8.9)', () => {
   it('createSession with pairs: partners point at each other and stand next to each other in line', () => {
-    const s = createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(3) })
+    const s = createSession({ format: 'fair', courts: 1, pairs: pairsOf(3) })
     expect(s.players.map((p) => p.name)).toEqual(names(6))
     expect(s.line).toEqual(ids(s, ...names(6)))
     expect(player(s, 'Ana').partner).toBe(id(s, 'Ben'))
@@ -471,7 +474,6 @@ describe('fixed pairs: entering pairs (T8.3)', () => {
     const s = createSession({
       format: 'fair',
       courts: 1,
-      teams: 'fixed',
       pairs: [
         ['Ana', 'Ben'],
         ['ana', 'Gus'],
@@ -485,24 +487,30 @@ describe('fixed pairs: entering pairs (T8.3)', () => {
   })
 
   it('pairs may carry levels', () => {
-    const s = createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: [[{ name: 'Ana', level: 3 }, 'Ben'], pairsOf(2)[1]] })
+    const s = createSession({ format: 'fair', courts: 1, pairs: [[{ name: 'Ana', level: 3 }, 'Ben'], pairsOf(2)[1]] })
     expect(player(s, 'Ana').level).toBe(3)
     expect(player(s, 'Ben').level).toBeUndefined()
   })
 
-  it('addPlayers is refused with needs-pair, leaving the session as it was', () => {
-    const s = deepFreeze(createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(2) }))
+  it('addPlayers adds solo players at the back (T8.9: not refused, and no pairing by order), leaving the input as it was', () => {
+    const s = deepFreeze(createSession({ format: 'fair', courts: 1, pairs: pairsOf(2) }))
     const before = JSON.stringify(s)
-    expectCode(() => addPlayers(s, ['Zed']), 'needs-pair')
+    const next = addPlayers(s, ['Zed', 'Yan'])
     expect(JSON.stringify(s)).toBe(before)
+    expect(next.line).toEqual(ids(next, 'Ana', 'Ben', 'Cy', 'Dee', 'Zed', 'Yan'))
+    expect(player(next, 'Zed').partner).toBeUndefined()
+    expect(player(next, 'Yan').partner).toBeUndefined()
   })
 
-  it('createSession with single names on a fixed-pairs session is refused with needs-pair', () => {
-    expectCode(() => createSession({ format: 'fair', courts: 1, teams: 'fixed', names: names(4) }), 'needs-pair')
+  it('createSession with names and pairs: the names first, then the pairs locked (T8.9)', () => {
+    const s = createSession({ format: 'fair', courts: 1, names: names(2), pairs: [['Cy', 'Dee']] })
+    expect(s.line).toEqual(ids(s, 'Ana', 'Ben', 'Cy', 'Dee'))
+    expect(player(s, 'Ana').partner).toBeUndefined()
+    expect(player(s, 'Cy').partner).toBe(id(s, 'Dee'))
   })
 
   it('addPairs adds pairs to the back of the line, partners together, skipping bad pairs whole', () => {
-    let s = fillCourts(createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(3) }))
+    let s = fillCourts(createSession({ format: 'fair', courts: 1, pairs: pairsOf(3) }))
     s = addPairs(s, [
       ['Gus', 'Hal'],
       ['Ana', 'Ida'],
@@ -515,16 +523,16 @@ describe('fixed pairs: entering pairs (T8.3)', () => {
   })
 
   it('addPairs never mutates its input', () => {
-    const s = deepFreeze(createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(2) }))
+    const s = deepFreeze(createSession({ format: 'fair', courts: 1, pairs: pairsOf(2) }))
     const next = addPairs(s, [['Eli', 'Fay']])
     expect(next.players).toHaveLength(6)
     expect(s.players).toHaveLength(4)
   })
 })
 
-describe('fixed pairs: queueing (T8.3)', () => {
+describe('all locked pairs: queueing (T8.3, as fixed pairs did)', () => {
   it('Fair rotation: the first pair in line plays the second pair', () => {
-    const s = fillCourts(createSession({ format: 'fair', courts: 3, teams: 'fixed', pairs: pairsOf(5) }))
+    const s = fillCourts(createSession({ format: 'fair', courts: 3, pairs: pairsOf(5) }))
     expect(playing(s)).toHaveLength(2)
     expect(onCourt(s, 1).teamA).toEqual(ids(s, 'Ana', 'Ben'))
     expect(onCourt(s, 1).teamB).toEqual(ids(s, 'Cy', 'Dee'))
@@ -535,7 +543,7 @@ describe('fixed pairs: queueing (T8.3)', () => {
   })
 
   it('Fair rotation: after a game both pairs go to the back, pair by pair, in the order they came on', () => {
-    let s = fillCourts(createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(3) }))
+    let s = fillCourts(createSession({ format: 'fair', courts: 1, pairs: pairsOf(3) }))
     s = recordScore(s, onCourt(s, 1).id, 4, 11)
     expect(linePairs(s)).toEqual([key(...ids(s, 'Eli', 'Fay')), key(...ids(s, 'Ana', 'Ben')), key(...ids(s, 'Cy', 'Dee'))])
     expectPairsTogether(s)
@@ -544,13 +552,13 @@ describe('fixed pairs: queueing (T8.3)', () => {
   })
 
   it('a court waits until two pairs are free', () => {
-    const s = fillCourts(createSession({ format: 'fair', courts: 2, teams: 'fixed', pairs: pairsOf(3) }))
+    const s = fillCourts(createSession({ format: 'fair', courts: 2, pairs: pairsOf(3) }))
     expect(playing(s)).toHaveLength(1)
     expect(s.line).toEqual(ids(s, 'Eli', 'Fay'))
   })
 
   it.each(PAIRS_GRID)('Fair rotation, %i pairs on %i courts: pairs stay together and rotate fairly over many games', (n, courts) => {
-    let s = fillCourts(createSession({ format: 'fair', courts, teams: 'fixed', pairs: pairsOf(n) }))
+    let s = fillCourts(createSession({ format: 'fair', courts, pairs: pairsOf(n) }))
     const busy = Math.min(courts, Math.floor(n / 2))
     const seen = new Map<string, number>()
     const note = () => playing(s).forEach((g) => seen.has(g.id) || seen.set(g.id, seen.size))
@@ -573,9 +581,9 @@ describe('fixed pairs: queueing (T8.3)', () => {
   })
 })
 
-describe('fixed pairs: a time out and removal apply to the pair (T8.3)', () => {
+describe('all locked pairs: a time out and removal apply to the pair (T8.3)', () => {
   it('a time out on either partner takes both out of the line', () => {
-    let s = createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(3) })
+    let s = createSession({ format: 'fair', courts: 1, pairs: pairsOf(3) })
     s = timeOut(s, id(s, 'Ben'))
     expect(status(s, 'Ana')).toBe('out')
     expect(status(s, 'Ben')).toBe('out')
@@ -586,7 +594,7 @@ describe('fixed pairs: a time out and removal apply to the pair (T8.3)', () => {
   })
 
   it('back in line on either partner puts both at the back, together', () => {
-    let s = createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(3) })
+    let s = createSession({ format: 'fair', courts: 1, pairs: pairsOf(3) })
     s = backInLine(timeOut(s, id(s, 'Ana')), id(s, 'Ben'))
     expect(status(s, 'Ana')).toBe('waiting')
     expect(status(s, 'Ben')).toBe('waiting')
@@ -596,12 +604,12 @@ describe('fixed pairs: a time out and removal apply to the pair (T8.3)', () => {
   })
 
   it('a pair on court can’t take a time out (not-waiting)', () => {
-    const s = fillCourts(createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(3) }))
+    const s = fillCourts(createSession({ format: 'fair', courts: 1, pairs: pairsOf(3) }))
     expectCode(() => timeOut(s, id(s, 'Ana')), 'not-waiting')
   })
 
   it('removing a waiting partner removes the pair from the line and the standings', () => {
-    let s = fillCourts(createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(3) }))
+    let s = fillCourts(createSession({ format: 'fair', courts: 1, pairs: pairsOf(3) }))
     s = removePlayer(s, id(s, 'Fay'))
     expect(status(s, 'Eli')).toBe('removed')
     expect(status(s, 'Fay')).toBe('removed')
@@ -610,7 +618,7 @@ describe('fixed pairs: a time out and removal apply to the pair (T8.3)', () => {
   })
 
   it('removing a pair on court cancels the game; the other pair goes to the front of the line', () => {
-    let s = fillCourts(createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(3) }))
+    let s = fillCourts(createSession({ format: 'fair', courts: 1, pairs: pairsOf(3) }))
     const gid = onCourt(s, 1).id
     s = removePlayer(s, id(s, 'Ben'))
     const g = s.games.find((x) => x.id === gid)!
@@ -626,8 +634,8 @@ describe('fixed pairs: a time out and removal apply to the pair (T8.3)', () => {
   })
 })
 
-describe('fixed pairs: Winners stay keeps the winning pair together (plan gate, 2026-11-18)', () => {
-  const start = () => fillCourts(createSession({ format: 'winners-split', courts: 1, teams: 'fixed', pairs: pairsOf(4) }))
+describe('all locked pairs: Winners stay keeps the winning pair together (plan gate, 2026-11-18)', () => {
+  const start = () => fillCourts(createSession({ format: 'winners-split', courts: 1, pairs: pairsOf(4) }))
 
   it('the first game is pair 1 against pair 2', () => {
     const s = start()
@@ -673,7 +681,7 @@ describe('fixed pairs: Winners stay keeps the winning pair together (plan gate, 
   })
 
   it.each(PAIRS_GRID)('%i pairs on %i courts: over many games the winners stay together, never more than 2 wins in a row', (n, courts) => {
-    let s = fillCourts(createSession({ format: 'winners-split', courts, teams: 'fixed', pairs: pairsOf(n) }))
+    let s = fillCourts(createSession({ format: 'winners-split', courts, pairs: pairsOf(n) }))
     const busy = Math.min(courts, Math.floor(n / 2))
     const seen = new Map<string, number>()
     const note = () => playing(s).forEach((g) => seen.has(g.id) || seen.set(g.id, seen.size))
@@ -812,9 +820,9 @@ function v1Save() {
   }
 }
 
-describe('serialize version 2 (T8.3)', () => {
-  it('writes version 2', () => {
-    expect(JSON.parse(serialize(createSession({ format: 'fair', courts: 1, names: names(4) }))).version).toBe(2)
+describe('serialize (T8.3; version 3 since T8.9)', () => {
+  it('writes version 3', () => {
+    expect(JSON.parse(serialize(createSession({ format: 'fair', courts: 1, names: names(4) }))).version).toBe(3)
   })
 
   it('round-trips the title, singles and levels unchanged', () => {
@@ -835,13 +843,13 @@ describe('serialize version 2 (T8.3)', () => {
     expect(back!.players.find((p) => p.name === 'Cy')!.level).toBeUndefined()
   })
 
-  it('round-trips a fixed-pairs session, and it carries on with the pairs together', () => {
-    let s = fillCourts(createSession({ format: 'winners-split', courts: 1, teams: 'fixed', pairs: pairsOf(3) }))
+  it('round-trips an all-pairs session, and it carries on with the pairs together', () => {
+    let s = fillCourts(createSession({ format: 'winners-split', courts: 1, pairs: pairsOf(3) }))
     s = fillCourts(recordScore(s, onCourt(s, 1).id, 11, 5))
     s = timeOut(s, s.line[0])
     const back = deserialize(serialize(s))!
     expect(back).toEqual(s)
-    expect(back.teams).toBe('fixed')
+    expect(back).not.toHaveProperty('teams')
     const next = fillCourts(backInLine(back, back.players.find((p) => p.status === 'out')!.id))
     expectPairsTogether(next)
   })
@@ -854,20 +862,20 @@ describe('serialize version 2 (T8.3)', () => {
     expect(onCourt(next, 1).teamB).toEqual(ids(next, 'Ana'))
   })
 
-  it.each([3, 0, '2', 1.5, null, 99])('refuses version %j instead of guessing', (version) => {
+  it.each([4, 0, '3', 2.5, null, 99])('refuses version %j instead of guessing', (version) => {
     const obj = JSON.parse(serialize(createSession({ format: 'fair', courts: 1, names: names(4) })))
     obj.version = version
     expect(deserialize(JSON.stringify(obj))).toBeNull()
   })
 })
 
-describe('deserialize a version 1 save (T8.3: doubles, open queue, no title)', () => {
-  it('loads as doubles with an open queue and no title, players and games as saved', () => {
+describe('deserialize a version 1 save (T8.3: doubles, no locks, no title)', () => {
+  it('loads as doubles with no locks, no title and no teams field, players and games as saved', () => {
     const s = deserialize(JSON.stringify(v1Save()))
     expect(s).not.toBeNull()
     expect(s!.title).toBe('')
     expect(s!.play).toBe('doubles')
-    expect(s!.teams).toBe('open')
+    expect(s).not.toHaveProperty('teams')
     expect(s!.format).toBe('fair')
     expect(s!.courts).toBe(2)
     expect(s!.players.map((p) => [p.id, p.name, p.status])).toEqual(v1Save().session.players.map((p) => [p.id, p.name, p.status]))
@@ -876,12 +884,12 @@ describe('deserialize a version 1 save (T8.3: doubles, open queue, no title)', (
     expect(s!.games).toEqual(v1Save().session.games)
   })
 
-  it('the resumed stack carries on and is saved again as version 2', () => {
+  it('the resumed stack carries on and is saved again as version 3', () => {
     const s = deserialize(JSON.stringify(v1Save()))!
     const next = fillCourts(recordScore(s, 'g2', 11, 9))
     expect(next.games.find((g) => g.id === 'g2')!.status).toBe('scored')
     expect(standings(next).find((r) => r.name === 'Ana')).toMatchObject({ wins: 1, games: 1 })
-    expect(JSON.parse(serialize(next)).version).toBe(2)
+    expect(JSON.parse(serialize(next)).version).toBe(3)
     expect(deserialize(serialize(next))).toEqual(next)
   })
 
@@ -899,14 +907,14 @@ describe('deserialize a version 1 save (T8.3: doubles, open queue, no title)', (
   })
 })
 
-describe('deserialize refuses version 2 saves the engine could never make (T8.3)', () => {
+describe('deserialize refuses version 3 saves the engine could never make (T8.3; T8.9 for locks)', () => {
   const saved = () => {
     let s = createSession({ format: 'fair', courts: 2, play: 'singles', title: 'Friday', names: [{ name: 'Ana', level: 2 }, 'Ben', 'Cy'] })
     s = fillCourts(s)
     return JSON.parse(serialize(s)) as { version: number; session: Record<string, unknown> & { players: Record<string, unknown>[]; games: Record<string, unknown>[] } }
   }
   const pairsSaved = () =>
-    JSON.parse(serialize(fillCourts(createSession({ format: 'fair', courts: 1, teams: 'fixed', pairs: pairsOf(2) })))) as {
+    JSON.parse(serialize(fillCourts(createSession({ format: 'fair', courts: 1, pairs: pairsOf(2) })))) as {
       version: number
       session: Record<string, unknown> & { players: Record<string, unknown>[] }
     }
@@ -923,7 +931,7 @@ describe('deserialize refuses version 2 saves the engine could never make (T8.3)
 
   it.each([
     ['an unknown play', (d: ReturnType<typeof saved>) => (d.session.play = 'triples')],
-    ['an unknown teams value', (d: ReturnType<typeof saved>) => (d.session.teams = 'mixed')],
+    ['a lock in singles', (d: ReturnType<typeof saved>) => ((d.session.players[0].partner = 'p2'), (d.session.players[1].partner = 'p1'))],
     ['a title that is not a string', (d: ReturnType<typeof saved>) => (d.session.title = 42)],
     ['a missing title', (d: ReturnType<typeof saved>) => delete d.session.title],
     ['a title over 60 characters', (d: ReturnType<typeof saved>) => (d.session.title = 'A'.repeat(61))],
@@ -931,7 +939,7 @@ describe('deserialize refuses version 2 saves the engine could never make (T8.3)
     ['a level of 0', (d: ReturnType<typeof saved>) => (d.session.players[0].level = 0)],
     ['a level that is a string', (d: ReturnType<typeof saved>) => (d.session.players[0].level = '2')],
     ['Winners stay in singles', (d: ReturnType<typeof saved>) => (d.session.format = 'winners-split')],
-    ['fixed pairs in singles', (d: ReturnType<typeof saved>) => (d.session.teams = 'fixed')],
+    ['a player who is their own partner', (d: ReturnType<typeof saved>) => (d.session.players[2].partner = 'p3')],
     ['a singles game with two a side', (d: ReturnType<typeof saved>) => ((d.session.games[0].teamA as string[]).push('p3'))],
   ])('refuses %s', (_label, edit) => {
     expect(broken(saved, edit)).toBeNull()
@@ -939,9 +947,9 @@ describe('deserialize refuses version 2 saves the engine could never make (T8.3)
 
   it.each([
     ['a partner who is not a player', (d: ReturnType<typeof pairsSaved>) => (d.session.players[0].partner = 'p99')],
-    ['a player without a partner', (d: ReturnType<typeof pairsSaved>) => delete d.session.players[0].partner],
+    ['a lock on one side only (the partner points back at nobody)', (d: ReturnType<typeof pairsSaved>) => delete d.session.players[0].partner],
     ['partners that don’t point at each other', (d: ReturnType<typeof pairsSaved>) => (d.session.players[0].partner = 'p3')],
-    ['Americano with fixed pairs', (d: ReturnType<typeof pairsSaved>) => (d.session.format = 'americano')],
+    ['Americano with locked pairs', (d: ReturnType<typeof pairsSaved>) => (d.session.format = 'americano')],
   ])('refuses %s', (_label, edit) => {
     expect(broken(pairsSaved, edit)).toBeNull()
   })

@@ -109,11 +109,10 @@ describe('buildSnapshot (T6.1)', () => {
     expect(scored).toMatchObject({ scoreA: 11, scoreB: 7 })
   })
 
-  it('leaves out skill levels and fixed partners', () => {
+  it('leaves out skill levels and pair locks (T8.9: no teams either)', () => {
     const s = createSession({
       format: 'fair',
       courts: 1,
-      teams: 'fixed',
       pairs: [
         [{ name: 'Ana', level: 3 }, { name: 'Ben', level: 2 }],
         [{ name: 'Cy', level: 1 }, 'Dee'],

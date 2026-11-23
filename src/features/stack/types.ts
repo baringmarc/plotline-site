@@ -5,9 +5,6 @@ export type Format = 'fair' | 'winners-split' | 'americano' | 'round-robin' | 'm
 /** Singles: one player a side (2 per court). Doubles: two a side (4 per court). Set for the whole session. */
 export type Play = 'singles' | 'doubles'
 
-/** Open queue: the board makes the teams. Fixed pairs (doubles only): partners entered together play together all session. */
-export type Teams = 'open' | 'fixed'
-
 /** Optional skill level; a player with none fits any group. */
 export type Level = 1 | 2 | 3
 
@@ -21,7 +18,7 @@ export interface Player {
   name: string
   status: PlayerStatus
   level?: Level
-  /** Fixed pairs only: the partner's player id. */
+  /** A pair lock (doubles; SPEC §4 "Pair locks"): the partner's player id, set on both partners. */
   partner?: string
 }
 
@@ -42,7 +39,6 @@ export interface Session {
   /** Trimmed, at most 60 characters; '' when there is none. */
   title: string
   play: Play
-  teams: Teams
   format: Format
   courts: number
   players: Player[]

@@ -1,13 +1,13 @@
-// T8.5 Start screen that fits everything (TASKS.md T8.5; SPEC §4 "Combinations", "Fixed pairs"). Copy from
+// T8.5 Start screen that fits everything (TASKS.md T8.5; SPEC §4 "Combinations"), brought to T8.9 (TASKS.md T8.9:
+// the Teams option is removed; SPEC §4 "Pair locks": "The start screen locks pairs among the name chips"). Copy from
 // `paddleStack` (src/config/paddleStack.ts, re-exported by site.ts).
 //
 // Structure the tests rely on (the plan's names):
 // - `StartForm({ onStart })` in ./StartForm.tsx calls `onStart(session)` with the new session; StackPage renders it
 //   when no session is saved (and still calls `fillCourts` on it);
 // - order: title box (`start.titleLabel`), Singles/Doubles radios (group `start.playLabel`), courts `<select>`
-//   (`start.courtsLabel`), the names box (`start.namesLabel`), the teams radios (group `start.teamsLabel`, one radio
-//   per `start.teams[].label`, open by default, shown only in doubles), the format radios (group
-//   `start.formatLabel`, one radio per offered `formats[]`, each card's label holding its label, hint and badge);
+//   (`start.courtsLabel`), the names box (`start.namesLabel`), the format radios (group `start.formatLabel`, one
+//   radio per offered `formats[]`, each card's label holding its label, hint and badge). T8.9: no Teams fieldset;
 // - Acceptance (user, 2026-11-18, from the by-eye check): six formats (Round Robin merged into "Americano (Round
 //   Robin)", `round-robin` never offered); each card's badge sits on the name's line: inside the radio's label, a
 //   heading row `.stack-format-head` holds the name `<b>` (the label) and, right after it, the badge `.stack-badge`;
@@ -15,9 +15,12 @@
 // - the selected format's `details` in an element with class `stack-format-details`;
 // - under `start.playersLabel`, one chip per parsed name with a level `<select>` named `start.levelFor(name)`:
 //   an empty option `start.noLevel` (selected by default), then `start.levels[].label`;
-// - with fixed pairs: names paired in list order, each pair a group named `start.pairLabel(n)` (1-based), with
-//   `start.pairsHint` shown; an odd number of names shows `start.needEven` as an alert and doesn't start;
-// - formats hidden by the play/teams choice are not rendered, and a hidden choice resets to an offered one;
+// - T8.9 pair locks: when `locksOffered(play, format)`, each unpaired chip has a `<select>` named
+//   `start.pairWith(name)` whose options are the other unpaired names (value = the name), first option
+//   `start.pairPlaceholder` with value ''. A locked pair shows as `role="group"` named `${a} & ${b}` (list order)
+//   holding both chips, plus a button named `${start.unlock} ${a} & ${b}`. The pairs reach the session locked, each
+//   pair at its further-back partner's spot; locks are ignored where they aren't offered;
+// - formats hidden by the play choice are not rendered, and a hidden choice resets to an offered one;
 // - Acceptance (user, 2026-11-18, second by-eye look): `.stack-formats` holds exactly two `.stack-formats-col`
 //   children; the first holds the offered 'left' cards (`label.stack-format`: fair, americano, winners-split), the
 //   second the offered 'right' ones (mexicano, winners-losers, skill-groups), each in config order; an empty column
@@ -62,13 +65,12 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-const { start, formats } = paddleStack
+const { start, formats, board } = paddleStack
 type User = ReturnType<typeof userEvent.setup>
 
 const re = (s: string) => new RegExp(`^${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
 const fmt = (id: Format) => formats.find((f) => f.id === id)!
 const playLabel = (id: 'singles' | 'doubles') => start.plays.find((p) => p.id === id)!.label
-const teamsLabel = (id: 'open' | 'fixed') => start.teams.find((t) => t.id === id)!.label
 
 function renderForm() {
   const onStart = vi.fn<(s: Session) => void>()
@@ -87,13 +89,16 @@ const formatRadio = (id: Format) => within(formatGroup()).queryByRole('radio', {
 const formatRadios = () => within(formatGroup()).getAllByRole('radio')
 const playRadio = (id: 'singles' | 'doubles') =>
   within(screen.getByRole('group', { name: start.playLabel })).getByRole('radio', { name: re(playLabel(id)) })
-const teamsGroup = () => screen.queryByRole('group', { name: start.teamsLabel }) ?? screen.queryByRole('radiogroup', { name: start.teamsLabel })
-const teamsRadio = (id: 'open' | 'fixed') => within(teamsGroup()!).getByRole('radio', { name: re(teamsLabel(id)) })
 const namesBox = () => screen.getByRole('textbox', { name: start.namesLabel })
 const levelSelect = (name: string) => screen.getByRole('combobox', { name: start.levelFor(name) })
+const levelSelects = () => screen.queryAllByRole('combobox').filter((el) => (el.getAttribute('aria-label') ?? '').startsWith(start.levelFor('').trim()))
+const pairSelect = (name: string) => screen.queryByRole('combobox', { name: start.pairWith(name) })
+const pairGroup = (a: string, b: string) => screen.queryByRole('group', { name: `${a} & ${b}` })
+const unlockButton = (a: string, b: string) => screen.queryByRole('button', { name: `${start.unlock} ${a} & ${b}` })
 const details = (container: HTMLElement) => container.querySelectorAll('.stack-format-details')
 const labelText = (el: HTMLElement) => [...((el as HTMLInputElement).labels ?? [])].map((l) => l.textContent ?? '').join(' ')
 const checkedFormat = () => formatRadios().find((r) => (r as HTMLInputElement).checked)
+const optionsOf = (select: HTMLElement) => (within(select).getAllByRole('option') as HTMLOptionElement[]).map((o) => ({ value: o.value, text: o.textContent }))
 
 async function typeNames(user: User, text: string) {
   await user.click(namesBox())
@@ -104,14 +109,22 @@ async function submit(user: User) {
   await user.click(screen.getByRole('button', { name: start.submit }))
 }
 
+/** Locks `b` as `a`'s partner from `a`'s pair picker. */
+async function pair(user: User, a: string, b: string) {
+  const select = pairSelect(a)
+  expect(select, `${a} has a pair picker`).not.toBeNull()
+  await user.selectOptions(select!, b)
+}
+
 const FOUR = 'Andrew\nMaria\nJuan\nJose'
 const byName = (s: Session, name: string) => s.players.find((p) => p.name === name)!
+const lineNames = (s: Session) => s.line.map((x) => s.players.find((p) => p.id === x)!.name)
 
 describe('StartForm: the format cards are a labelled radio group (T8.5)', () => {
-  it('is a group named start.formatLabel with one radio per format offered in open doubles, in config order', () => {
+  it('is a group named start.formatLabel with one radio per format offered in doubles, in config order', () => {
     renderForm()
     const labels = formatRadios().map((r) => labelText(r))
-    const offered = formatsFor('doubles', 'open')
+    const offered = formatsFor('doubles')
     expect(offered).toHaveLength(6)
     expect(labels).toHaveLength(offered.length)
     offered.forEach((id, i) => expect(labels[i], id).toMatch(re(fmt(id).label)))
@@ -119,7 +132,7 @@ describe('StartForm: the format cards are a labelled radio group (T8.5)', () => 
 
   it('every format card shows its label, hint and badge', () => {
     renderForm()
-    for (const id of formatsFor('doubles', 'open')) {
+    for (const id of formatsFor('doubles')) {
       const radio = formatRadio(id)!
       expect(radio, id).toBeInTheDocument()
       const text = labelText(radio)
@@ -131,7 +144,7 @@ describe('StartForm: the format cards are a labelled radio group (T8.5)', () => 
 
   it('each badge is on the name’s line: .stack-format-head holds the name <b> then the .stack-badge, not the hint', () => {
     renderForm()
-    for (const id of formatsFor('doubles', 'open')) {
+    for (const id of formatsFor('doubles')) {
       const f = fmt(id)
       const radio = formatRadio(id)!
       const label = (radio as HTMLInputElement).labels![0]
@@ -151,7 +164,7 @@ describe('StartForm: the format cards are a labelled radio group (T8.5)', () => 
 
   it('the radio’s accessible name is the label alone; the label text starts with it and holds badge and hint', () => {
     renderForm()
-    for (const id of formatsFor('doubles', 'open')) {
+    for (const id of formatsFor('doubles')) {
       const f = fmt(id)
       const radio = within(formatGroup()).getByRole('radio', { name: f.label })
       expect(radio, id).toBe(formatRadio(id))
@@ -191,7 +204,7 @@ describe('StartForm: the format cards are a labelled radio group (T8.5)', () => 
   it('every format’s explanation shows when it is chosen, and only that one', async () => {
     const user = userEvent.setup()
     const { container } = renderForm()
-    for (const id of formatsFor('doubles', 'open')) {
+    for (const id of formatsFor('doubles')) {
       await user.click(formatRadio(id)!)
       const d = details(container)
       expect(d, id).toHaveLength(1)
@@ -230,7 +243,7 @@ describe('StartForm: the format cards sit in two columns (user, 2026-11-18, seco
     for (const c of cols) expect(c.classList.contains('stack-formats-col'), c.className).toBe(true)
   })
 
-  it('open doubles: left Fair rotation, Americano (Round Robin), Winners stay; right Mexicano, Winners vs Losers, Skill groups', () => {
+  it('doubles: left Fair rotation, Americano (Round Robin), Winners stay; right Mexicano, Winners vs Losers, Skill groups', () => {
     const { container } = renderForm()
     const { left, right } = columns(container)
     expect(left).toEqual(['fair', 'americano', 'winners-split'])
@@ -269,26 +282,26 @@ describe('StartForm: the format cards sit in two columns (user, 2026-11-18, seco
     expect(right).toEqual(['mexicano', 'winners-losers', 'skill-groups'])
   })
 
-  it('fixed pairs: Americano drops out of the left, Mexicano out of the right; the others keep their column', async () => {
+  it('a locked pair hides no format (T8.9: no fixed-pairs mode): both columns keep all six', async () => {
     const user = userEvent.setup()
     const { container } = renderForm()
-    await user.click(teamsRadio('fixed'))
+    await typeNames(user, FOUR)
+    await pair(user, 'Andrew', 'Maria')
     const { cols, left, right } = columns(container)
     expect(cols).toHaveLength(2)
-    expect(left).toEqual(['fair', 'winners-split'])
-    expect(right).toEqual(['winners-losers', 'skill-groups'])
+    expect(left).toEqual(['fair', 'americano', 'winners-split'])
+    expect(right).toEqual(['mexicano', 'winners-losers', 'skill-groups'])
   })
 })
 
-describe('StartForm: the order of the start card (T8.5)', () => {
-  it('title, play, courts, players, teams, then rotation', () => {
+describe('StartForm: the order of the start card (T8.5; no Teams since T8.9)', () => {
+  it('title, play, courts, players, then rotation', () => {
     renderForm()
     const order = [
       screen.getByRole('textbox', { name: start.titleLabel }),
       playRadio('singles'),
       screen.getByRole('combobox', { name: start.courtsLabel }),
       namesBox(),
-      teamsRadio('open'),
       formatRadios()[0],
     ]
     for (let i = 1; i < order.length; i++) {
@@ -307,7 +320,7 @@ describe('StartForm: the order of the start card (T8.5)', () => {
 })
 
 describe('StartForm: the title reaches the session (T8.5)', () => {
-  it('the trimmed title, play, courts and format reach onStart', async () => {
+  it('the trimmed title, play, courts and format reach onStart, with no teams field', async () => {
     const user = userEvent.setup()
     const { onStart } = renderForm()
     await user.click(screen.getByRole('textbox', { name: start.titleLabel }))
@@ -320,14 +333,14 @@ describe('StartForm: the title reaches the session (T8.5)', () => {
     const s = onStart.mock.calls[0][0]
     expect(s.title).toBe('Sunday Open Play')
     expect(s.play).toBe('doubles')
-    expect(s.teams).toBe('open')
+    expect(s).not.toHaveProperty('teams')
     expect(s.courts).toBe(3)
     expect(s.format).toBe('americano')
     expect(s.players.map((p) => p.name)).toEqual(['Andrew', 'Maria', 'Juan', 'Jose'])
   })
 
-  it('each of the six formats can be started in open doubles', async () => {
-    for (const id of formatsFor('doubles', 'open')) {
+  it('each of the six formats can be started in doubles', async () => {
+    for (const id of formatsFor('doubles')) {
       const user = userEvent.setup()
       const { onStart, unmount } = renderForm()
       await user.click(formatRadio(id)!)
@@ -340,39 +353,47 @@ describe('StartForm: the title reaches the session (T8.5)', () => {
   })
 })
 
-describe('StartForm: singles hides the doubles-only choices (T8.5)', () => {
-  it('doubles shows the teams group with open queue checked by default', () => {
-    renderForm()
-    expect(teamsGroup()).not.toBeNull()
-    expect(within(teamsGroup()!).getAllByRole('radio')).toHaveLength(2)
-    expect(teamsRadio('open')).toBeChecked()
-    expect(teamsRadio('fixed')).not.toBeChecked()
-    for (const t of start.teams) expect(labelText(teamsRadio(t.id))).toContain(t.hint)
+describe('StartForm: no Teams option (T8.9)', () => {
+  it('doubles and singles show no Teams fieldset: the only radios are the play and the format', async () => {
+    const user = userEvent.setup()
+    const { container } = renderForm()
+    for (const play of ['doubles', 'singles'] as const) {
+      await user.click(playRadio(play))
+      const radios = [...container.querySelectorAll<HTMLInputElement>('input[type="radio"]')]
+      const playRadios = within(screen.getByRole('group', { name: start.playLabel })).getAllByRole('radio')
+      expect(radios.length, play).toBe(playRadios.length + formatRadios().length)
+      expect(container.querySelector('input[type="radio"][value="fixed"]'), play).toBeNull()
+      expect(container.querySelector('input[type="radio"][value="open"]'), play).toBeNull()
+      expect(container.querySelector('fieldset.stack-teams'), play).toBeNull()
+      expect(screen.queryByRole('group', { name: 'Teams' }), play).toBeNull()
+    }
   })
+})
 
-  it('singles hides the teams group and Winners stay & split, and shows the singles formats in order', async () => {
+describe('StartForm: singles hides the doubles-only choices (T8.5, T8.9)', () => {
+  it('singles hides Winners stay & split and shows the singles formats in order', async () => {
     const user = userEvent.setup()
     renderForm()
     await user.click(playRadio('singles'))
-    expect(teamsGroup()).toBeNull()
     expect(formatRadio('winners-split')).toBeNull()
-    const offered = formatsFor('singles', 'open')
+    const offered = formatsFor('singles')
     const labels = formatRadios().map(labelText)
     expect(labels).toHaveLength(offered.length)
     offered.forEach((id, i) => expect(labels[i], id).toMatch(re(fmt(id).label)))
   })
 
-  it('a singles session always has an open queue, even if fixed pairs was picked first', async () => {
+  it('singles shows no pair pickers, and a pair locked in doubles is dropped: the singles session has no locks', async () => {
     const user = userEvent.setup()
     const { onStart } = renderForm()
-    await user.click(teamsRadio('fixed'))
-    await user.click(playRadio('singles'))
     await typeNames(user, 'Andrew\nMaria\nJuan')
+    await pair(user, 'Andrew', 'Maria')
+    await user.click(playRadio('singles'))
+    for (const n of ['Andrew', 'Maria', 'Juan']) expect(pairSelect(n), n).toBeNull()
     await submit(user)
     expect(onStart).toHaveBeenCalledTimes(1)
     const s = onStart.mock.calls[0][0]
     expect(s.play).toBe('singles')
-    expect(s.teams).toBe('open')
+    expect(s).not.toHaveProperty('teams')
     expect(s.players.every((p) => p.partner === undefined)).toBe(true)
   })
 
@@ -399,46 +420,6 @@ describe('StartForm: singles hides the doubles-only choices (T8.5)', () => {
   })
 })
 
-describe('StartForm: fixed pairs hides Americano and Mexicano (T8.5)', () => {
-  it('fixed pairs shows only the fixed-pairs formats, in order', async () => {
-    const user = userEvent.setup()
-    renderForm()
-    await user.click(teamsRadio('fixed'))
-    expect(formatRadio('americano')).toBeNull()
-    expect(formatRadio('mexicano')).toBeNull()
-    const offered = formatsFor('doubles', 'fixed')
-    const labels = formatRadios().map(labelText)
-    expect(labels).toHaveLength(offered.length)
-    offered.forEach((id, i) => expect(labels[i], id).toMatch(re(fmt(id).label)))
-  })
-
-  it('Americano chosen, then fixed pairs: the choice resets to an offered format', async () => {
-    const user = userEvent.setup()
-    const { onStart, container } = renderForm()
-    await user.click(formatRadio('americano')!)
-    await user.click(teamsRadio('fixed'))
-    const checked = checkedFormat()
-    expect(checked, 'one format is still checked').toBeDefined()
-    const chosen = formatsFor('doubles', 'fixed').find((id) => labelText(checked!).startsWith(fmt(id).label))!
-    expect(chosen).toBeDefined()
-    expect(details(container)[0]).toHaveTextContent(fmt(chosen).details)
-    await typeNames(user, FOUR)
-    await submit(user)
-    expect(onStart).toHaveBeenCalledTimes(1)
-    expect(onStart.mock.calls[0][0].format).toBe(chosen)
-    expect(onStart.mock.calls[0][0].teams).toBe('fixed')
-  })
-
-  it('back to the open queue shows Americano and Mexicano again', async () => {
-    const user = userEvent.setup()
-    renderForm()
-    await user.click(teamsRadio('fixed'))
-    await user.click(teamsRadio('open'))
-    expect(formatRadio('americano')).toBeInTheDocument()
-    expect(formatRadio('mexicano')).toBeInTheDocument()
-  })
-})
-
 describe('StartForm: a chip per name with an optional level (T8.5)', () => {
   it('shows the players heading and one level picker per parsed name (numbering and repeats ignored)', async () => {
     const user = userEvent.setup()
@@ -449,7 +430,7 @@ describe('StartForm: a chip per name with an optional level (T8.5)', () => {
     expect(levelSelect('Maria')).toBeInTheDocument()
     expect(levelSelect('Juan')).toBeInTheDocument()
     expect(screen.queryByRole('combobox', { name: start.levelFor('andrew') })).toBeNull()
-    expect(screen.getAllByRole('combobox', { name: /./ }).filter((el) => el !== screen.getByRole('combobox', { name: start.courtsLabel }))).toHaveLength(3)
+    expect(levelSelects()).toHaveLength(3)
   })
 
   it('each level picker offers no level (selected) then the three levels', async () => {
@@ -498,74 +479,152 @@ describe('StartForm: a chip per name with an optional level (T8.5)', () => {
   })
 })
 
-describe('StartForm: fixed pairs reach the session (T8.5)', () => {
-  it('pairs names in list order, each pair a labelled group, with the pairs hint', async () => {
+describe('StartForm: pairs are locked among the name chips (T8.9)', () => {
+  it('in doubles, each chip has a pair picker: a placeholder (value "") first, then the other names (value = the name)', async () => {
     const user = userEvent.setup()
     renderForm()
-    await user.click(teamsRadio('fixed'))
+    await typeNames(user, FOUR)
+    for (const n of ['Andrew', 'Maria', 'Juan', 'Jose']) {
+      const select = pairSelect(n)
+      expect(select, `${n} has a pair picker`).not.toBeNull()
+      const options = optionsOf(select!)
+      expect(options[0]).toEqual({ value: '', text: start.pairPlaceholder })
+      const others = ['Andrew', 'Maria', 'Juan', 'Jose'].filter((x) => x !== n)
+      expect(options.slice(1).map((o) => o.value).sort(), n).toEqual([...others].sort())
+      expect(options.slice(1).map((o) => o.text).sort(), n).toEqual([...others].sort())
+      expect((select as HTMLSelectElement).value, n).toBe('')
+    }
+  })
+
+  it('shows start.pairsHint where locks are offered', async () => {
+    const user = userEvent.setup()
+    renderForm()
     await typeNames(user, FOUR)
     expect(screen.getByText(start.pairsHint)).toBeInTheDocument()
-    const p1 = screen.getByRole('group', { name: start.pairLabel(1) })
-    const p2 = screen.getByRole('group', { name: start.pairLabel(2) })
-    expect(p1).toHaveTextContent('Andrew')
-    expect(p1).toHaveTextContent('Maria')
-    expect(p1).not.toHaveTextContent('Juan')
-    expect(p2).toHaveTextContent('Juan')
-    expect(p2).toHaveTextContent('Jose')
-    expect(screen.queryByRole('group', { name: start.pairLabel(3) })).toBeNull()
   })
 
-  it('no pair groups or pairs hint in an open queue', async () => {
+  it('picking a partner shows the pair as a group named "A & B" (list order) holding both chips, with an Unlock button', async () => {
     const user = userEvent.setup()
     renderForm()
     await typeNames(user, FOUR)
-    expect(screen.queryByRole('group', { name: start.pairLabel(1) })).toBeNull()
-    expect(screen.queryByText(start.pairsHint)).toBeNull()
+    await pair(user, 'Juan', 'Andrew')
+    const group = pairGroup('Andrew', 'Juan')
+    expect(group, 'the pair group').not.toBeNull()
+    expect(within(group!).getByRole('combobox', { name: start.levelFor('Andrew') })).toBeInTheDocument()
+    expect(within(group!).getByRole('combobox', { name: start.levelFor('Juan') })).toBeInTheDocument()
+    expect(group).not.toHaveTextContent('Maria')
+    expect(unlockButton('Andrew', 'Juan')).not.toBeNull()
+    expect(pairGroup('Juan', 'Andrew')).toBeNull()
   })
 
-  it('the session has fixed teams and partners as paired, with their levels', async () => {
+  it('a paired name has no pair picker and leaves the others’ pickers', async () => {
+    const user = userEvent.setup()
+    renderForm()
+    await typeNames(user, FOUR)
+    await pair(user, 'Andrew', 'Maria')
+    expect(pairSelect('Andrew')).toBeNull()
+    expect(pairSelect('Maria')).toBeNull()
+    expect(optionsOf(pairSelect('Juan')!)).toEqual([
+      { value: '', text: start.pairPlaceholder },
+      { value: 'Jose', text: 'Jose' },
+    ])
+    expect(optionsOf(pairSelect('Jose')!).map((o) => o.value)).toEqual(['', 'Juan'])
+  })
+
+  it('Unlock splits the pair: the group goes and both chips get their pickers back', async () => {
     const user = userEvent.setup()
     const { onStart } = renderForm()
-    await user.click(teamsRadio('fixed'))
     await typeNames(user, FOUR)
+    await pair(user, 'Andrew', 'Maria')
+    await user.click(unlockButton('Andrew', 'Maria')!)
+    expect(pairGroup('Andrew', 'Maria')).toBeNull()
+    expect(unlockButton('Andrew', 'Maria')).toBeNull()
+    expect(pairSelect('Andrew')).not.toBeNull()
+    expect(pairSelect('Maria')).not.toBeNull()
+    await submit(user)
+    expect(onStart.mock.calls[0][0].players.every((p) => p.partner === undefined)).toBe(true)
+  })
+
+  it('the pairs reach the session locked, each at its further-back partner’s spot, with their levels', async () => {
+    const user = userEvent.setup()
+    const { onStart } = renderForm()
+    await typeNames(user, FOUR)
+    await pair(user, 'Andrew', 'Juan')
     await user.selectOptions(levelSelect('Jose'), start.levels[2].label)
+    await user.selectOptions(levelSelect('Juan'), start.levels[0].label)
     await submit(user)
     expect(onStart).toHaveBeenCalledTimes(1)
     const s = onStart.mock.calls[0][0]
-    expect(s.teams).toBe('fixed')
+    expect(s).not.toHaveProperty('teams')
     expect(s.play).toBe('doubles')
     const [andrew, maria, juan, jose] = ['Andrew', 'Maria', 'Juan', 'Jose'].map((n) => byName(s, n))
-    expect(andrew.partner).toBe(maria.id)
-    expect(maria.partner).toBe(andrew.id)
-    expect(juan.partner).toBe(jose.id)
-    expect(jose.partner).toBe(juan.id)
+    expect(s.players.map((p) => p.name)).toEqual(['Andrew', 'Maria', 'Juan', 'Jose'])
+    expect(andrew.partner).toBe(juan.id)
+    expect(juan.partner).toBe(andrew.id)
+    expect(maria.partner).toBeUndefined()
+    expect(jose.partner).toBeUndefined()
+    expect(lineNames(s)).toEqual(['Maria', 'Andrew', 'Juan', 'Jose'])
     expect(jose.level).toBe(3)
+    expect(juan.level).toBe(1)
     expect(andrew.level).toBeUndefined()
   })
 
-  it('an odd number of names shows start.needEven and doesn’t start', async () => {
+  it('an odd number of names starts fine with a pair locked (no even-number rule any more)', async () => {
     const user = userEvent.setup()
     const { onStart } = renderForm()
-    await user.click(teamsRadio('fixed'))
     await typeNames(user, `${FOUR}\nAna`)
+    await pair(user, 'Maria', 'Ana')
     await submit(user)
-    expect(screen.getByRole('alert')).toHaveTextContent(start.needEven)
-    expect(onStart).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(onStart).toHaveBeenCalledTimes(1)
+    const s = onStart.mock.calls[0][0]
+    expect(s.players).toHaveLength(5)
+    expect(byName(s, 'Maria').partner).toBe(byName(s, 'Ana').id)
   })
 
-  it('fixed pairs still needs 4 players (2 pairs)', async () => {
+  it('doubles still needs 4 players, pairs included', async () => {
     const user = userEvent.setup()
     const { onStart } = renderForm()
-    await user.click(teamsRadio('fixed'))
-    await typeNames(user, 'Andrew\nMaria')
+    await typeNames(user, 'Andrew\nMaria\nJuan')
+    await pair(user, 'Andrew', 'Maria')
     await submit(user)
     expect(screen.getByRole('alert')).toHaveTextContent(start.needFour)
     expect(onStart).not.toHaveBeenCalled()
   })
+
+  it.each<Format>(['fair', 'winners-split', 'winners-losers', 'skill-groups'])('%s offers pair pickers in doubles', async (id) => {
+    const user = userEvent.setup()
+    renderForm()
+    await user.click(formatRadio(id)!)
+    await typeNames(user, FOUR)
+    expect(pairSelect('Andrew'), id).not.toBeNull()
+  })
+
+  it.each<Format>(['americano', 'mexicano'])('%s offers no pair pickers (partners rotate), and a pair locked earlier is ignored', async (id) => {
+    const user = userEvent.setup()
+    const { onStart } = renderForm()
+    await typeNames(user, FOUR)
+    await pair(user, 'Andrew', 'Maria')
+    await user.click(formatRadio(id)!)
+    for (const n of ['Andrew', 'Maria', 'Juan', 'Jose']) expect(pairSelect(n), n).toBeNull()
+    await submit(user)
+    const s = onStart.mock.calls[0][0]
+    expect(s.format).toBe(id)
+    expect(s.players.every((p) => p.partner === undefined)).toBe(true)
+    expect(lineNames(s)).toEqual(['Andrew', 'Maria', 'Juan', 'Jose'])
+  })
+
+  it('no pair groups or Unlock buttons before any pair is locked', async () => {
+    const user = userEvent.setup()
+    renderForm()
+    await typeNames(user, FOUR)
+    expect(screen.queryAllByRole('button', { name: re(start.unlock) })).toHaveLength(0)
+    expect(screen.queryByRole('group', { name: / & / })).toBeNull()
+  })
 })
 
-describe('StackPage renders StartForm (T8.5)', () => {
-  it('levels and pairs typed on the start screen reach the saved session and the board', async () => {
+describe('StackPage renders StartForm (T8.5, T8.9)', () => {
+  it('levels and a locked pair typed on the start screen reach the saved session and the board', async () => {
     const user = userEvent.setup()
     render(
       <MemoryRouter initialEntries={['/paddle-stack']}>
@@ -574,17 +633,23 @@ describe('StackPage renders StartForm (T8.5)', () => {
     )
     expect(document.querySelector('form.stack-start')).not.toBeNull()
     await user.selectOptions(screen.getByRole('combobox', { name: start.courtsLabel }), '1')
-    await user.click(teamsRadio('fixed'))
     await typeNames(user, `${FOUR}\nAna\nBen`)
+    await pair(user, 'Maria', 'Ana')
     await user.selectOptions(levelSelect('Ana'), start.levels[0].label)
     await submit(user)
     const s = loadStack()!.session
-    expect(s.teams).toBe('fixed')
-    expect(byName(s, 'Ana').partner).toBe(byName(s, 'Ben').id)
+    expect(s).not.toHaveProperty('teams')
+    expect(byName(s, 'Ana').partner).toBe(byName(s, 'Maria').id)
+    expect(byName(s, 'Maria').partner).toBe(byName(s, 'Ana').id)
     expect(byName(s, 'Ana').level).toBe(1)
-    // fillCourts ran: pair 1 against pair 2 on court 1.
+    // fillCourts ran: the pair stood at Ana's spot, so the four solos took court 1 and the pair waits.
     expect(s.games).toHaveLength(1)
-    const court = screen.getByRole('region', { name: `${paddleStack.board.court} 1` })
-    for (const n of ['Andrew', 'Maria', 'Juan', 'Jose']) expect(court).toHaveTextContent(n)
+    const court = screen.getByRole('region', { name: `${board.court} 1` })
+    for (const n of ['Andrew', 'Juan', 'Jose', 'Ben']) expect(court).toHaveTextContent(n)
+    expect(lineNames(s)).toEqual(['Maria', 'Ana'])
+    const upNext = screen.getByRole('region', { name: board.upNext })
+    const items = within(upNext).getAllByRole('listitem')
+    expect(items).toHaveLength(1)
+    expect(items[0]).toHaveTextContent('Maria & Ana')
   })
 })
