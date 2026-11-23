@@ -1,7 +1,8 @@
 // `/paddle-stack` in every device-matrix project, both themes (TASKS.md T8.1): the start screen, a started board,
 // TV mode (only in the `*-pc` projects, 1920×1080) and the `?tv=1` window; T8.3 adds a singles board and TV with a title;
-// T8.5 the full start screen (name chips with levels, fixed pairs, the format grid: one column below 820 px, two from 820);
-// T8.6 the TV's logo, court bands with a last result, and who's on a break.
+// T8.5 the full start screen (name chips with levels, the format grid: one column below 820 px, two from 820);
+// T8.6 the TV's logo, court bands with a last result, and who's on a break; T8.9 pairs locked among the name chips
+// and a mixed doubles board (solos and locked pairs, Pair with… and Unlock).
 import { expect, test, type Page } from '@playwright/test'
 import { checkPage, setTheme, stubNetwork, watch } from './helpers.ts'
 import { themes, tvViewport } from './matrix.ts'
@@ -39,18 +40,40 @@ for (const theme of themes) {
       await checkPage(page, testInfo, { name: `stack-start-${theme}`, cards: startCards })
     })
 
-    test('start screen with players, levels and fixed pairs', async ({ page }, testInfo) => {
+    test('start screen with players, levels and locked pairs', async ({ page }, testInfo) => {
       await open(page, theme)
       await page.getByRole('textbox', { name: 'Players' }).fill(NAMES)
       await page.getByRole('combobox', { name: 'Level for Ana' }).selectOption({ label: 'Advanced' })
-      await page.getByRole('radio', { name: 'Fixed pairs' }).check()
-      await page.getByRole('group', { name: 'Pair 5' }).waitFor()
+      await page.getByRole('combobox', { name: 'Pair Ana with…' }).selectOption('Dante')
+      await page.getByRole('combobox', { name: 'Pair Ella with…' }).selectOption('Jun')
+      await page.getByRole('group', { name: 'Ana & Dante' }).waitFor()
+      await page.getByRole('group', { name: 'Ella & Jun' }).waitFor()
+      await expect(page.getByRole('radio', { name: 'Fixed pairs' })).toHaveCount(0)
       const columns = await page
         .locator('.stack-formats')
         .evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length)
       const width = page.viewportSize()?.width ?? 0
       expect(columns).toBe(width >= 820 ? 2 : 1)
-      await checkPage(page, testInfo, { name: `stack-start-full-${theme}`, cards: '.stack-formats > *, .stack-pairs > li, .stack-format-details' })
+      await checkPage(page, testInfo, { name: `stack-start-full-${theme}`, cards: '.stack-formats > *, .stack-chips > *, .stack-format-details' })
+    })
+
+    test('mixed doubles board: solos and locked pairs', async ({ page }, testInfo) => {
+      await open(page, theme)
+      await page.getByRole('textbox', { name: 'Players' }).fill(NAMES)
+      await page.getByRole('combobox', { name: 'Pair Ana with…' }).selectOption('Ben')
+      await page.getByRole('button', { name: 'Start the stack' }).click()
+      await page.getByRole('button', { name: 'TV mode' }).waitFor()
+      // Ana & Ben play the next two solos on court 1; court 2 takes the next four solos.
+      await expect(page.getByRole('region', { name: 'Court 1' })).toContainText('Ana & Ben')
+      const upNext = page.getByRole('region', { name: 'Up next' })
+      // Lock two waiting players on the board; the pair stands at the further-back partner's spot.
+      await upNext.getByRole('combobox', { name: 'Pair Ines with…' }).selectOption({ label: 'Jun' })
+      await expect(upNext.getByRole('listitem').filter({ hasText: 'Ines & Jun' })).toBeVisible()
+      await expect(upNext.getByRole('button', { name: 'Unlock Ines & Jun' })).toBeVisible()
+      await checkPage(page, testInfo, { name: `stack-board-pairs-${theme}`, cards: boardCards })
+      await upNext.getByRole('button', { name: 'Unlock Ines & Jun' }).click()
+      await expect(upNext.getByRole('listitem').filter({ hasText: 'Ines & Jun' })).toHaveCount(0)
+      await expect(upNext.getByRole('combobox', { name: 'Pair Ines with…' })).toBeVisible()
     })
 
     test('started board', async ({ page }, testInfo) => {

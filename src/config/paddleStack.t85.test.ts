@@ -4,11 +4,14 @@
 //   then mexicano, winners-losers, skill-groups (column 'right'); all left entries before all right ones. Acceptance (user, 2026-11-18, from the by-eye
 //   check): Round Robin and Americano are one card, "Americano (Round Robin)"; `round-robin` is not in `formats`
 //   (the engine still accepts it, so a saved Round Robin session loads);
-// - `start.formatLabel`, `start.teamsLabel`, `start.teams: { id: 'open' | 'fixed'; label; hint }[]`,
-//   `start.playersLabel`, `start.levelFor(name)`, `start.noLevel`, `start.levels: { value: Level; label }[]` (1–3),
-//   `start.pairLabel(n)`, `start.pairsHint`, `start.needEven`;
-// - `guide.sections` and `faq` describe all six formats and the new options (levels, fixed pairs), and no longer
-//   present Round Robin as a separate format.
+// - `start.formatLabel`, `start.playersLabel`, `start.levelFor(name)`, `start.noLevel`,
+//   `start.levels: { value: Level; label }[]` (1–3), `start.pairsHint`;
+// - T8.9 (Teams removed): `start.teamsLabel`, `start.teams`, `start.pairLabel`, `start.needEven` are gone;
+//   `start.pairWith(name)`, `start.pairPlaceholder`, `start.unlock`, `start.needAllPairs` are new, `start.pairsHint`
+//   is reworded (no pairing by list order); `board.pairWith(name)`, `board.pairPlaceholder`, `board.unlock`,
+//   `board.addPairLabel`, `board.addPairFirst`, `board.addPairSecond`, `board.addPairSubmit` are new;
+// - `guide.sections` and `faq` describe all six formats and the options (levels, locked pairs), and no longer
+//   present Round Robin as a separate format or name a Teams mode (Open queue / Fixed pairs).
 // CSS (global.css): `.stack-start` is width 100% (no 640px cap, no 120px cap on its select); `.stack-formats` is the
 // format grid: one column by default, two from a `min-width` breakpoint of at most 820px; it holds two
 // `.stack-formats-col` columns, each a grid or flex column.
@@ -17,7 +20,7 @@ import css from '../styles/global.css?raw'
 import { LEVELS } from '../features/stack/engine'
 import { paddleStack } from './site'
 
-const { formats, start, guide, faq } = paddleStack
+const { formats, start, board, guide, faq } = paddleStack
 const nonEmpty = (s: unknown) => typeof s === 'string' && s.trim().length > 0
 
 describe('paddleStack.formats (T8.5: six format cards)', () => {
@@ -76,7 +79,7 @@ describe('paddleStack.formats (T8.5: six format cards)', () => {
   })
 })
 
-describe('paddleStack.start (T8.5: teams, players, levels, pairs)', () => {
+describe('paddleStack.start (T8.5: players, levels; T8.9: pair locks)', () => {
   it('keeps the existing keys', () => {
     for (const k of ['titleLabel', 'playLabel', 'courtsLabel', 'namesLabel', 'namesHint', 'needFour', 'needTwo', 'submit'] as const) {
       expect(nonEmpty(start[k]), k).toBe(true)
@@ -84,18 +87,27 @@ describe('paddleStack.start (T8.5: teams, players, levels, pairs)', () => {
     expect(start.plays.map((p) => p.id)).toEqual(['singles', 'doubles'])
   })
 
-  it('has the new labels and messages', () => {
-    for (const k of ['formatLabel', 'teamsLabel', 'playersLabel', 'noLevel', 'pairsHint', 'needEven'] as const) {
+  it('has the labels and messages', () => {
+    for (const k of ['formatLabel', 'playersLabel', 'noLevel', 'pairsHint', 'pairPlaceholder', 'unlock', 'needAllPairs'] as const) {
       expect(nonEmpty(start[k]), k).toBe(true)
     }
   })
 
-  it('teams: open queue then fixed pairs, each with a label and a hint', () => {
-    expect(start.teams.map((t) => t.id)).toEqual(['open', 'fixed'])
-    for (const t of start.teams) {
-      expect(nonEmpty(t.label), t.id).toBe(true)
-      expect(nonEmpty(t.hint), t.id).toBe(true)
-    }
+  it('the Teams copy is gone (T8.9): no teamsLabel, teams, pairLabel or needEven', () => {
+    for (const k of ['teamsLabel', 'teams', 'pairLabel', 'needEven']) expect(start, k).not.toHaveProperty(k)
+  })
+
+  it('pairsHint no longer says names pair up in list order (T8.9)', () => {
+    expect(start.pairsHint).not.toMatch(/1 with 2|order you list|list order/i)
+    expect(start.pairsHint).toMatch(/lock|pair/i)
+  })
+
+  it('pairWith names the player; the unlock label, the placeholder and the Round Robin message are distinct', () => {
+    expect(start.pairWith('Andrew')).toContain('Andrew')
+    expect(start.pairWith('Andrew')).not.toBe(start.pairWith('Maria'))
+    expect(start.pairWith('Andrew')).not.toBe(start.levelFor('Andrew'))
+    expect(start.pairPlaceholder).not.toBe(start.noLevel)
+    expect(start.needAllPairs).not.toBe(start.needFour)
   })
 
   it('levels are 1–3 (the engine’s LEVELS), each with a label', () => {
@@ -105,11 +117,25 @@ describe('paddleStack.start (T8.5: teams, players, levels, pairs)', () => {
     expect(start.levels.map((l) => l.label)).not.toContain(start.noLevel)
   })
 
-  it('levelFor names the player and pairLabel numbers the pair', () => {
+  it('levelFor names the player', () => {
     expect(start.levelFor('Andrew')).toContain('Andrew')
     expect(start.levelFor('Andrew')).not.toBe(start.levelFor('Maria'))
-    expect(start.pairLabel(2)).toContain('2')
-    expect(start.pairLabel(1)).not.toBe(start.pairLabel(2))
+  })
+})
+
+describe('paddleStack.board (T8.9: pair locks and Add a pair)', () => {
+  it('has the pair lock labels and the Add a pair form copy', () => {
+    for (const k of ['pairPlaceholder', 'unlock', 'addPairLabel', 'addPairFirst', 'addPairSecond', 'addPairSubmit'] as const) {
+      expect(nonEmpty(board[k]), k).toBe(true)
+    }
+  })
+
+  it('pairWith names the player; the two Add a pair boxes have different labels (found by label)', () => {
+    expect(board.pairWith('Ana')).toContain('Ana')
+    expect(board.pairWith('Ana')).not.toBe(board.pairWith('Ben'))
+    expect(board.addPairFirst).not.toBe(board.addPairSecond)
+    expect(board.addPairLabel).not.toBe(board.addLabel)
+    for (const k of ['timeOut', 'remove', 'backInLine'] as const) expect(board.unlock, k).not.toBe(board[k])
   })
 })
 
@@ -127,10 +153,33 @@ describe('guide and FAQ cover the new formats and options (T8.5)', () => {
     expect(rest).not.toMatch(/round[\s-]?robin/i)
   })
 
-  it('the guide or FAQ explains skill levels and fixed pairs', () => {
+  it('the guide or FAQ explains skill levels and locking pairs (T8.9)', () => {
     expect(allText).toMatch(/\blevels?\b/i)
-    const fixed = start.teams.find((t) => t.id === 'fixed')!.label
-    expect(allText.toLowerCase()).toContain(fixed.toLowerCase())
+    expect(allText).toMatch(/\block(ed|s|ing)?\b/i)
+  })
+
+  it('the "Singles, doubles…" guide section says pairs can be locked, and names no Teams mode (T8.9)', () => {
+    const section = guide.sections.find((s) => /singles,?\s+doubles/i.test(s.title))
+    expect(section, 'a guide section on singles and doubles').toBeDefined()
+    expect(section!.body).toMatch(/\block(ed|s|ing)?\b/i)
+    expect(section!.body).not.toMatch(/open queue/i)
+    expect(section!.body).not.toMatch(/names pair up in the order/i)
+  })
+
+  it('no guide text, FAQ answer or format copy names a Teams mode: no "Open queue", no "fixed pairs" (T8.9)', () => {
+    const copy = [
+      ...guide.sections.map((s) => s.body),
+      ...faq.items.map((i) => i.a),
+      ...formats.map((f) => `${f.hint} ${f.details}`),
+    ].join(' ')
+    expect(copy).not.toMatch(/open queue/i)
+    expect(copy).not.toMatch(/fixed pairs/i)
+  })
+
+  it('the format details say where pairs can be locked: Winners stay (a locked pair), not Americano or Mexicano (T8.9)', () => {
+    for (const id of ['winners-split', 'americano', 'mexicano'] as const) {
+      expect(formats.find((f) => f.id === id)!.details, id).toMatch(/\block(ed|s|ing)?\b/i)
+    }
   })
 
   it('the FAQ still has 3 or 4 items', () => {

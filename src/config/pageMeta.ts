@@ -7,7 +7,7 @@ export const paddleStackMeta = {
   path: '/paddle-stack',
   title: 'Paddle Stack: a free open-play queue for pickleball | Plotline',
   description:
-    'Run open play from one phone: singles or doubles, fixed pairs, and six formats including Americano and Mexicano. The courts rotate on their own. Free, no account needed.',
+    'Run open play from one phone: singles or doubles, locked pairs, and six formats including Americano and Mexicano. The courts rotate on their own. Free, no account needed.',
   url: 'https://plotline.fit/paddle-stack',
   image: 'https://plotline.fit/og-paddle-stack.jpg',
   imageAlt: 'Paddle Stack: a free open-play queue for your pickleball group, at plotline.fit/paddle-stack',

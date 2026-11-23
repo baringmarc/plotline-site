@@ -1,22 +1,23 @@
 import { useId, useState, type FormEvent } from 'react'
 import { paddleStack } from '../../config/paddleStack'
-import { createSession, MAX_COURTS, MAX_TITLE, type NewPlayer } from './engine'
+import { locksOffered, MAX_COURTS, MAX_TITLE, StackError, type NewPlayer } from './engine'
 import { parseNames } from './parseNames'
-import { formatsFor, pairUp } from './startOptions'
-import type { Format, Level, Play, Session, Teams } from './types'
+import { formatsFor, startSession } from './startOptions'
+import type { Format, Level, Play, Session } from './types'
 
 const { start, formats } = paddleStack
 const key = (name: string) => name.toLocaleLowerCase()
 
-/** The start screen (T8.5): title, play, courts, players with levels and pairs, teams, and the rotation. */
+/** The start screen (T8.5, T8.9): title, play, courts, players with levels and locked pairs, and the rotation. */
 export function StartForm({ onStart }: { onStart: (s: Session) => void }) {
   const [title, setTitle] = useState('')
   const [play, setPlay] = useState<Play>('doubles')
-  const [teams, setTeams] = useState<Teams>('open')
   const [courts, setCourts] = useState(2)
   const [format, setFormat] = useState<Format>('fair')
   const [names, setNames] = useState('')
   const [levels, setLevels] = useState<Record<string, Level>>({})
+  /** Locked pairs, by name key; a pair whose names leave the list is ignored. */
+  const [pairs, setPairs] = useState<[string, string][]>([])
   const [error, setError] = useState<string | null>(null)
   const ids = {
     title: useId(),
@@ -24,21 +25,25 @@ export function StartForm({ onStart }: { onStart: (s: Session) => void }) {
     names: useId(),
     hint: useId(),
     details: useId(),
-    pairs: useId(),
+    pairsHint: useId(),
     fmt: useId(),
   }
 
   const list = parseNames(names)
-  const offered = formatsFor(play, teams)
+  const offered = formatsFor(play)
   const shown = formats.filter((f) => offered.includes(f.id))
   const selected = formats.find((f) => f.id === format)
+  const locks = locksOffered(play, format)
+  const byKey = new Map(list.map((n) => [key(n), n]))
+  /** The pairs still in the list (both names listed), shown and used only where locks are offered. */
+  const listed = pairs.filter(([a, b]) => byKey.has(a) && byKey.has(b))
+  const partnerOf = new Map(listed.flatMap(([a, b]) => [[a, b], [b, a]] as const))
 
-  /** A play or teams change can hide the chosen format: it resets to Fair rotation, which every combination offers. */
-  const choose = (nextPlay: Play, nextTeams: Teams) => {
-    setPlay(nextPlay)
-    setTeams(nextTeams)
+  /** A play change can hide the chosen format: it resets to Fair rotation, which both plays offer. */
+  const choosePlay = (next: Play) => {
+    setPlay(next)
     setError(null)
-    if (!formatsFor(nextPlay, nextTeams).includes(format)) setFormat('fair')
+    if (!formatsFor(next).includes(format)) setFormat('fair')
   }
 
   const withLevel = (name: string): NewPlayer => {
@@ -52,34 +57,21 @@ export function StartForm({ onStart }: { onStart: (s: Session) => void }) {
       setError(play === 'singles' ? start.needTwo : start.needFour)
       return
     }
-    if (teams === 'fixed') {
-      const { pairs, leftover } = pairUp(list)
-      if (leftover) {
-        setError(start.needEven)
-        return
-      }
+    try {
       onStart(
-        createSession({
+        startSession({
           title,
           play,
-          teams,
           format,
           courts,
-          pairs: pairs.map(([a, b]) => [withLevel(a), withLevel(b)]),
+          players: list.map(withLevel),
+          pairs: listed.map(([a, b]) => [byKey.get(a)!, byKey.get(b)!]),
         }),
       )
-      return
+    } catch (err) {
+      if (err instanceof StackError && err.code === 'needs-pair') setError(start.needAllPairs)
+      else throw err
     }
-    onStart(
-      createSession({
-        title,
-        play,
-        teams,
-        format,
-        courts,
-        names: list.map(withLevel),
-      }),
-    )
   }
 
   const chip = (name: string) => (
@@ -105,10 +97,54 @@ export function StartForm({ onStart }: { onStart: (s: Session) => void }) {
           </option>
         ))}
       </select>
+      {locks && !partnerOf.has(key(name)) && (
+        <select
+          className="stack-pair-pick"
+          aria-label={start.pairWith(name)}
+          value=""
+          onChange={(e) => {
+            const other = e.target.value
+            if (!other) return
+            setPairs((prev) => [...prev.filter(([a, b]) => byKey.has(a) && byKey.has(b)), [key(name), key(other)]])
+            setError(null)
+          }}
+        >
+          <option value="">{start.pairPlaceholder}</option>
+          {list
+            .filter((n) => n !== name && !partnerOf.has(key(n)))
+            .map((n) => (
+              <option key={key(n)} value={n}>
+                {n}
+              </option>
+            ))}
+        </select>
+      )}
     </span>
   )
 
-  const { pairs, leftover } = pairUp(list)
+  /** The chips in list order; a locked pair shows as one group where its first partner is listed. */
+  const chips = () =>
+    list.map((name) => {
+      const partner = locks ? partnerOf.get(key(name)) : undefined
+      if (!partner) return chip(name)
+      const other = byKey.get(partner)!
+      if (list.indexOf(other) < list.indexOf(name)) return null
+      const label = `${name} & ${other}`
+      return (
+        <span className="stack-pair-group" role="group" aria-label={label} key={`${key(name)}|${partner}`}>
+          {chip(name)}
+          {chip(other)}
+          <button
+            type="button"
+            className="chipbtn"
+            aria-label={`${start.unlock} ${label}`}
+            onClick={() => setPairs((prev) => prev.filter(([a, b]) => a !== key(name) && b !== key(name)))}
+          >
+            {start.unlock}
+          </button>
+        </span>
+      )
+    })
 
   return (
     <form className="formcard stack-start" onSubmit={submit} noValidate>
@@ -131,7 +167,7 @@ export function StartForm({ onStart }: { onStart: (s: Session) => void }) {
               name="stack-play"
               value={p.id}
               checked={play === p.id}
-              onChange={() => choose(p.id, p.id === 'singles' ? 'open' : teams)}
+              onChange={() => choosePlay(p.id)}
             />
             <span>
               <b>{p.label}</b>
@@ -166,42 +202,14 @@ export function StartForm({ onStart }: { onStart: (s: Session) => void }) {
       </p>
 
       {list.length > 0 && (
-        <fieldset className="stack-players">
+        <fieldset className="stack-players" aria-describedby={locks ? ids.pairsHint : undefined}>
           <legend>{start.playersLabel}</legend>
-          {teams === 'fixed' ? (
-            <>
-              <p className="hint" id={ids.pairs}>
-                {start.pairsHint}
-              </p>
-              <ol className="stack-pairs">
-                {pairs.map(([a, b], i) => (
-                  <li key={`${key(a)}|${key(b)}`} role="group" aria-label={start.pairLabel(i + 1)}>
-                    <small>{start.pairLabel(i + 1)}</small>
-                    {chip(a)}
-                    {chip(b)}
-                  </li>
-                ))}
-                {leftover && <li className="stack-leftover">{chip(leftover)}</li>}
-              </ol>
-            </>
-          ) : (
-            <div className="stack-chips">{list.map(chip)}</div>
+          {locks && (
+            <p className="hint" id={ids.pairsHint}>
+              {start.pairsHint}
+            </p>
           )}
-        </fieldset>
-      )}
-
-      {play === 'doubles' && (
-        <fieldset className="stack-play stack-teams">
-          <legend>{start.teamsLabel}</legend>
-          {start.teams.map((t) => (
-            <label key={t.id} className="stack-format">
-              <input type="radio" name="stack-teams" value={t.id} checked={teams === t.id} onChange={() => choose(play, t.id)} />
-              <span>
-                <b>{t.label}</b>
-                <small>{t.hint}</small>
-              </span>
-            </label>
-          ))}
+          <div className="stack-chips">{chips()}</div>
         </fieldset>
       )}
 
@@ -221,7 +229,10 @@ export function StartForm({ onStart }: { onStart: (s: Session) => void }) {
                       checked={format === f.id}
                       aria-labelledby={`${ids.fmt}-${f.id}`}
                       aria-describedby={`${ids.fmt}-${f.id}-hint`}
-                      onChange={() => setFormat(f.id)}
+                      onChange={() => {
+                        setFormat(f.id)
+                        setError(null)
+                      }}
                     />
                     <span>
                       <span className="stack-format-head">

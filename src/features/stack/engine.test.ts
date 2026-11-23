@@ -14,8 +14,8 @@ import {
   timeOut,
 } from './engine'
 import type { Format, Game, Session } from './types'
-// T8.3: these tests run on the default session (doubles, open queue, no title); `serialize` writes version 2.
-// Singles, fixed pairs, levels and the version 1 load are in engine.t83.test.ts.
+// T8.3: these tests run on the default session (doubles, no locks, no title); `serialize` writes version 3 (T8.9).
+// Singles, levels and the version 1 load are in engine.t83.test.ts; pair locks and versions 2–3 in engine.t89.test.ts.
 
 // ---------- helpers ----------
 
@@ -708,8 +708,8 @@ describe('serialize and deserialize', () => {
     expect(deserialize(json)).toEqual(s)
   })
 
-  it('writes version 2 (T8.3)', () => {
-    expect(JSON.parse(serialize(played())).version).toBe(2)
+  it('writes version 3 (T8.9)', () => {
+    expect(JSON.parse(serialize(played())).version).toBe(3)
   })
 
   it('a restored session carries on', () => {
@@ -721,7 +721,7 @@ describe('serialize and deserialize', () => {
     expect(nameOf(s, s.players[0].id)).toBe('Ana')
   })
 
-  it.each([3, 0, '2', null])('refuses version %s instead of guessing', (version) => {
+  it.each([4, 0, '3', null])('refuses version %s instead of guessing', (version) => {
     const obj = JSON.parse(serialize(played()))
     obj.version = version
     expect(deserialize(JSON.stringify(obj))).toBeNull()

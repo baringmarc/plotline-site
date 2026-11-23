@@ -8,12 +8,15 @@ import {
   createSession,
   fillCourts,
   isRoundFormat,
+  lockPair,
+  locksOffered,
   recordScore,
   removePlayer,
   skipGame,
   StackError,
   standings,
   timeOut,
+  unlockPair,
 } from './engine'
 import { loadStackFonts } from './fonts'
 import { parseNames } from './parseNames'
@@ -28,7 +31,7 @@ import { LIVE_KEY_STORAGE_KEY, loadLiveKey } from './live/liveKey'
 import { useLiveStack } from './live/useLiveStack'
 import { announce, callOutText, canSpeak, requestWakeLock } from './voice'
 import { courtTone, teamStreak } from './tvInfo'
-import type { Game, Session, Team } from './types'
+import type { Game, Player, Session, Team } from './types'
 
 const { board, end, ended: endedCopy, venueCta, voice, tv, handoff: handoffCopy } = paddleStack
 
@@ -387,14 +390,72 @@ interface BoardProps {
   onRestart: () => void
 }
 
+/** Players grouped as sides, in the given order: one player, or a locked pair whose partners are both listed. */
+function sidesOf(session: Session, ids: string[]): Player[][] {
+  const byId = new Map(session.players.map((p) => [p.id, p]))
+  const seen = new Set<string>()
+  const out: Player[][] = []
+  for (const id of ids) {
+    if (seen.has(id)) continue
+    const p = byId.get(id)!
+    const partner = p.partner !== undefined && ids.includes(p.partner) ? byId.get(p.partner) : undefined
+    const side = partner ? [p, partner] : [p]
+    for (const x of side) seen.add(x.id)
+    out.push(side)
+  }
+  return out
+}
+
 function Board({ session, act, onEnd, onRestart }: BoardProps) {
   const [confirming, setConfirming] = useState(false)
   const [adding, setAdding] = useState('')
-  const addId = useId()
+  const [first, setFirst] = useState('')
+  const [second, setSecond] = useState('')
+  const ids = { add: useId(), first: useId(), second: useId() }
   const nameOf = (id: string) => session.players.find((p) => p.id === id)?.name ?? ''
   const playing = session.games.filter((g) => g.status === 'playing')
   const out = session.players.filter((p) => p.status === 'out')
   const roundOn = isRoundFormat(session.format) && playing.length > 0
+  const roundRobin = session.format === 'round-robin'
+  /** Pairs can be locked and unlocked on the board (SPEC §4 "Pair locks"); Round Robin keeps the start's pairs. */
+  const locks = locksOffered(session.play, session.format) && !roundRobin
+  const pairedRoundRobin = roundRobin && session.players.some((p) => p.partner !== undefined)
+  /** Who a solo player can pair with: other solo players off court. */
+  const candidates = (id: string) =>
+    session.players.filter((p) => p.id !== id && p.partner === undefined && (p.status === 'waiting' || p.status === 'out'))
+  const label = (side: Player[]) => side.map((p) => p.name).join(' & ')
+
+  /** A side's buttons: Pair with… on a solo (in the line), Unlock on a pair. */
+  const pairControls = (side: Player[], inLine: boolean) => {
+    if (side.length === 2) {
+      if (roundRobin) return null
+      return (
+        <button type="button" className="chipbtn" aria-label={`${board.unlock} ${label(side)}`} onClick={() => act((s) => unlockPair(s, side[0].id))}>
+          {board.unlock}
+        </button>
+      )
+    }
+    const others = candidates(side[0].id)
+    if (!locks || !inLine || others.length === 0) return null
+    return (
+      <select
+        className="stack-pair-pick"
+        aria-label={board.pairWith(side[0].name)}
+        value=""
+        onChange={(e) => {
+          const other = e.target.value
+          if (other) act((s) => lockPair(s, side[0].id, other))
+        }}
+      >
+        <option value="">{board.pairPlaceholder}</option>
+        {others.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+    )
+  }
 
   return (
     <>
@@ -419,49 +480,93 @@ function Board({ session, act, onEnd, onRestart }: BoardProps) {
           <p className="hint">{board.lineEmpty}</p>
         ) : (
           <ol>
-            {session.line.map((id) => (
-              <li key={id}>
-                <span>{nameOf(id)}</span>
-                <button type="button" className="chipbtn" aria-label={`${board.timeOut} ${nameOf(id)}`} onClick={() => act((s) => timeOut(s, id))}>
+            {sidesOf(session, session.line).map((side) => (
+              <li key={side[0].id} className={side.length === 2 ? 'stack-line-pair' : undefined}>
+                <span>{label(side)}</span>
+                {pairControls(side, true)}
+                <button
+                  type="button"
+                  className="chipbtn"
+                  aria-label={`${board.timeOut} ${label(side)}`}
+                  onClick={() => act((s) => timeOut(s, side[0].id))}
+                >
                   {board.timeOut}
                 </button>
-                <button type="button" className="chipbtn" aria-label={`${board.remove} ${nameOf(id)}`} onClick={() => act((s) => removePlayer(s, id))}>
+                <button
+                  type="button"
+                  className="chipbtn"
+                  aria-label={`${board.remove} ${label(side)}`}
+                  onClick={() => act((s) => removePlayer(s, side[0].id))}
+                >
                   {board.remove}
                 </button>
               </li>
             ))}
           </ol>
         )}
-        <form
-          className="stack-add"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const list = parseNames(adding)
-            // Fixed pairs: names are paired in the order given, as on the start screen; a name left over is dropped.
-            if (session.teams === 'fixed') {
-              const pairs = Array.from({ length: Math.floor(list.length / 2) }, (_, i) => [list[i * 2], list[i * 2 + 1]] as [string, string])
-              if (pairs.length) act((s) => addPairs(s, pairs))
-            } else if (list.length) act((s) => addPlayers(s, list))
-            setAdding('')
-          }}
-        >
-          <label htmlFor={addId}>{board.addLabel}</label>
-          <div>
-            <input id={addId} type="text" value={adding} onChange={(e) => setAdding(e.target.value)} />
-            <button type="submit" className="btn dark">
-              {board.addSubmit}
-            </button>
-          </div>
-        </form>
+        {pairedRoundRobin ? (
+          <form
+            className="stack-add stack-add-pair"
+            aria-labelledby={ids.add}
+            onSubmit={(e) => {
+              e.preventDefault()
+              const [a, b] = [first.trim(), second.trim()]
+              if (!a || !b) return
+              act((s) => addPairs(s, [[a, b]]))
+              setFirst('')
+              setSecond('')
+            }}
+          >
+            <p className="stack-add-pair-title" id={ids.add}>
+              {board.addPairLabel}
+            </p>
+            <label htmlFor={ids.first}>{board.addPairFirst}</label>
+            <input id={ids.first} type="text" value={first} onChange={(e) => setFirst(e.target.value)} />
+            <label htmlFor={ids.second}>{board.addPairSecond}</label>
+            <div>
+              <input id={ids.second} type="text" value={second} onChange={(e) => setSecond(e.target.value)} />
+              <button type="submit" className="btn dark">
+                {board.addPairSubmit}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form
+            className="stack-add"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const list = parseNames(adding)
+              if (list.length) act((s) => addPlayers(s, list))
+              setAdding('')
+            }}
+          >
+            <label htmlFor={ids.add}>{board.addLabel}</label>
+            <div>
+              <input id={ids.add} type="text" value={adding} onChange={(e) => setAdding(e.target.value)} />
+              <button type="submit" className="btn dark">
+                {board.addSubmit}
+              </button>
+            </div>
+          </form>
+        )}
       </section>
       {out.length > 0 && (
         <div className="stack-out">
           <p>{board.onBreak}</p>
           <ul>
-            {out.map((p) => (
-              <li key={p.id}>
-                <span>{p.name}</span>
-                <button type="button" className="chipbtn" aria-label={`${board.backInLine} ${p.name}`} onClick={() => act((s) => backInLine(s, p.id))}>
+            {sidesOf(
+              session,
+              out.map((p) => p.id),
+            ).map((side) => (
+              <li key={side[0].id} className={side.length === 2 ? 'stack-line-pair' : undefined}>
+                <span>{label(side)}</span>
+                {pairControls(side, false)}
+                <button
+                  type="button"
+                  className="chipbtn"
+                  aria-label={`${board.backInLine} ${label(side)}`}
+                  onClick={() => act((s) => backInLine(s, side[0].id))}
+                >
                   {board.backInLine}
                 </button>
               </li>

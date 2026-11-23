@@ -17,19 +17,6 @@ export const paddleStack = {
       { id: 'doubles', label: 'Doubles' },
     ] as { id: 'singles' | 'doubles'; label: string }[],
     courtsLabel: 'Courts',
-    teamsLabel: 'Teams',
-    teams: [
-      {
-        id: 'open',
-        label: 'Open queue',
-        hint: 'The board makes new teams from the line.',
-      },
-      {
-        id: 'fixed',
-        label: 'Fixed pairs',
-        hint: 'Partners stay together all session.',
-      },
-    ] as { id: 'open' | 'fixed'; label: string; hint: string }[],
     /** The format radio group's legend. */
     formatLabel: 'Rotation',
     namesLabel: 'Players',
@@ -44,11 +31,14 @@ export const paddleStack = {
       { value: 2, label: 'Intermediate' },
       { value: 3, label: 'Advanced' },
     ] as { value: 1 | 2 | 3; label: string }[],
-    pairLabel: (n: number) => `Pair ${n}`,
-    pairsHint: 'Names pair up in the order you list them: 1 with 2, 3 with 4. To change a pair, move the names in the list.',
+    /** The partner picker on a name chip (T8.9), and its empty first option. */
+    pairWith: (name: string) => `Pair ${name} with…`,
+    pairPlaceholder: 'Pair with…',
+    pairsHint: 'To lock two players as a pair, pick a partner on a name. A pair always plays together, as one team; everyone else gets new teams from the line.',
+    unlock: 'Unlock',
     needFour: 'Add at least 4 players to start.',
     needTwo: 'Add at least 2 players to start.',
-    needEven: 'Fixed pairs need an even number of players. Add a partner or take a name out.',
+    needAllPairs: 'Round Robin is played all in pairs or with no pairs. Pair everyone, or unlock the pairs.',
     submit: 'Start the stack',
   },
   /** Order matters: the start screen shows them in this order, the left column then the right (the user's order, 2026-11-18). Each has a one-line hint, a badge and a longer explanation. */
@@ -67,7 +57,7 @@ export const paddleStack = {
       label: 'Americano (Round Robin)',
       badge: 'New partners',
       hint: 'A new partner every game, in rounds.',
-      details: 'Games are played in rounds. Each round the players with the fewest games go on, with partners they haven’t had yet, so over the night everyone partners as many people as the numbers allow. Everyone keeps their own wins, losses and points. In singles it’s a new opponent every game. Not with fixed pairs.',
+      details: 'Games are played in rounds. Each round the players with the fewest games go on, with partners they haven’t had yet, so over the night everyone partners as many people as the numbers allow. Everyone keeps their own wins, losses and points. In singles it’s a new opponent every game. Partners change every game, so pairs can’t be locked.',
     },
     {
       id: 'winners-split',
@@ -75,7 +65,7 @@ export const paddleStack = {
       label: 'Winners stay, split up',
       badge: 'Competitive',
       hint: 'Winners keep the court but split up, each with a new partner.',
-      details: 'The winners stay on and play against each other, each with a new partner from the front of the line; the losers go to the back. Two wins in a row and all four go off, so nobody holds a court all night. With fixed pairs the winning pair stays together and plays the next pair. Doubles only.',
+      details: 'The winners stay on and play against each other, each with a new partner from the front of the line; the losers go to the back. Two wins in a row and all four go off, so nobody holds a court all night. A locked pair that wins stays together and plays the next team. Doubles only.',
     },
     {
       id: 'mexicano',
@@ -83,7 +73,7 @@ export const paddleStack = {
       label: 'Mexicano',
       badge: 'Score matching',
       hint: 'Rounds matched by the standings, so games stay close.',
-      details: 'Games are played in rounds. The first round is matched by skill level where you set one; after that, by the live standings. In each group of four, 1st and 4th play 2nd and 3rd; in singles, 1st plays 2nd. Not with fixed pairs.',
+      details: 'Games are played in rounds. The first round is matched by skill level where you set one; after that, by the live standings. In each group of four, 1st and 4th play 2nd and 3rd; in singles, 1st plays 2nd. Partners change every round, so pairs can’t be locked.',
     },
     {
       id: 'winners-losers',
@@ -128,6 +118,15 @@ export const paddleStack = {
     backInLine: 'Back in line',
     addLabel: 'Add players',
     addSubmit: 'Add',
+    /** Pair locks on the board (T8.9): the picker on a waiting player, and Unlock on a pair. */
+    pairWith: (name: string) => `Pair ${name} with…`,
+    pairPlaceholder: 'Pair with…',
+    unlock: 'Unlock',
+    /** A Round Robin played in pairs takes late arrivals as a pair. */
+    addPairLabel: 'Add a pair',
+    addPairFirst: 'First player',
+    addPairSecond: 'Second player',
+    addPairSubmit: 'Add pair',
     roundWait: 'The next round starts when every court is done.',
   },
   standings: {
@@ -340,8 +339,8 @@ export const paddleStack = {
         body: 'Copy the sign-up list from your Reclub or Messenger group and paste it into Players. Numbers like “1.” and repeated names are dropped. Each name then shows with an optional level (Beginner, Intermediate or Advanced) for the formats that match by skill. Pick your courts and a rotation, then start the stack. Late arrivals go in with Add players.',
       },
       {
-        title: 'Singles, doubles and fixed pairs',
-        body: 'Pick Singles for one player a side or Doubles for two. In doubles, Open queue lets the board make new teams, while Fixed pairs keeps partners together all session: names pair up in the order you list them, and a pair queues, rests and leaves together. Rotations that don’t fit your choice are hidden.',
+        title: 'Singles, doubles and pairs',
+        body: 'Pick Singles for one player a side or Doubles for two. In doubles the board makes new teams from the line, and you can lock any two players as a pair, on the start screen or on the board: a pair plays together as one team, and queues, rests and leaves together. Unlock it from the line or the time-out list. Americano and Mexicano change partners, so they have no pairs. Rotations that don’t fit your choice are hidden.',
       },
       {
         title: 'Fair rotation',

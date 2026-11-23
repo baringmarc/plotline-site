@@ -58,7 +58,6 @@ function streakSession(): Session {
   return {
     title: '',
     play: 'doubles',
-    teams: 'open',
     format: 'fair',
     courts: 2,
     players: [

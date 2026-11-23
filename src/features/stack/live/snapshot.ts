@@ -84,13 +84,12 @@ export function buildSnapshot(session: Session): LiveSnapshot {
 
 /**
  * The session a player's phone shows, rebuilt from a snapshot so the board's helpers (standings, streaks) work on
- * it. An open queue with no levels or partners: the snapshot carries none. Arrays are fresh copies.
+ * it. No levels or pair locks: the snapshot carries none. Arrays are fresh copies.
  */
 export function sessionFromSnapshot(snapshot: LiveSnapshot): Session {
   return {
     title: snapshot.title,
     play: snapshot.play,
-    teams: 'open',
     format: snapshot.format,
     courts: snapshot.courts,
     players: snapshot.players.map(({ id, name, status }) => ({ id, name, status })),

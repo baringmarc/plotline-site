@@ -168,13 +168,14 @@ describe('start form: Singles or Doubles (T8.3)', () => {
     expect(formatRadio('winners-split')).toBeInTheDocument()
   })
 
-  it('the choice reaches the session: singles, open queue', async () => {
+  it('the choice reaches the session: singles, no teams option and no locks (T8.9)', async () => {
     const user = userEvent.setup()
     renderPage()
     await fillStart(user, { play: 'singles', format: 'americano' })
     const s = loadStack()!.session
     expect(s.play).toBe('singles')
-    expect(s.teams).toBe('open')
+    expect(s).not.toHaveProperty('teams')
+    expect(s.players.every((p) => p.partner === undefined)).toBe(true)
     expect(s.format).toBe('americano')
   })
 

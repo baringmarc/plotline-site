@@ -43,7 +43,6 @@ function doubles(opts: { title?: string; format?: Format; courts?: number; withB
   return {
     title: opts.title ?? '',
     play: 'doubles',
-    teams: 'open',
     format: opts.format ?? 'fair',
     courts: opts.courts ?? 2,
     players: [
@@ -70,7 +69,6 @@ function singles(title = ''): Session {
   return {
     title,
     play: 'singles',
-    teams: 'open',
     format: 'fair',
     courts: 2,
     players: [p('a', 'playing'), p('b', 'playing'), p('c', 'waiting')],
@@ -80,7 +78,7 @@ function singles(title = ''): Session {
 }
 
 function empty(courts: number, play: Play = 'doubles'): Session {
-  return { title: '', play, teams: 'open', format: 'fair', courts, players: [p('a', 'waiting')], line: ['a'], games: [] }
+  return { title: '', play, format: 'fair', courts, players: [p('a', 'waiting')], line: ['a'], games: [] }
 }
 
 function renderTv(s: Session) {

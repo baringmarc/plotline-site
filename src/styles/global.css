@@ -639,12 +639,13 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-format .stack-format-head { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .stack-format .stack-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--text); color: var(--surface); font-size: 12px; font-weight: 700; line-height: 1.5; }
 .stack-format-details { margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--bg); color: var(--text-soft); font-size: 14px; }
-.stack-chips, .stack-pairs > li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.stack-pairs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.stack-pairs > li { padding: 8px 10px; border: 1.5px dashed var(--line); border-radius: 12px; }
-.stack-pairs > li > small { flex: 0 0 100%; font-weight: 700; color: var(--text-soft); }
+.stack-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* T8.9: a pair locked on the start screen: its two chips and Unlock, inside one dashed outline. */
+.stack-pair-group { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 100%; padding: 6px; border: 1.5px dashed var(--highlight); border-radius: 18px; }
 .stack-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 4px 4px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); }
-.stack-chip b { font-family: var(--stack-display); overflow-wrap: anywhere; }
+.stack-chip b { font-family: var(--stack-display); overflow-wrap: anywhere; flex-shrink: 0; max-width: 100%; }
+/* T8.9: a chip with the partner picker wraps onto a second row on narrow phones instead of squeezing the name. */
+.stack-chip:has(.stack-pair-pick) { flex-wrap: wrap; border-radius: 18px; }
 .stack-chip select { width: auto; min-height: 36px; padding: 2px 10px; border-radius: 999px; font-size: 16px; }
 .stack-start fieldset { border: 0; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
 .stack-format { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer; }
@@ -704,6 +705,10 @@ form.formcard > .btn { align-self: flex-start; }
 .stack-line ol { counter-reset: line; }
 .stack-line ol li::before { content: counter(line) '.'; color: var(--text-soft); font-variant-numeric: tabular-nums; min-width: 1.6em; }
 .stack-line li span, .stack-out li span { flex: 1 1 auto; font-weight: 700; overflow-wrap: anywhere; }
+/* T8.9: the Pair with… picker on the board, and a locked pair in the line or on a time out. */
+.stack-line .stack-pair-pick, .stack-out .stack-pair-pick { width: auto; max-width: 100%; min-height: 40px; padding: 4px 12px; border-radius: 999px; font-size: 16px; }
+.stack-line li.stack-line-pair, .stack-out li.stack-line-pair { box-shadow: inset 0 0 0 1.5px var(--highlight); }
+.stack-add-pair-title { margin: 0; font-weight: 700; font-size: 14px; }
 .stack-out > p { margin: 0 0 6px; font-weight: 700; font-size: 14px; color: var(--text-soft); }
 .chipbtn { font: inherit; font-size: 14px; font-weight: 700; min-height: 40px; padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
 .chipbtn:hover { border-color: var(--text); }

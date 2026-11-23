@@ -5,6 +5,8 @@
 // Names the tests rely on (the plan's): `roundRobinOrder` from `./schedule` (its own order is tested in
 // schedule.test.ts; here it is the schedule the engine must follow), `Format` 'round-robin', and the existing engine
 // API. Teams are compared as sets of players; in open doubles team A is the first partnership taken (SPEC).
+// T8.9 (Teams removed; SPEC §4 "Combinations": Round Robin is all pairs or no pairs): "fixed pairs" is now a Round
+// Robin whose players are all in locked pairs (`pairs`, no `names`); late arrivals join it with `addPairs`.
 import { describe, expect, it } from 'vitest'
 import {
   addPairs,
@@ -19,7 +21,7 @@ import {
   timeOut,
 } from './engine'
 import { roundRobinOrder } from './schedule'
-import type { Game, Play, Session, Teams } from './types'
+import type { Game, Play, Session } from './types'
 
 // ---------- helpers ----------
 
@@ -56,14 +58,20 @@ function score(i: number): [number, number] {
   return i % 3 === 1 ? [loser, 11] : [11, loser]
 }
 
-function make(count: number, opts: { courts: number; play?: Play; teams?: Teams }): Session {
+/** `pairs`: an all-pairs Round Robin of `count` locked pairs; otherwise a no-pairs one of `count` players. */
+function make(count: number, opts: { courts: number; play?: Play; pairs?: boolean }): Session {
   const play = opts.play ?? 'doubles'
-  const teams = opts.teams ?? 'open'
-  if (teams === 'fixed') {
+  if (opts.pairs) {
     const pairs = Array.from({ length: count }, (_, i) => [NAMES[i * 2], NAMES[i * 2 + 1]] as [string, string])
-    return createSession({ format: 'round-robin', courts: opts.courts, play, teams, pairs })
+    return createSession({ format: 'round-robin', courts: opts.courts, play, pairs })
   }
-  return createSession({ format: 'round-robin', courts: opts.courts, play, teams, names: NAMES.slice(0, count) })
+  return createSession({ format: 'round-robin', courts: opts.courts, play, names: NAMES.slice(0, count) })
+}
+
+/** An all-pairs Round Robin: every player still in the session is in a locked pair. */
+const allPaired = (s: Session) => {
+  const active = s.players.filter((p) => p.status !== 'removed')
+  return active.length > 0 && active.every((p) => p.partner !== undefined)
 }
 
 function expectConsistent(s: Session) {
@@ -83,17 +91,17 @@ function expectConsistent(s: Session) {
     expect(g.teamB).toHaveLength(perSide)
     expect(new Set(playersOf(g)).size).toBe(perSide * 2)
   }
-  if (s.teams === 'fixed')
+  if (allPaired(s))
     for (let i = 0; i < s.line.length; i += 2)
       expect(s.players.find((p) => p.id === s.line[i])!.partner).toBe(s.line[i + 1])
 }
 
 // ---------- a reference for SPEC's Round Robin rule ----------
 
-/** The sides that are waiting or playing, in the order they joined (a fixed pair as its two partners). */
+/** The sides that are waiting or playing, in the order they joined (a locked pair as its two partners). */
 function rrSides(s: Session): string[][] {
   const active = s.players.filter((p) => p.status === 'waiting' || p.status === 'playing')
-  if (s.teams !== 'fixed') return active.map((p) => [p.id])
+  if (!allPaired(s)) return active.map((p) => [p.id])
   const index = (pid: string) => s.players.findIndex((p) => p.id === pid)
   return active.filter((p) => index(p.id) < index(p.partner!)).map((p) => [p.id, p.partner!])
 }
@@ -108,7 +116,7 @@ interface Pairing {
 
 /** The schedule with each pairing's count (finished games it has been in: as a match, or as a partnership). */
 function rrSchedule(s: Session): { match: boolean; pairings: Pairing[] } {
-  const match = s.play === 'singles' || s.teams === 'fixed'
+  const match = s.play === 'singles' || allPaired(s)
   const done = finished(s)
   const pairings = roundRobinOrder(rrSides(s)).map(([x, y]) => {
     if (match) {
@@ -163,7 +171,7 @@ function expectFill(before: Session, after: Session) {
   const expected = expectedRoundRobin(before)
   expect(after.games.slice(0, before.games.length)).toEqual(before.games)
   const fresh = after.games.slice(before.games.length)
-  const match = before.play === 'singles' || before.teams === 'fixed'
+  const match = before.play === 'singles' || allPaired(before)
   const shape = (court: number, a: readonly string[], b: readonly string[]) =>
     match ? { court, game: matchKey(a, b) } : { court, a: set(a), b: set(b) }
   expect(fresh.map((g) => ({ ...shape(g.court, g.teamA, g.teamB), status: g.status }))).toEqual(
@@ -174,17 +182,17 @@ function expectFill(before: Session, after: Session) {
   expectConsistent(after)
 }
 
-type Config = { label: string; count: number; courts: number; play: Play; teams: Teams }
+type Config = { label: string; count: number; courts: number; play: Play; pairs: boolean }
 const COURTS = [1, 2, 3]
 const CONFIGS: Config[] = [
   ...[4, 5, 9, 17].flatMap((n) =>
-    COURTS.map((c) => ({ label: `${n} players, ${c} court(s), doubles`, count: n, courts: c, play: 'doubles' as Play, teams: 'open' as Teams })),
+    COURTS.map((c) => ({ label: `${n} players, ${c} court(s), doubles`, count: n, courts: c, play: 'doubles' as Play, pairs: false })),
   ),
   ...[2, 3, 7].flatMap((n) =>
-    COURTS.map((c) => ({ label: `${n} players, ${c} court(s), singles`, count: n, courts: c, play: 'singles' as Play, teams: 'open' as Teams })),
+    COURTS.map((c) => ({ label: `${n} players, ${c} court(s), singles`, count: n, courts: c, play: 'singles' as Play, pairs: false })),
   ),
   ...[2, 3, 5, 8].flatMap((n) =>
-    COURTS.map((c) => ({ label: `${n} fixed pairs, ${c} court(s)`, count: n, courts: c, play: 'doubles' as Play, teams: 'fixed' as Teams })),
+    COURTS.map((c) => ({ label: `${n} locked pairs, ${c} court(s)`, count: n, courts: c, play: 'doubles' as Play, pairs: true })),
   ),
 ]
 
@@ -193,7 +201,7 @@ function play(start: Session, games: number, opts: { events?: boolean; each?: (s
   let outId: string | undefined
   for (let i = 0; i < games; i++) {
     if (opts.events) {
-      if (i === 8) s = s.teams === 'fixed' ? addPairs(s, [['Zed', 'Yan']]) : addPlayers(s, ['Zed'])
+      if (i === 8) s = allPaired(s) ? addPairs(s, [['Zed', 'Yan']]) : addPlayers(s, ['Zed'])
       if (i === 16 && s.line.length > 0) {
         outId = s.line[0]
         s = timeOut(s, outId)
@@ -299,9 +307,9 @@ describe('Round Robin in singles: every player plays every other (T8.4)', () => 
   })
 })
 
-describe('Round Robin with fixed pairs: every pair plays every other pair (T8.4)', () => {
+describe('Round Robin with all pairs: every pair plays every other pair (T8.4, T8.9)', () => {
   it('on one court the games follow the schedule of pairs exactly', () => {
-    let s = make(4, { courts: 1, teams: 'fixed' })
+    let s = make(4, { courts: 1, pairs: true })
     const sides = [0, 2, 4, 6].map((i) => [s.players[i].id, s.players[i + 1].id])
     const order = roundRobinOrder(sides).map(([x, y]) => matchKey(x, y))
     const seen: string[] = []
@@ -315,7 +323,7 @@ describe('Round Robin with fixed pairs: every pair plays every other pair (T8.4)
   })
 
   it('partners always play together', () => {
-    let s = make(5, { courts: 2, teams: 'fixed' })
+    let s = make(5, { courts: 2, pairs: true })
     s = play(s, 30)
     for (const g of s.games)
       for (const t of [g.teamA, g.teamB]) expect(s.players.find((p) => p.id === t[0])!.partner).toBe(t[1])
@@ -404,14 +412,14 @@ describe('Round Robin rebuilds its schedule when sides join or leave (T8.4)', ()
   })
 })
 
-describe('Round Robin over many games (T8.4: 4, 5, 9, 17 players; singles 2, 3, 7; fixed pairs; 1–3 courts)', () => {
+describe('Round Robin over many games (T8.4: 4, 5, 9, 17 players; singles 2, 3, 7; all pairs; 1–3 courts)', () => {
   it.each(CONFIGS.map((c) => [c.label, c] as const))('%s', (_label, c) => {
     for (const events of [false, true]) {
-      const start = make(c.count, { courts: c.courts, play: c.play, teams: c.teams })
+      const start = make(c.count, { courts: c.courts, play: c.play, pairs: c.pairs })
       play(start, 60, {
         events,
         each: (s) => {
-          if (events || !(s.play === 'singles' || s.teams === 'fixed')) return
+          if (events || !(s.play === 'singles' || allPaired(s))) return
           // Matches: every pairing is played once before any is played twice.
           const counts = rrSchedule(s).pairings.map((p) => p.count)
           expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1)

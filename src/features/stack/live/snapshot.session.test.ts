@@ -80,6 +80,12 @@ describe('sessionFromSnapshot (T6.4)', () => {
     }
   })
 
+  it('the session it gives back has no teams field (T8.9: the Teams option is gone)', () => {
+    const out = sessionFromSnapshot(buildSnapshot(midSession()))
+    expect(out).not.toHaveProperty('teams')
+    expect(Object.keys(out).sort()).toEqual(['courts', 'format', 'games', 'line', 'play', 'players', 'title'])
+  })
+
   it('does not share arrays with the snapshot, so changing one leaves the other alone', () => {
     const snap = buildSnapshot(midSession())
     const before = JSON.parse(JSON.stringify(snap))

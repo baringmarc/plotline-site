@@ -1,33 +1,30 @@
-// T8.5 start screen helpers (TASKS.md T8.5; SPEC §4 "Combinations"). Plan names, in ./startOptions.ts:
-// - `formatsFor(play: Play, teams: Teams): Format[]`: the formats offered for that combination, in
-//   `paddleStack.formats` order (user, 2026-11-18, second by-eye look: fair, americano, winners-split, mexicano,
-//   winners-losers, skill-groups). SPEC §4: fixed pairs aren't offered in singles (any format); Winners stay & split
-//   isn't offered in singles; Americano and Mexicano aren't offered with fixed pairs; Skill groups and Winners vs
-//   Losers work in singles, open doubles and fixed pairs. Acceptance (user, 2026-11-18, from the by-eye check): Round
-//   Robin is merged into "Americano (Round Robin)" on the start screen, so `round-robin` is never offered, though the
-//   engine still accepts it (saved Round Robin sessions load and run).
-// - `pairUp(names: string[]): { pairs: [string, string][]; leftover: string | null }`: pairs names in list order
-//   (1 with 2, 3 with 4); an odd last name is `leftover`.
+// T8.5 start screen helpers (TASKS.md T8.5; SPEC §4 "Combinations"), brought to T8.9 (Teams removed; SPEC §4 "Pair
+// locks": "The start screen locks pairs among the name chips: the players join in list order and each pair then
+// stands at its further-back partner's spot (`startSession`); a Round Robin with some but not all players paired
+// doesn't start (`needs-pair`), and locks are ignored where they aren't offered"). Plan names, in ./startOptions.ts:
+// - `formatsFor(play: Play): Format[]`: the formats offered for that play, in `paddleStack.formats` order (user,
+//   2026-11-18, second by-eye look: fair, americano, winners-split, mexicano, winners-losers, skill-groups). SPEC §4:
+//   Winners stay & split isn't offered in singles. Acceptance (user, 2026-11-18, from the by-eye check): Round Robin
+//   is merged into "Americano (Round Robin)" on the start screen, so `round-robin` is never offered, though the engine
+//   still accepts it (saved Round Robin sessions load and run);
+// - `startSession({ title, play, format, courts, players: NewPlayer[], pairs: [string, string][] }): Session`: pairs
+//   by name, matched ignoring case; throws `StackError` `needs-pair` for a Round Robin with some but not all paired.
+//   It doesn't fill courts (StackPage does). `pairUp` is gone.
 import { describe, expect, it } from 'vitest'
 import { paddleStack } from '../../config/site'
-import { StackError, createSession } from './engine'
-import { formatsFor, pairUp } from './startOptions'
-import type { Format, Play, Teams } from './types'
+import { StackError, createSession, locksOffered } from './engine'
+import * as startOptions from './startOptions'
+import { formatsFor, startSession } from './startOptions'
+import type { Format, Play, Session } from './types'
 
 const ALL: Format[] = ['fair', 'americano', 'winners-split', 'mexicano', 'winners-losers', 'skill-groups']
-const COMBOS: [Play, Teams][] = [
-  ['singles', 'open'],
-  ['singles', 'fixed'],
-  ['doubles', 'open'],
-  ['doubles', 'fixed'],
-]
+const PLAYS: Play[] = ['singles', 'doubles']
 const configOrder = () => paddleStack.formats.map((f) => f.id as Format)
 
-/** Whether the engine accepts the combination (createSession refuses others with `bad-combo`). */
-function engineAccepts(format: Format, play: Play, teams: Teams): boolean {
+/** Whether the engine accepts the format for that play (createSession refuses others with `bad-combo`). */
+function engineAccepts(format: Format, play: Play): boolean {
   try {
-    if (teams === 'fixed') createSession({ format, play, teams, courts: 1, pairs: [['A', 'B'], ['C', 'D']] })
-    else createSession({ format, play, teams, courts: 1, names: ['A', 'B', 'C', 'D'] })
+    createSession({ format, play, courts: 1, names: ['A', 'B', 'C', 'D'] })
     return true
   } catch (e) {
     if (e instanceof StackError && e.code === 'bad-combo') return false
@@ -35,83 +32,198 @@ function engineAccepts(format: Format, play: Play, teams: Teams): boolean {
   }
 }
 
-describe('formatsFor (SPEC §4 "Combinations")', () => {
-  it('open doubles offers all six formats, in paddleStack.formats order', () => {
-    expect(formatsFor('doubles', 'open')).toEqual(ALL)
-    expect(formatsFor('doubles', 'open')).toEqual(configOrder())
+describe('formatsFor (SPEC §4 "Combinations"; one argument since T8.9)', () => {
+  it('doubles offers all six formats, in paddleStack.formats order', () => {
+    expect(formatsFor('doubles')).toEqual(ALL)
+    expect(formatsFor('doubles')).toEqual(configOrder())
   })
 
-  it('singles (open queue) hides Winners stay & split only', () => {
-    expect(formatsFor('singles', 'open')).toEqual(['fair', 'americano', 'mexicano', 'winners-losers', 'skill-groups'])
+  it('singles hides Winners stay & split only', () => {
+    expect(formatsFor('singles')).toEqual(['fair', 'americano', 'mexicano', 'winners-losers', 'skill-groups'])
   })
 
-  it('fixed pairs (doubles) hides Americano and Mexicano', () => {
-    expect(formatsFor('doubles', 'fixed')).toEqual(['fair', 'winners-split', 'winners-losers', 'skill-groups'])
-  })
-
-  it('singles with fixed pairs offers nothing (fixed pairs are doubles only)', () => {
-    expect(formatsFor('singles', 'fixed')).toEqual([])
+  it('takes the play alone: there is no Teams choice any more', () => {
+    expect(formatsFor.length).toBe(1)
   })
 
   it('never offers round-robin (merged into Americano on the start screen), though the engine still accepts it', () => {
-    for (const [play, teams] of COMBOS) expect(formatsFor(play, teams), `${play} / ${teams}`).not.toContain('round-robin')
-    expect(engineAccepts('round-robin', 'doubles', 'open')).toBe(true)
-    expect(engineAccepts('round-robin', 'singles', 'open')).toBe(true)
-    expect(engineAccepts('round-robin', 'doubles', 'fixed')).toBe(true)
+    for (const play of PLAYS) expect(formatsFor(play), play).not.toContain('round-robin')
+    expect(engineAccepts('round-robin', 'doubles')).toBe(true)
+    expect(engineAccepts('round-robin', 'singles')).toBe(true)
+    expect(createSession({ format: 'round-robin', courts: 1, pairs: [['A', 'B'], ['C', 'D']] }).format).toBe('round-robin')
   })
 
-  it('agrees with the engine for every combination: offered formats start, hidden ones are refused', () => {
-    for (const play of ['singles', 'doubles'] as Play[]) {
-      for (const teams of ['open', 'fixed'] as Teams[]) {
-        const offered = formatsFor(play, teams)
-        for (const f of ALL) expect(offered.includes(f), `${f} / ${play} / ${teams}`).toBe(engineAccepts(f, play, teams))
-      }
+  it('agrees with the engine for every play: offered formats start, hidden ones are refused', () => {
+    for (const play of PLAYS) {
+      const offered = formatsFor(play)
+      for (const f of ALL) expect(offered.includes(f), `${f} / ${play}`).toBe(engineAccepts(f, play))
     }
   })
 
-  it('keeps paddleStack.formats order in every combination', () => {
+  it('keeps paddleStack.formats order for every play', () => {
     const order = configOrder()
-    for (const play of ['singles', 'doubles'] as Play[]) {
-      for (const teams of ['open', 'fixed'] as Teams[]) {
-        const offered = formatsFor(play, teams)
-        expect(offered).toEqual(order.filter((f) => offered.includes(f)))
-      }
+    for (const play of PLAYS) {
+      const offered = formatsFor(play)
+      expect(offered).toEqual(order.filter((f) => offered.includes(f)))
     }
+  })
+
+  it('pairUp is gone (names are no longer paired by order)', () => {
+    expect('pairUp' in startOptions).toBe(false)
   })
 })
 
-describe('pairUp (fixed pairs: names paired in list order)', () => {
-  it('pairs 1 with 2 and 3 with 4, nothing left over', () => {
-    expect(pairUp(['Andrew', 'Maria', 'Juan', 'Jose'])).toEqual({
+describe('locksOffered matches what the engine accepts on the start screen (T8.9)', () => {
+  it('every offered format takes locked pairs exactly where locksOffered says so', () => {
+    for (const play of PLAYS) {
+      for (const format of formatsFor(play)) {
+        let accepts = true
+        try {
+          createSession({ format, play, courts: 1, pairs: [['A', 'B'], ['C', 'D']] })
+        } catch (e) {
+          if (!(e instanceof StackError) || e.code !== 'bad-combo') throw e
+          accepts = false
+        }
+        expect(accepts, `${format} / ${play}`).toBe(locksOffered(play, format))
+      }
+    }
+  })
+
+  it('on the start screen, locks are offered in doubles for Fair rotation, Winners stay, Winners vs Losers and Skill groups', () => {
+    expect(formatsFor('doubles').filter((f) => locksOffered('doubles', f))).toEqual(['fair', 'winners-split', 'winners-losers', 'skill-groups'])
+    expect(formatsFor('singles').filter((f) => locksOffered('singles', f))).toEqual([])
+  })
+})
+
+// ---------- startSession ----------
+
+const name = (s: Session, pid: string) => s.players.find((p) => p.id === pid)!.name
+const lineNames = (s: Session) => s.line.map((x) => name(s, x))
+const byName = (s: Session, n: string) => s.players.find((p) => p.name === n)!
+const partnerOf = (s: Session, n: string) => {
+  const q = byName(s, n).partner
+  return q === undefined ? undefined : name(s, q)
+}
+const FIVE = ['Ana', 'Ben', 'Cy', 'Dee', 'Eli']
+
+function expectCode(fn: () => unknown, code: string) {
+  let caught: unknown
+  try {
+    fn()
+  } catch (e) {
+    caught = e
+  }
+  expect(caught, `expected StackError ${code}`).toBeInstanceOf(StackError)
+  expect((caught as StackError).code).toBe(code)
+}
+
+describe('startSession (SPEC §4 "Pair locks": the start screen)', () => {
+  it('builds the session from the start screen: title, play, format, courts, players in list order, no games, no teams', () => {
+    const s = startSession({ title: '  Friday  ', play: 'doubles', format: 'skill-groups', courts: 2, players: FIVE, pairs: [] })
+    expect(s.title).toBe('Friday')
+    expect(s.play).toBe('doubles')
+    expect(s.format).toBe('skill-groups')
+    expect(s.courts).toBe(2)
+    expect(s.players.map((p) => p.name)).toEqual(FIVE)
+    expect(lineNames(s)).toEqual(FIVE)
+    expect(s.games).toEqual([])
+    expect(s).not.toHaveProperty('teams')
+    expect(s.players.every((p) => p.partner === undefined)).toBe(true)
+  })
+
+  it('players join in list order, then each pair stands at its further-back partner’s spot', () => {
+    const s = startSession({ title: '', play: 'doubles', format: 'fair', courts: 1, players: FIVE, pairs: [['Ana', 'Dee']] })
+    expect(s.players.map((p) => p.name)).toEqual(FIVE)
+    expect(lineNames(s)).toEqual(['Ben', 'Cy', 'Ana', 'Dee', 'Eli'])
+    expect(partnerOf(s, 'Ana')).toBe('Dee')
+    expect(partnerOf(s, 'Dee')).toBe('Ana')
+    expect(byName(s, 'Ben').partner).toBeUndefined()
+  })
+
+  it('pairs are matched by name ignoring case, given in either order; the names keep the list’s spelling', () => {
+    const s = startSession({ title: '', play: 'doubles', format: 'fair', courts: 1, players: FIVE, pairs: [['dee', 'ANA']] })
+    expect(lineNames(s)).toEqual(['Ben', 'Cy', 'Ana', 'Dee', 'Eli'])
+    expect(partnerOf(s, 'Ana')).toBe('Dee')
+    expect(s.players.map((p) => p.name)).toEqual(FIVE)
+  })
+
+  it('two pairs, and levels from the list kept on the partners', () => {
+    const s = startSession({
+      title: '',
+      play: 'doubles',
+      format: 'winners-split',
+      courts: 1,
+      players: [{ name: 'Ana', level: 3 }, 'Ben', 'Cy', { name: 'Dee', level: 1 }, 'Eli', 'Fay'],
       pairs: [
-        ['Andrew', 'Maria'],
-        ['Juan', 'Jose'],
+        ['Ana', 'Eli'],
+        ['Ben', 'Cy'],
       ],
-      leftover: null,
     })
+    expect(lineNames(s)).toEqual(['Ben', 'Cy', 'Dee', 'Ana', 'Eli', 'Fay'])
+    expect(partnerOf(s, 'Eli')).toBe('Ana')
+    expect(partnerOf(s, 'Cy')).toBe('Ben')
+    expect(byName(s, 'Ana').level).toBe(3)
+    expect(byName(s, 'Dee').level).toBe(1)
+    expect(byName(s, 'Fay').partner).toBeUndefined()
   })
 
-  it('an odd last name is the leftover', () => {
-    expect(pairUp(['Andrew', 'Maria', 'Juan', 'Jose', 'Ana'])).toEqual({
+  it.each<[Play, Format]>([
+    ['singles', 'fair'],
+    ['singles', 'skill-groups'],
+    ['doubles', 'americano'],
+    ['doubles', 'mexicano'],
+  ])('locks are ignored where they aren’t offered (%s %s): no partners, the list order kept', (play, format) => {
+    const s = startSession({ title: '', play, format, courts: 1, players: FIVE, pairs: [['Ana', 'Dee']] })
+    expect(s.players.every((p) => p.partner === undefined)).toBe(true)
+    expect(lineNames(s)).toEqual(FIVE)
+    expect(s.format).toBe(format)
+    expect(s.play).toBe(play)
+  })
+
+  it('a Round Robin with every player paired starts with all pairs locked', () => {
+    const s = startSession({
+      title: '',
+      play: 'doubles',
+      format: 'round-robin',
+      courts: 1,
+      players: ['Ana', 'Ben', 'Cy', 'Dee'],
       pairs: [
-        ['Andrew', 'Maria'],
-        ['Juan', 'Jose'],
+        ['Ana', 'Cy'],
+        ['Ben', 'Dee'],
       ],
-      leftover: 'Ana',
     })
+    expect(s.players.every((p) => p.partner !== undefined)).toBe(true)
+    expect(s.players.map((p) => p.name), 'the players join in list order').toEqual(['Ana', 'Ben', 'Cy', 'Dee'])
+    expect(partnerOf(s, 'Ana')).toBe('Cy')
+    expect(partnerOf(s, 'Dee')).toBe('Ben')
+    expect(lineNames(s)).toEqual(['Ana', 'Cy', 'Ben', 'Dee'])
   })
 
-  it('one name: no pairs, that name left over', () => {
-    expect(pairUp(['Andrew'])).toEqual({ pairs: [], leftover: 'Andrew' })
+  it('a Round Robin with no pairs starts with no locks', () => {
+    const s = startSession({ title: '', play: 'doubles', format: 'round-robin', courts: 1, players: FIVE, pairs: [] })
+    expect(s.players.every((p) => p.partner === undefined)).toBe(true)
+    expect(lineNames(s)).toEqual(FIVE)
   })
 
-  it('no names: no pairs and no leftover', () => {
-    expect(pairUp([])).toEqual({ pairs: [], leftover: null })
-  })
-
-  it('does not change the list it was given', () => {
-    const names = ['A', 'B', 'C']
-    pairUp(names)
-    expect(names).toEqual(['A', 'B', 'C'])
+  it('a Round Robin with some but not all players paired doesn’t start: needs-pair', () => {
+    expectCode(
+      () => startSession({ title: '', play: 'doubles', format: 'round-robin', courts: 1, players: FIVE, pairs: [['Ana', 'Ben']] }),
+      'needs-pair',
+    )
+    expectCode(
+      () =>
+        startSession({
+          title: '',
+          play: 'doubles',
+          format: 'round-robin',
+          courts: 1,
+          players: ['Ana', 'Ben', 'Cy', 'Dee', 'Eli', 'Fay'],
+          pairs: [
+            ['Ana', 'Ben'],
+            ['Cy', 'Dee'],
+          ],
+        }),
+      'needs-pair',
+    )
   })
 })
