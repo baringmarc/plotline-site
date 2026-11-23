@@ -48,6 +48,13 @@ For a risky task, pause and show the user a short plan: the files you'll touch, 
 
 For anything else, state your plan in two or three lines, naming what the tests will need (functions, components, files), and continue.
 
+**User checks and deploy timing (every plan, risky or not; L3 in CLAUDE.md).** Before building, the plan must name:
+
+- every check only the user can do: by eye, on a real device (for example an iPhone's photo picker or share sheet), or after a deploy;
+- for a check that needs a deploy, whether the deploy comes **before or after the commit**.
+
+If there are any, agree them with the user (AskUserQuestion; a risky task's plan approval can cover it). Then write them into the task's Acceptance marked `(user, <date>)` and add a SPEC §6 row, as L2 requires for any Acceptance change, for example `By-eye check (user, 2026-11-23): … on a real iPhone, after the deploy, which follows the commit`. If there are none, say "no user checks" in the plan. Never leave a check to be settled at review.
+
 ## 4. Tests first (test-writer)
 
 - Launch the `test-writer` agent in the foreground. Give it **only** the task ID (or the ad-hoc request) and the plan's names: functions, components, config keys, file paths. Don't send code or describe how you'll build it; it works from the task and SPEC.
@@ -68,6 +75,7 @@ For anything else, state your plan in two or three lines, naming what the tests 
 - Run `node .claude/hooks/verify-gate.mjs --full` and fix failures until it passes. It runs `npm run verify` (including the drift check) and records which changes passed. **The guard refuses `git commit` until a full run passed on exactly the current changes**, so re-run it after any later code edit.
 - Never weaken, skip or delete tests or lint rules. The guard blocks most of it, and the reviewer checks the rest.
 - For UI changes, check loading, empty and error states and the mobile layout.
+- **By-eye ask (UI changes, and any user check agreed in step 3).** Right after that browser check, ask the user for each check with AskUserQuestion, naming what to look at and where (URL, width, device). Record each answer in the task's `Notes:` as `By-eye check (user, <date>): <what was checked>: <passed | what they found>` **before step 7**. If they find a problem, fix it and go back through this step. A check agreed in step 3 to run after a deploy that follows the commit is the only one left for later: write `By-eye check: after the deploy (agreed <date>)` in the Notes so the reviewer sees it's planned, not missing.
 
 ## 7. Docs
 
